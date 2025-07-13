@@ -16,9 +16,26 @@ struct ArticleDetailView: View {
     let article: BlogArticle
     @StateObject private var viewModel = ArticleDetailViewModel()
     @Environment(\.dismiss) var dismiss
+    @State private var showMenu: Bool = false
     
     var body: some View {
-        ScrollView {
+        VStack(spacing: 0) {
+            // Custom Header with search
+            UnifiedHeader(
+                title: "記事",
+                showBackButton: true,
+                rightButton: HeaderButton(
+                    icon: "ellipsis.circle",
+                    action: {
+                        showMenu = true
+                    }
+                ),
+                onBack: {
+                    dismiss()
+                }
+            )
+            
+            ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Cover Image
                 if let coverImageUrl = article.coverImageUrl {
@@ -68,35 +85,50 @@ struct ArticleDetailView: View {
                 }
                 .padding(.horizontal, 16)
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button("シェア") {
-                        // TODO: Share functionality
-                    }
-                    
-                    Button("ブックマーク") {
-                        // TODO: Bookmark functionality
-                    }
-                    
-                    if article.user?.id == AuthManager.shared.currentUser?.id {
-                        Button("編集") {
-                            // TODO: Edit functionality
-                        }
-                        
-                        Button("削除", role: .destructive) {
-                            // TODO: Delete functionality
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
             }
         }
+        .navigationBarHidden(true)
         .task {
             await viewModel.loadArticleDetail(articleId: article.id)
+        }
+        .sheet(isPresented: $showMenu) {
+            VStack(alignment: .leading, spacing: 16) {
+                Button(action: {
+                    showMenu = false
+                    // TODO: Share functionality
+                }) {
+                    Label("シェア", systemImage: "square.and.arrow.up")
+                }
+                
+                Button(action: {
+                    showMenu = false
+                    // TODO: Bookmark functionality
+                }) {
+                    Label("ブックマーク", systemImage: "bookmark")
+                }
+                
+                if article.user?.id == AuthManager.shared.currentUser?.id {
+                    Button(action: {
+                        showMenu = false
+                        // TODO: Edit functionality
+                    }) {
+                        Label("編集", systemImage: "pencil")
+                    }
+                    
+                    Button(action: {
+                        showMenu = false
+                        // TODO: Delete functionality
+                    }) {
+                        Label("削除", systemImage: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .presentationDetents([.height(250)])
+            .presentationDragIndicator(.visible)
         }
     }
     

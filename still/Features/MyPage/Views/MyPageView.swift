@@ -11,50 +11,160 @@ struct MyPageView: View {
     @StateObject private var viewModel = MyPageViewModel()
     @EnvironmentObject var authManager: AuthManager
     @Binding var isInProfileSingleView: Bool
+    @Binding var isUserSearchMode: Bool
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedPost: Post?
     @State private var navigateToSingleView: Bool = false
+    @State private var searchText: String = ""
+    @State private var searchResults: [UserProfile] = []
+    @State private var isSearching: Bool = false
+    @State private var searchError: String?
     
     var body: some View {
         ScrollableHeaderView(
-            title: "Profile",
-            rightButton: HeaderButton(
+            title: isUserSearchMode ? "User Search" : "Profile",
+            rightButton: isUserSearchMode ? nil : HeaderButton(
                 icon: "gearshape",
-                action: { showSettings = true }
+                action: { 
+                    showSettings = true
+                }
             )
         ) {
             LazyVStack(spacing: MinimalDesign.Spacing.xl) {
-                // Profile Section
-                ModernProfileSection(
-                    profile: viewModel.userProfile,
-                    isLoading: viewModel.isLoading,
-                    postsCount: viewModel.postsCount,
-                    followersCount: viewModel.followersCount,
-                    hasNewFollowers: viewModel.hasNewFollowers,
-                    onEditProfile: { showEditProfile = true },
-                    onFollowersTapped: { viewModel.markNewFollowersAsSeen() },
-                    selectedPhotoItem: $selectedPhotoItem
-                )
-                
-                
-                // Posts Tab Section
-                ModernPostsTabSection(
-                    posts: viewModel.userPosts,
-                    selectedPost: $selectedPost,
-                    navigateToSingleView: $navigateToSingleView,
-                    onDeletePost: { post in
-                        Task {
-                            await viewModel.deletePost(post)
+                if isUserSearchMode {
+                    // ユーザー検索モード
+                    VStack(spacing: MinimalDesign.Spacing.md) {
+                        // 検索フィールド
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
+                            
+                            TextField("Search by user ID", text: $searchText)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .font(.system(size: 16))
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                                .onSubmit {
+                                    searchUsers()
+                                }
+                            
+                            if !searchText.isEmpty {
+                                Button(action: {
+                                    searchText = ""
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 16))
+                                }
+                            }
                         }
-                    },
-                    onReorderPosts: { reorderedPosts in
-                        Task {
-                            await viewModel.reorderPosts(reorderedPosts)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(25)
+                        .padding(.horizontal, MinimalDesign.Spacing.md)
+                        
+                        Divider()
+                            .padding(.horizontal, MinimalDesign.Spacing.md)
+                        
+                        // 検索結果エリア
+                        VStack {
+                            if searchText.isEmpty && searchResults.isEmpty {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "person.2")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.gray)
+                                    Text("Search for users")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text("Enter a user ID to find\nother users")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.top, 50)
+                            } else if isSearching {
+                                VStack {
+                                    ProgressView()
+                                    Text("Searching...")
+                                        .foregroundColor(.secondary)
+                                        .padding(.top, 8)
+                                }
+                                .padding(.top, 50)
+                            } else if let error = searchError {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.orange)
+                                    Text("Error")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.top, 50)
+                            } else if searchResults.isEmpty && !searchText.isEmpty {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "person.slash")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.gray)
+                                    Text("No users found")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+                                    Text("Try a different user ID")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.top, 50)
+                            } else {
+                                // 検索結果を表示
+                                LazyVStack(spacing: 12) {
+                                    ForEach(searchResults, id: \.id) { user in
+                                        UserSearchResultRow(user: user)
+                                            .padding(.horizontal, MinimalDesign.Spacing.md)
+                                    }
+                                }
+                                .padding(.top, 16)
+                            }
                         }
                     }
-                )
+                } else {
+                    // 通常のプロフィールモード
+                    // Profile Section
+                    ModernProfileSection(
+                        profile: viewModel.userProfile,
+                        isLoading: viewModel.isLoading,
+                        postsCount: viewModel.postsCount,
+                        followersCount: viewModel.followersCount,
+                        hasNewFollowers: viewModel.hasNewFollowers,
+                        onEditProfile: { showEditProfile = true },
+                        onFollowersTapped: { viewModel.markNewFollowersAsSeen() },
+                        selectedPhotoItem: $selectedPhotoItem
+                    )
+                    
+                    
+                    // Posts Tab Section
+                    ModernPostsTabSection(
+                        posts: viewModel.userPosts,
+                        selectedPost: $selectedPost,
+                        navigateToSingleView: $navigateToSingleView,
+                        onDeletePost: { post in
+                            Task {
+                                await viewModel.deletePost(post)
+                            }
+                        },
+                        onReorderPosts: { reorderedPosts in
+                            Task {
+                                await viewModel.reorderPosts(reorderedPosts)
+                            }
+                        }
+                    )
+                }
             }
             .padding(.vertical, MinimalDesign.Spacing.md)
             .padding(.bottom, 100) // タブバー分のスペース
@@ -96,6 +206,93 @@ struct MyPageView: View {
                     selectedPost = nil
                 }
             }
+    }
+    
+    // ユーザー検索機能
+    private func searchUsers() {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+        
+        isSearching = true
+        searchError = nil
+        searchResults = []
+        
+        Task {
+            do {
+                let users = try await UserRepository.shared.searchUsersByUsername(searchText.trimmingCharacters(in: .whitespacesAndNewlines))
+                await MainActor.run {
+                    self.searchResults = users
+                    self.isSearching = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.searchError = error.localizedDescription
+                    self.isSearching = false
+                }
+            }
+        }
+    }
+}
+
+// ユーザー検索結果行コンポーネント
+struct UserSearchResultRow: View {
+    let user: UserProfile
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // プロフィール画像
+            AsyncImage(url: URL(string: user.avatarUrl ?? "")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Circle()
+                    .fill(Color.gray.opacity(0.3))
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.gray)
+                    )
+            }
+            .frame(width: 50, height: 50)
+            .clipShape(Circle())
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(user.profileDisplayName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
+                
+                Text(user.userIdWithAt)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                
+                if let bio = user.bio, !bio.isEmpty {
+                    Text(bio)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            
+            Spacer()
+            
+            // フォローボタンエリア（将来の拡張用）
+            Button(action: {
+                // TODO: Implement follow/unfollow
+            }) {
+                Text("View")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(20)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(Color.gray.opacity(0.05))
+        .cornerRadius(12)
     }
 }
 

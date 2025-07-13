@@ -14,6 +14,7 @@ protocol UserRepositoryProtocol: Sendable {
     func updateProfilePhoto(userId: String, imageData: Data) async throws -> String
     func fetchFollowersCount(userId: String) async throws -> Int
     func fetchFollowingCount(userId: String) async throws -> Int
+    func searchUsersByUsername(_ query: String) async throws -> [UserProfile]
 }
 
 /// Implementation of UserRepository
@@ -28,7 +29,7 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
     func fetchUserProfile(userId: String) async throws -> UserProfile {
         do {
             let profile: UserProfile = try await supabaseClient
-                .from("user_profiles")
+                .from("profiles")
                 .select()
                 .eq("id", value: userId)
                 .single()
@@ -77,7 +78,7 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
     func updateUserProfile(_ profile: UserProfile) async throws {
         do {
             _ = try await supabaseClient
-                .from("user_profiles")
+                .from("profiles")
                 .update(profile)
                 .eq("id", value: profile.id)
                 .execute()
@@ -104,7 +105,7 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
             
             // Update profile with new URL
             _ = try await supabaseClient
-                .from("user_profiles")
+                .from("profiles")
                 .update(["avatar_url": publicURL.absoluteString])
                 .eq("id", value: userId)
                 .execute()
@@ -147,4 +148,27 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
             return 0
         }
     }
+    
+    /// Searches users by username
+    func searchUsersByUsername(_ query: String) async throws -> [UserProfile] {
+        do {
+            let profiles: [UserProfile] = try await supabaseClient
+                .from("profiles")
+                .select()
+                .ilike("username", pattern: "%\(query)%")
+                .limit(20)
+                .execute()
+                .value
+            
+            return profiles
+        } catch {
+            Logger.shared.error("Failed to search users: \(error)")
+            throw ViewModelError.network("Failed to search users")
+        }
+    }
+}
+
+// Singleton access
+extension UserRepository {
+    static let shared = UserRepository()
 }

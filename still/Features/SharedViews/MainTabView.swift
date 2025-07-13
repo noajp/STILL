@@ -14,6 +14,7 @@ struct MainTabView: View {
     @State private var tabBarOffset: CGFloat = 0
     @State private var headerOffset: CGFloat = 0
     @State private var lastScrollOffset: CGFloat = 0
+    @State private var isUserSearchMode = false
     
     var body: some View {
         ZStack {
@@ -62,7 +63,10 @@ struct MainTabView: View {
                     
                     // プロフィール (3) - タブの順序用に3に変更
                     UnifiedNavigationView {
-                        MyPageView(isInProfileSingleView: $isInProfileSingleView)
+                        MyPageView(
+                            isInProfileSingleView: $isInProfileSingleView,
+                            isUserSearchMode: $isUserSearchMode
+                        )
                     }
                     .tag(3)
                 }
@@ -101,7 +105,12 @@ struct MainTabView: View {
                             if isInProfileSingleView {
                                 isInProfileSingleView = false
                             }
-                        }
+                        },
+                        onProfileDoubleTap: {
+                            // プロフィールボタンのタップでユーザー検索モードを切り替え
+                            isUserSearchMode.toggle()
+                        },
+                        isUserSearchMode: $isUserSearchMode
                     )
                 }
                 .offset(y: tabBarOffset)

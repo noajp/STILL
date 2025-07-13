@@ -13,8 +13,19 @@ struct CustomTabBar: View {
     let isInSingleView: Bool
     let onBackToGrid: (() -> Void)?
     let onBackFromProfileSingleView: (() -> Void)?
+    let onProfileDoubleTap: (() -> Void)?
+    @Binding var isUserSearchMode: Bool
     
     @Environment(\.colorScheme) var colorScheme
+    
+    // プロフィールアイコンの名前を計算
+    private var profileIconName: String {
+        if selectedTab == 3 {
+            return isUserSearchMode ? "person.2.fill" : "person.fill"
+        } else {
+            return isUserSearchMode ? "person.2" : "person"
+        }
+    }
     
     var body: some View {
         HStack(spacing: 0) {
@@ -116,20 +127,23 @@ struct CustomTabBar: View {
             }
             .frame(maxWidth: .infinity)
             
-            // アカウントボタン
-            Button(action: {
-                if selectedTab == 3 && onBackFromProfileSingleView != nil {
-                    // プロフィールのシングルビューから戻る
-                    onBackFromProfileSingleView?()
-                } else {
-                    selectedTab = 3
-                }
-            }) {
-                Image(systemName: selectedTab == 3 ? "person.fill" : "person")
+            // アカウントボタン（シングルタップで検索モード切り替え）
+            VStack {
+                Image(systemName: profileIconName)
                     .font(.system(size: 20, weight: .light))
                     .foregroundColor(selectedTab == 3 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
             }
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if selectedTab == 3 {
+                    // 既にプロフィールタブが選択されている場合は検索モードを切り替え
+                    onProfileDoubleTap?()
+                } else {
+                    // プロフィールタブに切り替え
+                    selectedTab = 3
+                }
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
