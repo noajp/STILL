@@ -17,7 +17,7 @@ struct ScrollableHeaderView<Content: View>: View {
     @State private var headerOffset: CGFloat = 0
     @State private var lastScrollOffset: CGFloat = 0
     
-    private let headerHeight: CGFloat = 105 // HomeFeedViewと統一
+    private let headerHeight: CGFloat = 105 // STILLヘッダーと同じ高さに統一
     
     init(
         title: String,

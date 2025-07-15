@@ -8,7 +8,7 @@ struct Message: Identifiable, Codable {
     let id: String
     let conversationId: String
     let senderId: String
-    let content: String
+    let content: String  // 暗号化されたコンテンツ
     let createdAt: Date
     let updatedAt: Date
     let isEdited: Bool
@@ -16,6 +16,19 @@ struct Message: Identifiable, Codable {
     
     // Relationships
     var sender: UserProfile?
+    
+    // 復号化されたコンテンツを取得
+    var decryptedContent: String {
+        // Base64エンコードされた暗号化データをデコード
+        do {
+            let keyData = try KeychainManager.shared.getUserKey()
+            let key = CryptoManager.shared.dataToKey(keyData)
+            return try CryptoManager.shared.decryptFromBase64(base64String: content, using: key)
+        } catch {
+            // 復号化に失敗した場合（古いメッセージなど）はそのまま表示
+            return content
+        }
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -34,8 +47,8 @@ struct Conversation: Identifiable, Codable {
     let id: String
     let createdAt: Date
     let updatedAt: Date
-    let lastMessageAt: Date?
-    let lastMessagePreview: String?
+    var lastMessageAt: Date?
+    var lastMessagePreview: String?
     
     // Relationships
     var participants: [ConversationParticipant]?
@@ -119,16 +132,27 @@ struct Conversation: Identifiable, Codable {
         return otherParticipants.first?.user?.avatarUrl
     }
     
-    // 最後のメッセージプレビューを15文字に制限して表示
+    // 最後のメッセージプレビューを15文字に制限して表示（復号化版）
     var displayLastMessagePreview: String {
         guard let preview = lastMessagePreview else {
             return "Start a conversation"
         }
         
-        if preview.count <= 15 {
-            return preview
+        // 暗号化された文字列を復号化
+        let decryptedPreview: String
+        do {
+            let keyData = try KeychainManager.shared.getUserKey()
+            let key = CryptoManager.shared.dataToKey(keyData)
+            decryptedPreview = try CryptoManager.shared.decryptFromBase64(base64String: preview, using: key)
+        } catch {
+            // 復号化に失敗した場合（古いメッセージや初回など）はそのまま表示
+            decryptedPreview = preview
+        }
+        
+        if decryptedPreview.count <= 15 {
+            return decryptedPreview
         } else {
-            return String(preview.prefix(15)) + "..."
+            return String(decryptedPreview.prefix(15)) + "..."
         }
     }
 }

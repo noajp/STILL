@@ -6,30 +6,40 @@ import SwiftUI
 
 struct RemoteImageView: View {
     let imageURL: String
+    let thumbnailSize: String
+    
+    @State private var thumbnailImage: UIImage?
+    @State private var fullImage: UIImage?
+    @State private var isLoading = true
+    
+    init(imageURL: String, thumbnailSize: String = "medium") {
+        self.imageURL = imageURL
+        self.thumbnailSize = thumbnailSize
+    }
     
     var body: some View {
         Group {
             if imageURL.starts(with: "http") {
-                // URLから画像を読み込む
-                AsyncImage(url: URL(string: imageURL)) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.gray.opacity(0.1))
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure(_):
-                        Image(systemName: "photo")
-                            .font(.system(size: 32))
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.gray.opacity(0.1))
-                    @unknown default:
-                        EmptyView()
-                    }
+                // サムネイル優先読み込み
+                if let fullImage = fullImage {
+                    Image(uiImage: fullImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else if let thumbnailImage = thumbnailImage {
+                    Image(uiImage: thumbnailImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .blur(radius: 0.5)
+                } else if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.gray.opacity(0.1))
+                } else {
+                    Image(systemName: "photo")
+                        .font(.system(size: 32))
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.gray.opacity(0.1))
                 }
             } else if let uiImage = UIImage(named: imageURL) {
                 // ローカル画像
@@ -52,6 +62,21 @@ struct RemoteImageView: View {
                     )
             }
         }
+        .task {
+            await loadImages()
+        }
+    }
+    
+    private func loadImages() async {
+        isLoading = true
+        
+        // 1. サムネイルを先に読み込み
+        thumbnailImage = await ImageCacheManager.shared.loadThumbnail(from: imageURL, size: thumbnailSize)
+        
+        // 2. フルサイズを背景で読み込み
+        fullImage = await ImageCacheManager.shared.loadImage(from: imageURL)
+        
+        isLoading = false
     }
 }
 

@@ -31,7 +31,7 @@ class UserSearchViewModel: ObservableObject {
             let searchQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             
             let users: [UserProfile] = try await supabase
-                .from("user_profiles")
+                .from("profiles")
                 .select("*")
                 .neq("id", value: currentUserId) // Exclude current user
                 .or("username.ilike.*\(searchQuery)*,display_name.ilike.*\(searchQuery)*")
@@ -60,7 +60,7 @@ class UserSearchViewModel: ObservableObject {
         
         do {
             let users: [UserProfile] = try await supabase
-                .from("user_profiles")
+                .from("profiles")
                 .select("*")
                 .neq("id", value: currentUserId)
                 .limit(10)

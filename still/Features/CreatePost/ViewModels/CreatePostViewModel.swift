@@ -140,7 +140,7 @@ class CreatePostViewModel: ObservableObject {
                 // Check if user profile exists
                 print("🔵 Checking if user profile exists...")
                 let profileCheck = try await supabase
-                    .from("user_profiles")
+                    .from("profiles")
                     .select("id", head: true, count: .exact)
                     .eq("id", value: userId)
                     .execute()
@@ -315,6 +315,26 @@ class CreatePostViewModel: ObservableObject {
                 data: imageData,
                 options: FileOptions(contentType: "image/jpeg")
             )
+        
+        // サムネイルを作成してアップロード
+        let imageProcessor = ImageProcessor()
+        let thumbnails = imageProcessor.generateThumbnails(image)
+        
+        // サムネイルをアップロード
+        for (size, thumbnail) in thumbnails {
+            guard let thumbnailData = thumbnail.jpegData(compressionQuality: 0.8) else { continue }
+            
+            let thumbnailFileName = "\(UUID().uuidString)_\(size).jpg"
+            let thumbnailFilePath = "thumbnails/\(thumbnailFileName)"
+            
+            _ = try await supabase.storage
+                .from("user-uploads")
+                .upload(
+                    thumbnailFilePath,
+                    data: thumbnailData,
+                    options: FileOptions(contentType: "image/jpeg")
+                )
+        }
         
         // 公開URLを構築
         let projectUrl = SecureConfig.shared.supabaseURL

@@ -242,7 +242,7 @@ class MessageService: ObservableObject {
         // Verify both users exist in user_profiles table using count instead of full object
         do {
             let currentUserCount = try await supabase
-                .from("user_profiles")
+                .from("profiles")
                 .select("id", head: true, count: .exact)
                 .eq("id", value: currentUserId)
                 .execute()
@@ -257,7 +257,7 @@ class MessageService: ObservableObject {
         
         do {
             let targetUserCount = try await supabase
-                .from("user_profiles")
+                .from("profiles")
                 .select("id", head: true, count: .exact)
                 .eq("id", value: userId)
                 .execute()
@@ -349,7 +349,7 @@ class MessageService: ObservableObject {
             .from("messages")
             .select("""
                 *,
-                sender:user_profiles(*)
+                sender:profiles(*)
             """)
             .eq("conversation_id", value: conversationId)
             .order("created_at", ascending: false)
@@ -369,10 +369,24 @@ class MessageService: ObservableObject {
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
+        // 暗号化キーを取得または生成
+        let encryptedContent: String
+        do {
+            let keyData = try KeychainManager.shared.getUserKey()
+            let key = CryptoManager.shared.dataToKey(keyData)
+            encryptedContent = try CryptoManager.shared.encryptToBase64(text: content, using: key)
+        } catch KeychainError.keyNotFound {
+            // 初回の場合はキーを生成
+            let newKey = CryptoManager.shared.generateUserKey()
+            let keyData = CryptoManager.shared.keyToData(newKey)
+            try KeychainManager.shared.saveUserKey(keyData)
+            encryptedContent = try CryptoManager.shared.encryptToBase64(text: content, using: newKey)
+        }
+        
         let messageData = [
             "conversation_id": conversationId,
             "sender_id": userId,
-            "content": content
+            "content": encryptedContent  // 暗号化されたコンテンツを保存
         ]
         
         let message: Message = try await supabase
@@ -380,7 +394,7 @@ class MessageService: ObservableObject {
             .insert(messageData)
             .select("""
                 *,
-                sender:user_profiles(*)
+                sender:profiles(*)
             """)
             .single()
             .execute()
@@ -396,6 +410,11 @@ class MessageService: ObservableObject {
         // Update unread count for all users (sender's count might decrease, receiver's might increase)
         Task {
             await updateUnreadCount()
+        }
+        
+        // Post notification for immediate UI update
+        await MainActor.run {
+            NotificationCenter.default.post(name: .messageWasSent, object: message)
         }
         
         return message

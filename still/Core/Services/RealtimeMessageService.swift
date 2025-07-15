@@ -47,11 +47,25 @@ final class RealtimeMessageService: ObservableObject {
         let messageId = UUID().uuidString
         let now = Date()
         
+        // 暗号化キーを取得または生成
+        let encryptedContent: String
+        do {
+            let keyData = try KeychainManager.shared.getUserKey()
+            let key = CryptoManager.shared.dataToKey(keyData)
+            encryptedContent = try CryptoManager.shared.encryptToBase64(text: content, using: key)
+        } catch KeychainError.keyNotFound {
+            // 初回の場合はキーを生成
+            let newKey = CryptoManager.shared.generateUserKey()
+            let keyData = CryptoManager.shared.keyToData(newKey)
+            try KeychainManager.shared.saveUserKey(keyData)
+            encryptedContent = try CryptoManager.shared.encryptToBase64(text: content, using: newKey)
+        }
+        
         let messageData = MessageInsert(
             id: messageId,
             conversationId: conversationId,
             senderId: currentUserId,
-            content: content,
+            content: encryptedContent,  // 暗号化されたコンテンツを保存
             messageType: type.rawValue,
             createdAt: now,
             updatedAt: now,
@@ -67,8 +81,24 @@ final class RealtimeMessageService: ObservableObject {
                 .insert(messageData)
                 .execute()
             
-            // Update conversation last message
-            try await updateConversationLastMessage(conversationId: conversationId, content: content, timestamp: now)
+            // Update conversation last message with encrypted content
+            try await updateConversationLastMessage(conversationId: conversationId, content: encryptedContent, timestamp: now)
+            
+            // Create a temporary message object for immediate UI update
+            let tempMessage = Message(
+                id: messageId,
+                conversationId: conversationId,
+                senderId: currentUserId,
+                content: encryptedContent,
+                createdAt: now,
+                updatedAt: now,
+                isEdited: false,
+                isDeleted: false,
+                sender: nil
+            )
+            
+            // Update local conversation list immediately
+            await updateConversationWithNewMessage(tempMessage)
             
             print("✅ Message sent successfully")
             
@@ -169,8 +199,22 @@ final class RealtimeMessageService: ObservableObject {
     
     /// メッセージを編集
     func editMessage(messageId: String, newContent: String) async throws {
+        // 暗号化キーを取得または生成
+        let encryptedContent: String
+        do {
+            let keyData = try KeychainManager.shared.getUserKey()
+            let key = CryptoManager.shared.dataToKey(keyData)
+            encryptedContent = try CryptoManager.shared.encryptToBase64(text: newContent, using: key)
+        } catch KeychainError.keyNotFound {
+            // 初回の場合はキーを生成
+            let newKey = CryptoManager.shared.generateUserKey()
+            let keyData = CryptoManager.shared.keyToData(newKey)
+            try KeychainManager.shared.saveUserKey(keyData)
+            encryptedContent = try CryptoManager.shared.encryptToBase64(text: newContent, using: newKey)
+        }
+        
         let updateData = MessageUpdate(
-            content: newContent,
+            content: encryptedContent,  // 暗号化されたコンテンツを保存
             isEdited: true,
             updatedAt: Date()
         )
@@ -311,7 +355,7 @@ final class RealtimeMessageService: ObservableObject {
     
     private func updateConversationWithNewMessage(_ message: Message) async {
         if let index = conversations.firstIndex(where: { $0.id == message.conversationId }) {
-            conversations[index].lastMessagePreview = message.content
+            conversations[index].lastMessagePreview = message.decryptedContent
             conversations[index].lastMessageAt = message.createdAt
             
             // Move to top and resort

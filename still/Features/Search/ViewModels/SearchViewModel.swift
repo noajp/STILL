@@ -8,19 +8,21 @@ import Combine
 @MainActor
 class SearchViewModel: ObservableObject {
     @Published var searchResults: [Post] = []
+    @Published var userSearchResults: [UserProfile] = []
     @Published var searchText = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var popularPosts: [Post] = []
     
     private let postService = PostService()
+    private let userRepository = UserRepository.shared
     private var hasLoadedInitially = false
     
     init() {
         loadPopularPostsIfNeeded()
     }
     
-    func search(_ query: String) {
+    func searchPosts(_ query: String) {
         guard !query.isEmpty else {
             searchResults = []
             return
@@ -41,6 +43,25 @@ class SearchViewModel: ObservableObject {
                 self.isLoading = false
             } catch {
                 self.errorMessage = "検索に失敗しました"
+                self.isLoading = false
+            }
+        }
+    }
+    
+    func searchUsers(_ query: String) {
+        guard !query.isEmpty else {
+            userSearchResults = []
+            return
+        }
+        
+        isLoading = true
+        
+        Task {
+            do {
+                self.userSearchResults = try await userRepository.searchUsersByUsername(query)
+                self.isLoading = false
+            } catch {
+                self.errorMessage = "ユーザー検索に失敗しました"
                 self.isLoading = false
             }
         }
@@ -71,6 +92,12 @@ class SearchViewModel: ObservableObject {
     
     func showFilters() {
         // フィルター画面を表示
+    }
+    
+    func clearSearchResults() {
+        searchResults = []
+        userSearchResults = []
+        searchText = ""
     }
 }
 

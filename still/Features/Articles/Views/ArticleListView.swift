@@ -5,16 +5,23 @@
 //======================================================================
 
 import SwiftUI
+import PhotosUI
 
 struct ArticleListView: View {
     @StateObject private var viewModel = ArticleListViewModel()
     @Environment(\.colorScheme) var colorScheme
+    @State private var showingArticleEditor = false
     
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            ScrollableHeaderView(
-                title: "Articles"
-            ) {
+        ScrollableHeaderView(
+            title: "Articles",
+            rightButton: HeaderButton(
+                icon: "plus",
+                action: {
+                    showingArticleEditor = true
+                }
+            )
+        ) {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.articles) { article in
                     NavigationLink(destination: ArticleDetailView(article: article)) {
@@ -25,20 +32,12 @@ struct ArticleListView: View {
                     Divider()
                         .padding(.leading, 16)
                 }
-                }
-                .padding(.vertical, 8)
             }
-            .background(Color(.systemBackground))
-            
-            // カスタム投稿ボタン
-            NavigationLink(destination: CreateArticleView()) {
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
-                    .frame(width: 44, height: 44)
-            }
-            .padding(.top, 55)
-            .padding(.trailing, 16)
+            .padding(.vertical, 8)
+        }
+        .background(Color(.systemBackground))
+        .fullScreenCover(isPresented: $showingArticleEditor) {
+            ArticleEditorView()
         }
         .task {
             await viewModel.loadArticles()
@@ -121,6 +120,7 @@ struct ArticleRowView: View {
         .padding(.vertical, 12)
     }
 }
+
 
 #Preview {
     ArticleListView()

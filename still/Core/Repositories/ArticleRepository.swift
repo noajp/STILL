@@ -278,7 +278,7 @@ class ArticleRepository: ObservableObject {
     private func fetchUserForArticle(_ article: BlogArticle) async -> BlogArticle {
         do {
             let userProfile: UserProfile = try await supabase
-                .from("user_profiles")
+                .from("profiles")
                 .select("*")
                 .eq("id", value: article.userId)
                 .single()

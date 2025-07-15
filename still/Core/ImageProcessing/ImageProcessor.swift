@@ -75,6 +75,33 @@ final class ImageProcessor {
         return image.jpegData(compressionQuality: compression)
     }
     
+    /// サムネイル生成
+    func generateThumbnail(_ image: UIImage, size: CGSize = CGSize(width: 150, height: 150)) -> UIImage? {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+    
+    /// 複数サイズのサムネイル生成
+    func generateThumbnails(_ image: UIImage) -> [String: UIImage] {
+        var thumbnails: [String: UIImage] = [:]
+        
+        let sizes = [
+            "small": CGSize(width: 80, height: 80),
+            "medium": CGSize(width: 150, height: 150),
+            "large": CGSize(width: 300, height: 300)
+        ]
+        
+        for (key, size) in sizes {
+            if let thumbnail = generateThumbnail(image, size: size) {
+                thumbnails[key] = thumbnail
+            }
+        }
+        
+        return thumbnails
+    }
+    
     // MARK: - Export Functions
     
     /// 編集済み画像のエクスポート

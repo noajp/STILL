@@ -53,6 +53,34 @@ final class ImageCacheManager: ObservableObject {
     
     // MARK: - Public Methods
     
+    /// サムネイルを非同期で取得（キャッシュ優先）
+    func loadThumbnail(from urlString: String, size: String = "medium") async -> UIImage? {
+        guard let url = URL(string: urlString) else { return nil }
+        
+        let cacheKey = "\(urlString)_thumb_\(size)" as NSString
+        
+        // 1. Memory cache check
+        if let cachedImage = cache.object(forKey: cacheKey) {
+            return cachedImage
+        }
+        
+        // 2. Check if already loading
+        if let existingTask = loadingTasks["\(urlString)_thumb_\(size)"] {
+            return try? await existingTask.value
+        }
+        
+        // 3. Load full image and create thumbnail
+        if let fullImage = await loadImage(from: urlString) {
+            let thumbnailSize = getThumbnailSize(for: size)
+            if let thumbnail = ImageProcessor().generateThumbnail(fullImage, size: thumbnailSize) {
+                cache.setObject(thumbnail, forKey: cacheKey, cost: estimateMemoryUsage(for: thumbnail))
+                return thumbnail
+            }
+        }
+        
+        return nil
+    }
+    
     /// 画像を非同期で取得（キャッシュ優先）
     func loadImage(from urlString: String) async -> UIImage? {
         guard let url = URL(string: urlString) else { return nil }
@@ -113,6 +141,20 @@ final class ImageCacheManager: ObservableObject {
         try? fileManager.removeItem(at: cacheDirectory)
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
         print("🗑️ Image cache cleared")
+    }
+    
+    /// サムネイルサイズを取得
+    private func getThumbnailSize(for size: String) -> CGSize {
+        switch size {
+        case "small":
+            return CGSize(width: 80, height: 80)
+        case "medium":
+            return CGSize(width: 150, height: 150)
+        case "large":
+            return CGSize(width: 300, height: 300)
+        default:
+            return CGSize(width: 150, height: 150)
+        }
     }
     
     /// キャッシュサイズを取得

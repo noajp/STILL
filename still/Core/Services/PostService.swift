@@ -93,7 +93,7 @@ class PostService: @unchecked Sendable {
             if !userIds.isEmpty {
                 do {
                     let userProfiles: [UserProfile] = try await client
-                        .from("user_profiles")
+                        .from("profiles")
                         .select("*")
                         .in("id", values: userIds)
                         .execute()
@@ -117,16 +117,35 @@ class PostService: @unchecked Sendable {
                 if let user = userMap[posts[i].userId] {
                     posts[i].user = user
                 } else {
-                    print("⚠️ ユーザー情報が見つかりません: Post \(posts[i].id), User ID \(posts[i].userId)")
-                    // ダミーユーザーを作成
-                    posts[i].user = UserProfile(
-                        id: posts[i].userId,
-                        username: "user_\(posts[i].userId.suffix(8))",
-                        displayName: "Unknown User",
-                        avatarUrl: nil,
-                        bio: nil,
-                        createdAt: nil
-                    )
+                    print("❌ ユーザー情報が見つかりません: Post \(posts[i].id), User ID \(posts[i].userId)")
+                    print("❌ 利用可能なユーザーIDs: \(Array(userMap.keys))")
+                    
+                    // 個別にユーザーを再取得してみる
+                    do {
+                        let singleUser: UserProfile = try await client
+                            .from("profiles")
+                            .select("*")
+                            .eq("id", value: posts[i].userId)
+                            .single()
+                            .execute()
+                            .value
+                        
+                        posts[i].user = singleUser
+                        print("✅ 個別取得成功: \(singleUser.username)")
+                    } catch {
+                        print("❌ 個別取得も失敗: \(error)")
+                        // ダミーユーザーを作成
+                        posts[i].user = UserProfile(
+                            id: posts[i].userId,
+                            username: "user_\(posts[i].userId.suffix(8))",
+                            displayName: "Unknown User",
+                            avatarUrl: nil,
+                            bio: nil,
+                            followersCount: 0,
+                            followingCount: 0,
+                            createdAt: nil
+                        )
+                    }
                 }
             }
             

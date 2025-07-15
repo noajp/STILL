@@ -77,13 +77,25 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
     /// Updates user profile
     func updateUserProfile(_ profile: UserProfile) async throws {
         do {
-            _ = try await supabaseClient
+            let response = try await supabaseClient
                 .from("profiles")
                 .update(profile)
                 .eq("id", value: profile.id)
                 .execute()
+            
+            // Verify the update actually happened
+            if response.count == 0 {
+                Logger.shared.error("Profile update failed - no rows affected")
+                throw ViewModelError.serverError("Profile update failed - no rows affected")
+            }
+            
+            Logger.shared.info("Profile updated successfully for user: \(profile.id)")
         } catch {
             Logger.shared.error("Failed to update profile: \(error)")
+            if let postgrestError = error as? PostgrestError {
+                Logger.shared.error("Supabase error code: \(postgrestError.code ?? "unknown")")
+                Logger.shared.error("Supabase error message: \(postgrestError.message)")
+            }
             throw ViewModelError.serverError("Failed to update profile")
         }
     }

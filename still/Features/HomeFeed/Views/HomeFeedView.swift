@@ -263,7 +263,7 @@ struct PostCardView: View {
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(post.user?.username ?? "unknown_user")
+                    Text(post.user?.displayName ?? post.user?.username ?? "unknown_user")
                         .font(.body)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)

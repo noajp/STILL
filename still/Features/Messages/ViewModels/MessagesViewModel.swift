@@ -8,6 +8,7 @@ import Combine
 
 extension Notification.Name {
     static let conversationMarkedAsRead = Notification.Name("conversationMarkedAsRead")
+    static let messageWasSent = Notification.Name("messageWasSent")
 }
 
 @MainActor
@@ -56,6 +57,18 @@ class MessagesViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+        
+        // Listen for new messages sent
+        NotificationCenter.default.publisher(for: .messageWasSent)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                guard let self = self,
+                      let message = notification.object as? Message else { return }
+                
+                // Update conversation with new message immediately
+                self.updateConversationWithNewMessage(message)
+            }
+            .store(in: &cancellables)
     }
     
     private var cancellables = Set<AnyCancellable>()
@@ -65,6 +78,21 @@ class MessagesViewModel: ObservableObject {
             conversations[index] = updatedConversation
             // Re-sort by last message time
             conversations.sort { ($0.lastMessageAt ?? Date.distantPast) > ($1.lastMessageAt ?? Date.distantPast) }
+        }
+    }
+    
+    private func updateConversationWithNewMessage(_ message: Message) {
+        if let index = conversations.firstIndex(where: { $0.id == message.conversationId }) {
+            // Update last message preview and timestamp
+            conversations[index].lastMessagePreview = message.content  // This is encrypted content
+            conversations[index].lastMessageAt = message.createdAt
+            
+            // Move conversation to top
+            let updatedConversation = conversations.remove(at: index)
+            conversations.insert(updatedConversation, at: 0)
+            
+            // Force UI update
+            objectWillChange.send()
         }
     }
     

@@ -348,7 +348,7 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
         
         do {
             let response = try await client
-                .from("user_profiles")
+                .from("profiles")
                 .insert(profileData)
                 .execute()
             
@@ -373,7 +373,7 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
     func checkUsernameAvailability(username: String) async throws -> Bool {
         do {
             let response = try await client
-                .from("user_profiles")
+                .from("profiles")
                 .select("username")
                 .eq("username", value: username)
                 .execute()
@@ -517,7 +517,7 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
             
             // Check if profile already exists
             let profileCount = try await client
-                .from("user_profiles")
+                .from("profiles")
                 .select("id", head: true, count: .exact)
                 .eq("id", value: user.id.uuidString)
                 .execute()

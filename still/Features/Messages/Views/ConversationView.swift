@@ -187,20 +187,31 @@ struct ConversationView: View {
                 }
             )
         }
-        .navigationTitle(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Message")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .accentColor(MinimalDesign.Colors.accentRed)
         .toolbar {
-            if let avatarUrl = viewModel.conversation?.displayAvatar(currentUserId: authManager.currentUser?.id) {
-                ToolbarItem(placement: .principal) {
-                    HStack {
+            // Custom back button with icon and name
+            ToolbarItem(placement: .navigationBarLeading) {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(MinimalDesign.Colors.accentRed)
+                    }
+                    
+                    if let avatarUrl = viewModel.conversation?.displayAvatar(currentUserId: authManager.currentUser?.id) {
                         RemoteImageView(imageURL: avatarUrl)
                             .frame(width: 32, height: 32)
-                            .clipShape(Rectangle())
-                        
-                        Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "")
-                            .font(.system(size: 16, weight: .semibold))
+                            .clipShape(Circle())
                     }
+                    
+                    Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Message")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(MinimalDesign.Colors.primary)
                 }
             }
         }
@@ -247,12 +258,12 @@ struct MessageBubble: View {
                         .padding(.top, 4)
                 }
                 
-                Text(message.content)
+                Text(message.decryptedContent)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(isCurrentUser ? MinimalDesign.Colors.primary : Color.gray.opacity(0.2))
+                    .background(isCurrentUser ? MinimalDesign.Colors.accentRed : Color.gray.opacity(0.2))
                     .foregroundColor(isCurrentUser ? MinimalDesign.Colors.background : MinimalDesign.Colors.primary)
-                    .cornerRadius(0)
+                    .cornerRadius(18)
                 
                 if message.isEdited {
                     Text("Edited")

@@ -437,7 +437,7 @@ struct MessagePreviewRow: View {
                 Spacer()
             }
             
-            Text(message.content)
+            Text(message.decryptedContent)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .font(.system(size: 14))
