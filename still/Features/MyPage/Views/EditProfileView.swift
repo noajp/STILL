@@ -3,6 +3,7 @@
 // Path: foodai/Features/MyPage/Views/EditProfileView.swift
 //======================================================================
 import SwiftUI
+import PhotosUI
 
 struct EditProfileView: View {
     @ObservedObject var viewModel: MyPageViewModel
@@ -13,10 +14,70 @@ struct EditProfileView: View {
     @State private var bio: String = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
+    @State private var selectedImage: PhotosPickerItem?
+    @State private var profileImage: UIImage?
+    @State private var isUploadingImage = false
     
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Profile Photo")) {
+                    HStack {
+                        // Current profile image
+                        if let profileImage = profileImage {
+                            Image(uiImage: profileImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else if let avatarUrl = viewModel.userProfile?.avatarUrl {
+                            AsyncImage(url: URL(string: avatarUrl)) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .overlay(
+                                        Image(systemName: "person.fill")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 30))
+                                    )
+                            }
+                            .frame(width: 80, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 30))
+                                )
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            PhotosPicker("Change Photo", selection: $selectedImage, matching: .images)
+                                .foregroundColor(.blue)
+                                .disabled(isUploadingImage)
+                            
+                            if isUploadingImage {
+                                HStack {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                    Text("Uploading...")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
+                
                 Section(header: Text("Basic Information")) {
                     HStack {
                         Text("Username")
@@ -76,6 +137,11 @@ struct EditProfileView: View {
             .onAppear {
                 loadCurrentProfile()
             }
+            .onChange(of: selectedImage) { _, newValue in
+                if let newValue = newValue {
+                    loadSelectedImage(newValue)
+                }
+            }
         }
     }
     
@@ -84,6 +150,35 @@ struct EditProfileView: View {
             username = profile.username
             displayName = profile.displayName ?? ""
             bio = profile.bio ?? ""
+        }
+    }
+    
+    private func loadSelectedImage(_ item: PhotosPickerItem) {
+        Task {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let uiImage = UIImage(data: data) {
+                await MainActor.run {
+                    self.profileImage = uiImage
+                    uploadProfileImage(uiImage)
+                }
+            }
+        }
+    }
+    
+    private func uploadProfileImage(_ image: UIImage) {
+        isUploadingImage = true
+        
+        Task {
+            do {
+                let success = await viewModel.updateProfilePhoto(image)
+                await MainActor.run {
+                    isUploadingImage = false
+                    if !success {
+                        alertMessage = "Failed to upload profile image"
+                        showAlert = true
+                    }
+                }
+            }
         }
     }
     

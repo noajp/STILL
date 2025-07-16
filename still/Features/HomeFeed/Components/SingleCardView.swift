@@ -46,10 +46,10 @@ struct SingleCardView: View {
                 }
             }
             .frame(width: 32, height: 32)
-            .clipShape(Rectangle())
+            .clipShape(RoundedRectangle(cornerRadius: 6))
             
             // ユーザー名
-            Text(post.userId)
+            Text(post.user?.username ?? "unknown")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(MinimalDesign.Colors.primary)
             

@@ -168,6 +168,41 @@ final class MyPageViewModel: BaseViewModelClass {
         }
     }
     
+    /// Updates profile photo with UIImage
+    func updateProfilePhoto(_ image: UIImage) async -> Bool {
+        guard let userId = currentUserId else {
+            print("❌ MyPageViewModel: No current user ID")
+            return false
+        }
+        
+        showLoading()
+        
+        do {
+            // Convert UIImage to Data
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                hideLoading()
+                return false
+            }
+            
+            // Upload and update
+            let newAvatarUrl = try await userRepository.updateProfilePhoto(
+                userId: userId,
+                imageData: imageData
+            )
+            
+            // Update local profile
+            userProfile?.avatarUrl = newAvatarUrl
+            
+            hideLoading()
+            Logger.shared.info("Profile photo updated successfully")
+            return true
+            
+        } catch {
+            handleError(error)
+            return false
+        }
+    }
+    
     // MARK: - Navigation Methods
     func navigateToSavedPosts() {
         // TODO: 保存済み投稿画面への遷移

@@ -250,7 +250,7 @@ struct PostCardView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 6)
                         .fill(Color(.tertiarySystemBackground))
                         .overlay(
                             Text(post.user?.username.prefix(1).uppercased() ?? "?")
@@ -259,11 +259,11 @@ struct PostCardView: View {
                         )
                 }
                 .frame(width: 32, height: 32)
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 
                 // User Info
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(post.user?.displayName ?? post.user?.username ?? "unknown_user")
+                    Text(post.user?.username ?? "unknown")
                         .font(.body)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)

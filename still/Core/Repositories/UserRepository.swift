@@ -107,12 +107,12 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
             
             // Upload to storage
             _ = try await supabaseClient.storage
-                .from("avatars")
+                .from("user-uploads")
                 .upload(fileName, data: imageData)
             
             // Get public URL
             let publicURL = try supabaseClient.storage
-                .from("avatars")
+                .from("user-uploads")
                 .getPublicURL(path: fileName)
             
             // Update profile with new URL

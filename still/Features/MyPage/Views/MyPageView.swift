@@ -32,7 +32,7 @@ struct MyPageView: View {
                 }
             )
         ) {
-            LazyVStack(spacing: MinimalDesign.Spacing.xl) {
+            LazyVStack(spacing: 0) {
                 if isUserSearchMode {
                     // ユーザー検索モード
                     VStack(spacing: MinimalDesign.Spacing.md) {
@@ -147,7 +147,6 @@ struct MyPageView: View {
                         selectedPhotoItem: $selectedPhotoItem
                     )
                     
-                    
                     // Posts Tab Section
                     ModernPostsTabSection(
                         posts: viewModel.userPosts,
@@ -166,7 +165,8 @@ struct MyPageView: View {
                     )
                 }
             }
-            .padding(.vertical, MinimalDesign.Spacing.md)
+            .padding(.top, 0)
+            .padding(.bottom, MinimalDesign.Spacing.xs)
             .padding(.bottom, 100) // タブバー分のスペース
         }
         .background(MinimalDesign.Colors.background)
@@ -334,7 +334,7 @@ struct ModernProfileSection: View {
     @State private var showGridMode = false
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             HStack(alignment: .top, spacing: 16) {
                 // Profile Image - Rounded Square (Left aligned)
                 ProfileImagePicker(
@@ -430,7 +430,8 @@ struct ModernProfileSection: View {
             }
             
         }
-        .padding(.vertical, MinimalDesign.Spacing.lg)
+        .padding(.top, MinimalDesign.Spacing.sm)
+        .padding(.bottom, MinimalDesign.Spacing.md)
         .background(MinimalDesign.Colors.background)
     }
 }

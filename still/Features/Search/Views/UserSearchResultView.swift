@@ -8,6 +8,7 @@ struct UserSearchResultView: View {
     let user: UserProfile
     @State private var isFollowing = false
     @State private var isLoading = false
+    @State private var showProfile = false
     
     var body: some View {
         HStack(spacing: 12) {
@@ -17,7 +18,7 @@ struct UserSearchResultView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } placeholder: {
-                Circle()
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Color.gray.opacity(0.3))
                     .overlay(
                         Image(systemName: "person.fill")
@@ -26,7 +27,7 @@ struct UserSearchResultView: View {
                     )
             }
             .frame(width: 50, height: 50)
-            .clipShape(Circle())
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // ユーザー情報
             VStack(alignment: .leading, spacing: 4) {
@@ -53,43 +54,33 @@ struct UserSearchResultView: View {
             // フォローボタン
             if !isCurrentUser {
                 Button(action: {
-                    toggleFollow()
+                    navigateToProfile()
                 }) {
-                    Group {
-                        if isLoading {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else if isFollowing {
-                            Text("フォロー中")
-                                .font(.system(size: 14, weight: .medium))
-                        } else {
-                            Text("フォロー")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                    }
-                    .foregroundColor(isFollowing ? .primary : .white)
-                    .frame(width: 80, height: 32)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(isFollowing ? Color.clear : Color.blue)
-                            .stroke(isFollowing ? Color.gray : Color.clear, lineWidth: 1)
-                    )
+                    Text("Follow")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(width: 80, height: 32)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.red)
+                        )
                 }
-                .disabled(isLoading)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(Color(.systemBackground))
         .contentShape(Rectangle())
-        .onTapGesture {
-            // プロフィール画面に遷移
-            navigateToProfile()
+        .fullScreenCover(isPresented: $showProfile) {
+            OtherUserProfileView(userId: user.id)
         }
     }
     
     private var isCurrentUser: Bool {
-        return user.id == AuthManager.shared.currentUser?.id
+        guard let currentUser = AuthManager.shared.currentUser else {
+            return false
+        }
+        return user.id == currentUser.id
     }
     
     private func toggleFollow() {
@@ -105,8 +96,8 @@ struct UserSearchResultView: View {
     }
     
     private func navigateToProfile() {
-        // TODO: プロフィール画面への遷移を実装
-        print("Navigate to profile: \(user.username)")
+        // プロフィール画面への遷移を実装
+        showProfile = true
     }
 }
 
