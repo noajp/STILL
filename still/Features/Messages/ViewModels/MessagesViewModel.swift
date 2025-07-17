@@ -141,10 +141,21 @@ class MessagesViewModel: ObservableObject {
     func createNewConversation(with userId: String) async -> String? {
         do {
             let conversationId = try await messageService.getOrCreateDirectConversation(with: userId)
-            await loadConversations() // Reload to show new conversation
-            return conversationId
+            
+            // 会話リストを更新して、新しい会話が確実に含まれるようにする
+            await refreshConversations()
+            
+            // 新しい会話がリストに追加されたことを確認
+            if conversations.contains(where: { $0.id == conversationId }) {
+                print("✅ New conversation created and added to list: \(conversationId)")
+                return conversationId
+            } else {
+                print("⚠️ New conversation created but not found in list: \(conversationId)")
+                return conversationId  // Still return the ID even if not in list yet
+            }
         } catch {
             errorMessage = "Failed to create conversation: \(error.localizedDescription)"
+            print("❌ Failed to create conversation: \(error)")
             return nil
         }
     }

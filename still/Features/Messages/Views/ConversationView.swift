@@ -22,6 +22,7 @@ class ConversationViewModel: ObservableObject {
         self.conversationId = conversationId
         self.conversation = conversation
         
+        print("🔄 ConversationViewModel init - ID: \(conversationId), hasConversation: \(conversation != nil)")
         
         Task {
             await loadMessages()
@@ -83,18 +84,22 @@ class ConversationViewModel: ObservableObject {
         
         // Skip reload if already loaded to preserve local changes (like deletions)
         guard !hasLoadedInitialMessages else {
+            print("📱 ConversationViewModel - Skipping message reload (already loaded)")
             return
         }
         
         isLoading = true
+        print("📱 ConversationViewModel - Loading messages for: \(conversationId)")
         
         do {
             let fetchedMessages = try await messageService.fetchMessages(for: conversationId)
             // Filter out deleted messages as a safety check
             messages = fetchedMessages.filter { !$0.isDeleted }
             hasLoadedInitialMessages = true
+            print("📱 ConversationViewModel - Loaded \(messages.count) messages")
         } catch {
             errorMessage = "Failed to load messages: \(error.localizedDescription)"
+            print("❌ ConversationViewModel - Failed to load messages: \(error)")
         }
         
         isLoading = false
@@ -147,6 +152,22 @@ struct ConversationView: View {
                         if viewModel.isLoading {
                             ProgressView()
                                 .padding()
+                        } else if let errorMessage = viewModel.errorMessage {
+                            VStack(spacing: 8) {
+                                Text("Error loading messages")
+                                    .font(.headline)
+                                    .foregroundColor(.red)
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                Button("Retry") {
+                                    Task {
+                                        await viewModel.forceLoadMessages()
+                                    }
+                                }
+                            }
+                            .padding()
                         } else {
                             ForEach(viewModel.messages) { message in
                                 MessageBubble(message: message)
@@ -209,7 +230,7 @@ struct ConversationView: View {
                             .clipShape(Circle())
                     }
                     
-                    Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Message")
+                    Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Loading...")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(MinimalDesign.Colors.primary)
                 }

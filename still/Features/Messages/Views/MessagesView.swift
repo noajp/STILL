@@ -73,9 +73,11 @@ struct MessagesView: View {
                 NewMessageView { userId in
                     Task {
                         if let conversationId = await viewModel.createNewConversation(with: userId) {
-                            isNavigatingToNewMessage = false
-                            // Navigate directly to the conversation
-                            selectedConversationId = conversationId
+                            // 会話作成が完了してから画面遷移
+                            await MainActor.run {
+                                selectedConversationId = conversationId
+                                isNavigatingToNewMessage = false
+                            }
                         }
                     }
                 }
@@ -84,9 +86,12 @@ struct MessagesView: View {
                 get: { selectedConversationId.map { ConversationDestination(id: $0) } },
                 set: { _ in selectedConversationId = nil }
             )) { destination in
-                if let conversation = viewModel.conversations.first(where: { $0.id == destination.id }) {
-                    ConversationView(conversationId: destination.id, conversation: conversation)
-                }
+                // 会話データがない場合でも ConversationView を表示
+                // ConversationView 内で会話データを取得する
+                ConversationView(
+                    conversationId: destination.id, 
+                    conversation: viewModel.conversations.first(where: { $0.id == destination.id })
+                )
             }
             .onChange(of: selectedConversationId) { oldValue, newValue in
                 // チャットルームから戻った時（selectedConversationIdがnilになった時）にサイレント更新
