@@ -14,11 +14,13 @@ extension Notification.Name {
 @MainActor
 class MessagesViewModel: ObservableObject {
     @Published var conversations: [Conversation] = []
+    @Published var groupConversations: [GroupConversation] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
     private let messageService = MessageService.shared
     private var hasLoadedInitially = false
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
         Task {
@@ -71,8 +73,6 @@ class MessagesViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    private var cancellables = Set<AnyCancellable>()
-    
     private func updateConversationInList(_ updatedConversation: Conversation) {
         if let index = conversations.firstIndex(where: { $0.id == updatedConversation.id }) {
             conversations[index] = updatedConversation
@@ -109,9 +109,16 @@ class MessagesViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            conversations = try await messageService.fetchConversations()
+            async let directConversations = messageService.fetchConversations()
+            async let groupChats = messageService.fetchGroupConversations()
+            
+            conversations = try await directConversations
+            groupConversations = try await groupChats
+            
+            print("📋 MessagesViewModel - Loaded \(conversations.count) direct conversations and \(groupConversations.count) group chats")
             hasLoadedInitially = true
         } catch {
+            print("❌ MessagesViewModel - Failed to load conversations: \(error.localizedDescription)")
             errorMessage = "Failed to load conversations: \(error.localizedDescription)"
         }
         
@@ -127,11 +134,16 @@ class MessagesViewModel: ObservableObject {
     func silentRefreshConversations() async {
         // ローディング表示をせずにバックグラウンドで更新
         do {
-            let newConversations = try await messageService.fetchConversations()
+            async let newDirectConversations = messageService.fetchConversations()
+            async let newGroupConversations = messageService.fetchGroupConversations()
+            
+            let directChats = try await newDirectConversations
+            let groupChats = try await newGroupConversations
             
             // UIの更新はメインスレッドで、アニメーション付きで行う
             withAnimation(.easeInOut(duration: 0.2)) {
-                conversations = newConversations
+                conversations = directChats
+                groupConversations = groupChats
             }
         } catch {
             // エラーの場合はサイレントに失敗（UIは既存データを保持）
@@ -198,8 +210,56 @@ class MessagesViewModel: ObservableObject {
             try await messageService.deleteConversation(conversationId)
             // Remove from local list
             conversations.removeAll { $0.id == conversationId }
+            groupConversations.removeAll { $0.id == conversationId }
         } catch {
             errorMessage = "Failed to delete conversation: \(error.localizedDescription)"
+        }
+    }
+    
+    // MARK: - Group Chat Functions
+    
+    func createGroupChat(name: String, description: String? = nil, memberIds: [String] = []) async -> String? {
+        do {
+            let conversationId = try await messageService.createGroupChat(
+                name: name,
+                description: description,
+                memberIds: memberIds
+            )
+            
+            // Refresh group conversations to include the new one
+            await refreshConversations()
+            
+            return conversationId
+        } catch {
+            errorMessage = "Failed to create group chat: \(error.localizedDescription)"
+            print("❌ Failed to create group chat: \(error)")
+            return nil
+        }
+    }
+    
+    func addGroupMember(conversationId: String, userId: String) async -> Bool {
+        do {
+            let success = try await messageService.addGroupMember(conversationId: conversationId, userId: userId)
+            if success {
+                await silentRefreshConversations()
+            }
+            return success
+        } catch {
+            errorMessage = "Failed to add member: \(error.localizedDescription)"
+            return false
+        }
+    }
+    
+    func removeGroupMember(conversationId: String, userId: String) async -> Bool {
+        do {
+            let success = try await messageService.removeGroupMember(conversationId: conversationId, userId: userId)
+            if success {
+                await silentRefreshConversations()
+            }
+            return success
+        } catch {
+            errorMessage = "Failed to remove member: \(error.localizedDescription)"
+            return false
         }
     }
 }

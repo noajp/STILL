@@ -11,28 +11,47 @@ struct MessagesView: View {
     @State private var selectedConversationId: String?
     @State private var isNavigatingToNewMessage = false
     @EnvironmentObject var authManager: AuthManager
+    @Binding var isGroupChatMode: Bool
     
     var body: some View {
         ScrollableHeaderView(
-            title: "Messages",
+            title: isGroupChatMode ? "Group Chats" : "Messages",
             rightButton: HeaderButton(
-                icon: "square.and.pencil",
-                action: { isNavigatingToNewMessage = true }
+                icon: isGroupChatMode ? "person.3.sequence.fill" : "square.and.pencil",
+                action: { 
+                    if isGroupChatMode {
+                        // グループチャット作成画面へ
+                        // TODO: グループチャット作成機能を実装
+                    } else {
+                        isNavigatingToNewMessage = true 
+                    }
+                }
             )
         ) {
             if viewModel.isLoading {
                 ProgressView("Loading conversations...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.conversations.isEmpty {
-                MessagesEmptyStateView()
+                if isGroupChatMode {
+                    GroupChatEmptyStateView()
+                } else {
+                    MessagesEmptyStateView()
+                }
             } else {
                 VStack(spacing: 0) {
-                    ForEach(viewModel.conversations) { conversation in
+                    ForEach(filteredConversations) { conversation in
                         NavigationLink(destination: ConversationView(conversationId: conversation.id, conversation: conversation)) {
-                            ConversationRow(
-                                conversation: conversation,
-                                timestamp: viewModel.formatTimestamp(conversation.lastMessageAt)
-                            )
+                            if isGroupChatMode {
+                                GroupConversationRow(
+                                    conversation: conversation,
+                                    timestamp: viewModel.formatTimestamp(conversation.lastMessageAt)
+                                )
+                            } else {
+                                ConversationRow(
+                                    conversation: conversation,
+                                    timestamp: viewModel.formatTimestamp(conversation.lastMessageAt)
+                                )
+                            }
                         }
                         .buttonStyle(PlainButtonStyle())
                         .contextMenu {
@@ -47,7 +66,7 @@ struct MessagesView: View {
                                 .frame(width: 300, height: 400)
                         }
                         
-                        if conversation.id != viewModel.conversations.last?.id {
+                        if conversation.id != filteredConversations.last?.id {
                             Divider()
                                 .padding(.leading, 70)
                         }
@@ -72,12 +91,17 @@ struct MessagesView: View {
             .navigationDestination(isPresented: $isNavigatingToNewMessage) {
                 NewMessageView { userId in
                     Task {
+                        print("🔄 Starting conversation creation with user: \(userId)")
                         if let conversationId = await viewModel.createNewConversation(with: userId) {
+                            print("✅ Conversation created with ID: \(conversationId)")
                             // 会話作成が完了してから画面遷移
                             await MainActor.run {
+                                print("🎯 Setting selectedConversationId to: \(conversationId)")
                                 selectedConversationId = conversationId
                                 isNavigatingToNewMessage = false
                             }
+                        } else {
+                            print("❌ Failed to create conversation")
                         }
                     }
                 }
@@ -88,9 +112,11 @@ struct MessagesView: View {
             )) { destination in
                 // 会話データがない場合でも ConversationView を表示
                 // ConversationView 内で会話データを取得する
-                ConversationView(
+                let conversation = viewModel.conversations.first(where: { $0.id == destination.id })
+                let _ = print("🎯 Navigating to ConversationView with ID: \(destination.id), hasConversation: \(conversation != nil)")
+                return ConversationView(
                     conversationId: destination.id, 
-                    conversation: viewModel.conversations.first(where: { $0.id == destination.id })
+                    conversation: conversation
                 )
             }
             .onChange(of: selectedConversationId) { oldValue, newValue in
@@ -102,6 +128,27 @@ struct MessagesView: View {
                 }
             }
         .accentColor(MinimalDesign.Colors.accentRed)
+    }
+    
+    private var filteredConversations: [Conversation] {
+        if isGroupChatMode {
+            // グループチャットモードでは、GroupConversationをConversationに変換して表示
+            return viewModel.groupConversations.map { groupConv in
+                var conversation = Conversation(
+                    id: groupConv.id,
+                    createdAt: groupConv.createdAt,
+                    updatedAt: groupConv.updatedAt,
+                    lastMessageAt: groupConv.lastMessageAt,
+                    lastMessagePreview: groupConv.lastMessageContent
+                )
+                conversation.participants = [] // グループメンバーは別途取得
+                conversation.unreadCount = groupConv.unreadCount
+                return conversation
+            }
+        } else {
+            // 個人チャットのみ表示
+            return viewModel.conversations
+        }
     }
 }
 
@@ -124,9 +171,9 @@ struct ConversationRow: View {
             if let avatarUrl = conversation.displayAvatar(currentUserId: authManager.currentUser?.id) {
                 RemoteImageView(imageURL: avatarUrl)
                     .frame(width: 50, height: 50)
-                    .clipShape(Rectangle())
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
-                Rectangle()
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 50, height: 50)
                     .overlay(
@@ -185,6 +232,86 @@ struct MessagesEmptyStateView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct GroupChatEmptyStateView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "person.3")
+                .font(.system(size: 60))
+                .foregroundColor(.gray.opacity(0.6))
+            Text("No group chats yet")
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+            Text("Create a group chat to start\nchatting with multiple people")
+                .font(.body)
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct GroupConversationRow: View {
+    let conversation: Conversation
+    let timestamp: String
+    @EnvironmentObject var authManager: AuthManager
+    
+    private var hasUnread: Bool {
+        (conversation.unreadCount ?? 0) > 0
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // グループチャット用のアイコン
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.blue)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Group Chat") // TODO: 実際のグループ名を表示
+                        .font(.system(size: 16, weight: hasUnread ? .semibold : .regular))
+                        .foregroundColor(MinimalDesign.Colors.primary)
+                    
+                    Spacer()
+                    
+                    Text(timestamp)
+                        .font(.system(size: 14))
+                        .foregroundColor(MinimalDesign.Colors.secondary)
+                }
+                
+                Text(conversation.displayLastMessagePreview)
+                    .font(.system(size: 14))
+                    .foregroundColor(hasUnread ? MinimalDesign.Colors.primary : MinimalDesign.Colors.secondary)
+                    .lineLimit(1)
+            }
+            
+            if hasUnread {
+                ZStack {
+                    Rectangle()
+                        .fill(Color.red)
+                        .frame(width: 20, height: 20)
+                    
+                    Text("\(conversation.unreadCount ?? 0)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .background(MinimalDesign.Colors.background)
     }
 }
 
@@ -295,9 +422,9 @@ struct UserRowView: View {
                 if let avatarUrl = user.avatarUrl {
                     RemoteImageView(imageURL: avatarUrl)
                         .frame(width: 48, height: 48)
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.2))
                         .frame(width: 48, height: 48)
                         .overlay(
@@ -373,9 +500,9 @@ struct ConversationPreview: View {
                 if let avatarUrl = conversation.displayAvatar(currentUserId: currentUserId) {
                     RemoteImageView(imageURL: avatarUrl)
                         .frame(width: 32, height: 32)
-                        .clipShape(Rectangle())
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 } else {
-                    Rectangle()
+                    RoundedRectangle(cornerRadius: 6)
                         .fill(Color.gray.opacity(0.3))
                         .frame(width: 32, height: 32)
                         .overlay(

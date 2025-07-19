@@ -54,5 +54,6 @@ struct SinglePostView: View {
             }
         }
         .navigationBarHidden(true)
+        .ignoresSafeArea(.all, edges: .top)
     }
 }

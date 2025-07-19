@@ -7,6 +7,7 @@ import SwiftUI
 struct SingleCardView: View {
     let post: Post
     let onLikeTapped: (Post) -> Void
+    @State private var showingProfile = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -35,23 +36,42 @@ struct SingleCardView: View {
     
     // MARK: - ユーザーヘッダー
     private var userHeader: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .bottom, spacing: 8) {
             // アバター
-            Group {
-                if let avatarUrl = post.user?.avatarUrl {
-                    RemoteImageView(imageURL: avatarUrl)
-                } else {
-                    RoundedRectangle(cornerRadius: 0)
-                        .fill(Color.gray.opacity(0.3))
+            if let user = post.user {
+                NavigationLink(destination: OtherUserProfileView(userId: user.id)) {
+                    Group {
+                        if let avatarUrl = post.user?.avatarUrl {
+                            RemoteImageView(imageURL: avatarUrl)
+                        } else {
+                            RoundedRectangle(cornerRadius: 0)
+                                .fill(Color.gray.opacity(0.3))
+                        }
+                    }
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                Group {
+                    if let avatarUrl = post.user?.avatarUrl {
+                        RemoteImageView(imageURL: avatarUrl)
+                    } else {
+                        RoundedRectangle(cornerRadius: 0)
+                            .fill(Color.gray.opacity(0.3))
+                    }
+                }
+                .frame(width: 32, height: 32)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            .frame(width: 32, height: 32)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
             
             // ユーザー名
-            Text(post.user?.username ?? "unknown")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(MinimalDesign.Colors.primary)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(post.user?.username ?? "unknown")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(MinimalDesign.Colors.primary)
+                Spacer(minLength: 2)
+            }
             
             Spacer()
             
@@ -62,8 +82,8 @@ struct SingleCardView: View {
                     .foregroundColor(MinimalDesign.Colors.primary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
     
     // MARK: - 画像セクション

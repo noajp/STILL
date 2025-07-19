@@ -51,6 +51,7 @@ struct ProfileSinglePostView: View {
             }
         }
         .navigationBarHidden(true)
+        .ignoresSafeArea(.all, edges: .top)
         .onAppear {
             currentIndex = 0 // 選択された投稿が最初なので0
         }

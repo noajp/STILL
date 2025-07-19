@@ -147,6 +147,8 @@ class MessageService: ObservableObject {
             .execute()
             .value
         
+        print("📋 MessageService - fetchConversations: Got \(conversationData.count) conversation data items")
+        
         
         // Group by conversation ID and build Conversation objects
         var conversationDict: [String: Conversation] = [:]
@@ -229,6 +231,7 @@ class MessageService: ObservableObject {
         // Update the count of conversations with unread messages
         self.unreadConversationsCount = conversationsWithUnreadMessages
         
+        print("📋 MessageService - fetchConversations: Returning \(conversationsWithUnread.count) conversations")
         return conversationsWithUnread
     }
     
@@ -400,6 +403,9 @@ class MessageService: ObservableObject {
             .execute()
             .value
         
+        // Ensure sender's participation record exists (in case they deleted the conversation)
+        try await ensureParticipationExists(conversationId: conversationId, userId: userId)
+        
         // Mark conversation as read after sending
         do {
             try await markConversationAsRead(conversationId)
@@ -462,32 +468,23 @@ class MessageService: ObservableObject {
             .execute()
     }
     
-    /// Delete a conversation completely (hard delete)
+    /// Delete a conversation from current user's view only (soft delete)
     func deleteConversation(_ conversationId: String) async throws {
-        guard AuthManager.shared.currentUser?.id != nil else {
+        guard let currentUserId = AuthManager.shared.currentUser?.id else {
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
-        // First, delete all messages in the conversation
-        try await supabase
-            .from("messages")
-            .delete()
-            .eq("conversation_id", value: conversationId)
-            .execute()
-        
-        // Then, delete all participant records
+        // Only remove the current user's participation record
+        // This hides the conversation from their view while keeping it for the other participant
         try await supabase
             .from("conversation_participants")
             .delete()
             .eq("conversation_id", value: conversationId)
+            .eq("user_id", value: currentUserId)
             .execute()
         
-        // Finally, delete the conversation itself
-        try await supabase
-            .from("conversations")
-            .delete()
-            .eq("id", value: conversationId)
-            .execute()
+        // Note: Messages and conversation record remain intact for the other participant
+        print("🗑️ Conversation \(conversationId) hidden from user \(currentUserId)")
     }
     
     // MARK: - Helper Methods
@@ -536,6 +533,111 @@ class MessageService: ObservableObject {
             await MainActor.run {
                 self.unreadConversationsCount = 0
             }
+        }
+    }
+    
+    // MARK: - Group Chat Functions
+    
+    /// Create a new group chat
+    func createGroupChat(name: String, description: String? = nil, memberIds: [String] = []) async throws -> String {
+        guard AuthManager.shared.currentUser?.id != nil else {
+            throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+        }
+        
+        let conversationId: String = try await supabase
+            .rpc("create_group_chat", params: [
+                "group_name_param": AnyJSON.string(name),
+                "group_description_param": description.map { AnyJSON.string($0) } ?? AnyJSON.null,
+                "member_ids": AnyJSON.array(memberIds.map { AnyJSON.string($0) })
+            ])
+            .execute()
+            .value
+        
+        return conversationId
+    }
+    
+    /// Fetch group conversations for current user
+    func fetchGroupConversations() async throws -> [GroupConversation] {
+        guard let currentUserId = AuthManager.shared.currentUser?.id else {
+            throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+        }
+        
+        let response: [GroupConversation] = try await supabase
+            .rpc("get_user_group_conversations", params: ["user_id_param": AnyJSON.string(currentUserId)])
+            .execute()
+            .value
+        
+        return response
+    }
+    
+    /// Add member to group chat
+    func addGroupMember(conversationId: String, userId: String) async throws -> Bool {
+        let result: Bool = try await supabase
+            .rpc("add_group_member", params: [
+                "conversation_id_param": AnyJSON.string(conversationId),
+                "user_id_param": AnyJSON.string(userId)
+            ])
+            .execute()
+            .value
+        
+        return result
+    }
+    
+    /// Remove member from group chat
+    func removeGroupMember(conversationId: String, userId: String) async throws -> Bool {
+        let result: Bool = try await supabase
+            .rpc("remove_group_member", params: [
+                "conversation_id_param": AnyJSON.string(conversationId),
+                "user_id_param": AnyJSON.string(userId)
+            ])
+            .execute()
+            .value
+        
+        return result
+    }
+    
+    /// Get group members
+    func getGroupMembers(conversationId: String) async throws -> [GroupMember] {
+        let members: [GroupMember] = try await supabase
+            .from("group_members")
+            .select("""
+                *,
+                user:profiles(*)
+            """)
+            .eq("conversation_id", value: conversationId)
+            .execute()
+            .value
+        
+        return members
+    }
+    
+    // MARK: - Helper Functions for Participation Management
+    
+    /// Ensure user's participation record exists for a conversation
+    private func ensureParticipationExists(conversationId: String, userId: String) async throws {
+        // Check if participation record already exists
+        let existingCount = try await supabase
+            .from("conversation_participants")
+            .select("id", head: true, count: .exact)
+            .eq("conversation_id", value: conversationId)
+            .eq("user_id", value: userId)
+            .execute()
+            .count ?? 0
+        
+        // If no participation record exists, create one
+        if existingCount == 0 {
+            let participantData: [String: AnyJSON] = [
+                "conversation_id": AnyJSON.string(conversationId),
+                "user_id": AnyJSON.string(userId),
+                "joined_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
+            ]
+            
+            try await supabase
+                .from("conversation_participants")
+                .insert(participantData)
+                .execute()
+            
+            print("🔄 Restored participation for user \(userId) in conversation \(conversationId)")
         }
     }
 }

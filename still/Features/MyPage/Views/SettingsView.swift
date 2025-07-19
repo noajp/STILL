@@ -8,76 +8,76 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authManager: AuthManager
     @AppStorage("enableNotifications") private var enableNotifications = true
-    @AppStorage("enableLocationServices") private var enableLocationServices = true
-    @AppStorage("defaultSearchRadius") private var defaultSearchRadius = 5.0
     @State private var showSignOutAlert = false
     
     var body: some View {
-        NavigationView {
+        VStack(spacing: 0) {
+            // Custom Header
+            HStack {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(MinimalDesign.Colors.accentRed)
+                }
+                
+                Spacer()
+                
+                Text("Settings")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Button("Done") {
+                    dismiss()
+                }
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(MinimalDesign.Colors.accentRed)
+            }
+            .padding()
+            .background(Color(.systemBackground))
+            
             Form {
-                Section(header: Text("通知設定")) {
-                    Toggle("プッシュ通知", isOn: $enableNotifications)
+                Section(header: Text("Account")) {
+                    NavigationLink(destination: EmptyView()) {
+                        Label("Change Password", systemImage: "lock")
+                    }
+                    
+                    NavigationLink(destination: EmptyView()) {
+                        Label("Change Email", systemImage: "envelope")
+                    }
+                }
+                
+                Section(header: Text("Notifications")) {
+                    Toggle("Push Notifications", isOn: $enableNotifications)
                         .toggleStyle(SwitchToggleStyle(tint: MinimalDesign.Colors.accentRed))
                     
                     if enableNotifications {
                         VStack(alignment: .leading, spacing: 8) {
-                            ToggleRow(title: "新規フォロワー", isOn: .constant(true))
-                            ToggleRow(title: "いいね", isOn: .constant(true))
-                            ToggleRow(title: "コメント", isOn: .constant(true))
-                            ToggleRow(title: "予約リマインダー", isOn: .constant(true))
+                            ToggleRow(title: "New Followers", isOn: .constant(true))
+                            ToggleRow(title: "Likes", isOn: .constant(true))
+                            ToggleRow(title: "Comments", isOn: .constant(true))
+                            ToggleRow(title: "Messages", isOn: .constant(true))
                         }
                         .padding(.leading, 16)
                     }
                 }
                 
-                Section(header: Text("プライバシー")) {
-                    Toggle("位置情報サービス", isOn: $enableLocationServices)
-                        .toggleStyle(SwitchToggleStyle(tint: MinimalDesign.Colors.accentRed))
-                    
-                    HStack {
-                        Text("検索範囲")
-                        Spacer()
-                        Text("\(Int(defaultSearchRadius))km")
-                            .foregroundColor(MinimalDesign.Colors.secondary)
-                    }
-                    
-                    Slider(value: $defaultSearchRadius, in: 1...50, step: 1)
-                        .accentColor(MinimalDesign.Colors.accentRed)
-                }
-                
-                Section(header: Text("アカウント")) {
-                    NavigationLink(destination: EmptyView()) {
-                        Label("パスワード変更", systemImage: "lock")
-                    }
-                    
-                    NavigationLink(destination: EmptyView()) {
-                        Label("メールアドレス変更", systemImage: "envelope")
-                    }
-                    
-                    NavigationLink(destination: EmptyView()) {
-                        Label("連携アカウント", systemImage: "link")
-                    }
-                }
-                
-                Section(header: Text("サポート")) {
+                Section(header: Text("Support")) {
                     NavigationLink(destination: EmptyView()) {
                         Label("Help & Support", systemImage: "questionmark.circle")
                     }
                     
                     NavigationLink(destination: EmptyView()) {
-                        Label("利用規約", systemImage: "doc.text")
+                        Label("Terms of Service", systemImage: "doc.text")
                     }
                     
                     NavigationLink(destination: EmptyView()) {
-                        Label("プライバシーポリシー", systemImage: "hand.raised")
-                    }
-                    
-                    NavigationLink(destination: EmptyView()) {
-                        Label("ライセンス", systemImage: "text.justify")
+                        Label("Privacy Policy", systemImage: "hand.raised")
                     }
                     
                     HStack {
-                        Text("バージョン")
+                        Text("Version")
                         Spacer()
                         Text("1.0.0")
                             .foregroundColor(MinimalDesign.Colors.secondary)
@@ -97,20 +97,10 @@ struct SettingsView: View {
                     }
                     
                     Button(action: {}) {
-                        Text("アカウントを削除")
+                        Text("Delete Account")
                             .destructiveTextButtonStyle()
                             .frame(maxWidth: .infinity)
                     }
-                }
-            }
-            .navigationTitle("設定")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完了") {
-                        dismiss()
-                    }
-                    .actionTextButtonStyle()
                 }
             }
             .alert("Sign Out", isPresented: $showSignOutAlert) {
@@ -126,6 +116,7 @@ struct SettingsView: View {
             }
             .accentColor(MinimalDesign.Colors.accentRed)
         }
+        .navigationBarHidden(true)
     }
 }
 

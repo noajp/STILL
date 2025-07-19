@@ -15,6 +15,8 @@ struct CustomTabBar: View {
     let onBackFromProfileSingleView: (() -> Void)?
     let onProfileDoubleTap: (() -> Void)?
     @Binding var isUserSearchMode: Bool
+    let onMessageDoubleTap: (() -> Void)?
+    @Binding var isGroupChatMode: Bool
     
     @Environment(\.colorScheme) var colorScheme
     
@@ -24,6 +26,15 @@ struct CustomTabBar: View {
             return isUserSearchMode ? "person.2.fill" : "person.fill"
         } else {
             return isUserSearchMode ? "person.2" : "person"
+        }
+    }
+    
+    // メッセージアイコンの名前を計算（グループチャット用は独自デザイン）
+    private var messageIconName: String {
+        if isGroupChatMode {
+            return "" // グループチャット時は独自デザイン
+        } else {
+            return selectedTab == 2 ? "message.fill" : "message"
         }
     }
     
@@ -41,41 +52,21 @@ struct CustomTabBar: View {
                 }
             }) {
                 Group {
-                    if isInSingleView {
-                        // シングルビュー表示中は1つの大きな正方形（常に塗りつぶし）
-                        Rectangle()
-                            .fill(selectedTab == 0 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
-                            .frame(width: 20, height: 20)
-                    } else if showGridMode && selectedTab == 0 {
-                        // グリッドモード時は9つの小さな正方形（3x3）
-                        VStack(spacing: 1.5) {
-                            ForEach(0..<3) { _ in
-                                HStack(spacing: 1.5) {
-                                    ForEach(0..<3) { _ in
-                                        if selectedTab == 0 {
-                                            Rectangle()
-                                                .fill(Color(red: 0.949, green: 0.098, blue: 0.020))
-                                                .frame(width: 5.5, height: 5.5)
-                                        } else {
-                                            Rectangle()
-                                                .stroke(colorScheme == .dark ? .white : .black, lineWidth: 0.8)
-                                                .frame(width: 5.5, height: 5.5)
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    if showGridMode && selectedTab == 0 {
+                        // グリッドモード時
+                        Image(systemName: "square.grid.3x3.fill")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(Color(red: 0.949, green: 0.098, blue: 0.020))
+                    } else if selectedTab == 0 {
+                        // シングルモード時（選択中）
+                        Image(systemName: "square.fill")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(Color(red: 0.949, green: 0.098, blue: 0.020))
                     } else {
-                        // シングルモード時は1つの大きな正方形（選択時は塗りつぶし、非選択時は枠線のみ）
-                        if selectedTab == 0 {
-                            Rectangle()
-                                .fill(Color(red: 0.949, green: 0.098, blue: 0.020))
-                                .frame(width: 20, height: 20)
-                        } else {
-                            Rectangle()
-                                .stroke(colorScheme == .dark ? .white : .black, lineWidth: 1)
-                                .frame(width: 20, height: 20)
-                        }
+                        // 非選択時
+                        Image(systemName: showGridMode ? "square.grid.3x3" : "square")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
                     }
                 }
             }
@@ -108,13 +99,38 @@ struct CustomTabBar: View {
             */
             
             // メッセージボタン
-            Button(action: {
-                selectedTab = 2
-            }) {
+            VStack {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: selectedTab == 2 ? "message.fill" : "message")
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                    // 固定フレームで位置を統一
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(width: 24, height: 20)
+                    
+                    Group {
+                        if isGroupChatMode {
+                            // グループチャット: 2つのメッセージボタンが向かい合う
+                            HStack(alignment: .center, spacing: 4) {
+                                // 左側のメッセージ（右向き、水平反転、小さい）
+                                Image(systemName: selectedTab == 2 ? "message.fill" : "message")
+                                    .font(.system(size: 12, weight: .light))
+                                    .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                                    .scaleEffect(x: -1, y: 1) // 水平反転で右向きに
+                                    .frame(width: 12, height: 20, alignment: .center) // 固定フレーム
+                                
+                                // 右側のメッセージ（左向き、通常、大きい）
+                                Image(systemName: selectedTab == 2 ? "message.fill" : "message")
+                                    .font(.system(size: 18, weight: .light))
+                                    .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                                    .frame(width: 18, height: 20, alignment: .center) // 固定フレーム
+                            }
+                        } else {
+                            // 個人メッセージ: 通常のメッセージアイコン
+                            Image(systemName: messageIconName)
+                                .font(.system(size: 20, weight: .light))
+                                .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                                .frame(width: 20, height: 20, alignment: .center) // 固定フレーム
+                        }
+                    }
                     
                     // 未読メッセージバッジ
                     if unreadMessageCount > 0 {
@@ -126,6 +142,16 @@ struct CustomTabBar: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if selectedTab == 2 {
+                    // 既にメッセージタブが選択されている場合はグループチャットモードを切り替え
+                    onMessageDoubleTap?()
+                } else {
+                    // メッセージタブに切り替え
+                    selectedTab = 2
+                }
+            }
             
             // アカウントボタン（シングルタップで検索モード切り替え）
             VStack {

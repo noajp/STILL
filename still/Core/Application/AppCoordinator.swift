@@ -200,7 +200,7 @@ struct EnhancedMainTabView: View {
                 .tag(MainTab.home)
             
             // Messages
-            MessagesView()
+            MessagesView(isGroupChatMode: .constant(false))
                 .tabItem {
                     Image(systemName: MainTab.messages.iconName)
                     Text(MainTab.messages.title)

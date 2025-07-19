@@ -135,6 +135,7 @@ class ConversationViewModel: ObservableObject {
 struct ConversationView: View {
     @StateObject private var viewModel: ConversationViewModel
     @State private var messageText = ""
+    @State private var showingProfile = false
     @FocusState private var isTextFieldFocused: Bool
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authManager: AuthManager
@@ -224,13 +225,18 @@ struct ConversationView: View {
                             .foregroundColor(MinimalDesign.Colors.accentRed)
                     }
                     
-                    if let avatarUrl = viewModel.conversation?.displayAvatar(currentUserId: authManager.currentUser?.id) {
-                        RemoteImageView(imageURL: avatarUrl)
-                            .frame(width: 32, height: 32)
-                            .clipShape(Circle())
+                    if let avatarUrl = viewModel.conversation?.displayAvatar(currentUserId: authManager.currentUser?.id),
+                       let conversation = viewModel.conversation,
+                       let otherParticipant = conversation.participants?.first(where: { $0.userId != authManager.currentUser?.id }) {
+                        NavigationLink(destination: OtherUserProfileView(userId: otherParticipant.userId)) {
+                            RemoteImageView(imageURL: avatarUrl)
+                                .frame(width: 32, height: 32)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                     
-                    Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Loading...")
+                    Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Message")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(MinimalDesign.Colors.primary)
                 }
@@ -270,15 +276,6 @@ struct MessageBubble: View {
             }
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                // 相手のメッセージの場合は表示名を表示
-                if !isCurrentUser, let sender = message.sender {
-                    Text(sender.profileDisplayName)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 4)
-                }
-                
                 Text(message.decryptedContent)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)

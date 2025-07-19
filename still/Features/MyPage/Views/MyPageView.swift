@@ -14,6 +14,7 @@ struct MyPageView: View {
     @Binding var isUserSearchMode: Bool
     @State private var showEditProfile = false
     @State private var showSettings = false
+    @State private var navigateToSettings = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedPost: Post?
     @State private var navigateToSingleView: Bool = false
@@ -21,14 +22,17 @@ struct MyPageView: View {
     @State private var searchResults: [UserProfile] = []
     @State private var isSearching: Bool = false
     @State private var searchError: String?
+    @State private var selectedUserId: String?
+    @State private var showingOtherProfile = false
     
     var body: some View {
-        ScrollableHeaderView(
+        NavigationStack {
+            ScrollableHeaderView(
             title: isUserSearchMode ? "User Search" : "Profile",
             rightButton: isUserSearchMode ? nil : HeaderButton(
-                icon: "gearshape",
+                icon: "custom.three.lines",
                 action: { 
-                    showSettings = true
+                    navigateToSettings = true
                 }
             )
         ) {
@@ -125,8 +129,14 @@ struct MyPageView: View {
                                 // 検索結果を表示
                                 LazyVStack(spacing: 12) {
                                     ForEach(searchResults, id: \.id) { user in
-                                        UserSearchResultRow(user: user)
-                                            .padding(.horizontal, MinimalDesign.Spacing.md)
+                                        NavigationLink(destination: OtherUserProfileView(userId: user.id)) {
+                                            UserSearchResultRow(user: user)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .padding(.horizontal, MinimalDesign.Spacing.md)
+                                        .onAppear {
+                                            print("🔵 UserSearch - Showing user: \(user.username) (ID: \(user.id))")
+                                        }
                                     }
                                 }
                                 .padding(.top, 16)
@@ -173,7 +183,7 @@ struct MyPageView: View {
         .sheet(isPresented: $showEditProfile) {
                 EditProfileView(viewModel: viewModel)
             }
-            .sheet(isPresented: $showSettings) {
+            .navigationDestination(isPresented: $navigateToSettings) {
                 SettingsView()
                     .environmentObject(authManager)
             }
@@ -206,6 +216,7 @@ struct MyPageView: View {
                     selectedPost = nil
                 }
             }
+        }
     }
     
     // ユーザー検索機能
@@ -247,7 +258,7 @@ struct UserSearchResultRow: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } placeholder: {
-                Circle()
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Color.gray.opacity(0.3))
                     .overlay(
                         Image(systemName: "person.fill")
@@ -255,7 +266,7 @@ struct UserSearchResultRow: View {
                     )
             }
             .frame(width: 50, height: 50)
-            .clipShape(Circle())
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.profileDisplayName)

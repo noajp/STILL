@@ -188,7 +188,11 @@ struct OtherUserProfileView: View {
         }
         .background(Color(.systemBackground))
         .navigationBarHidden(true)
+        .onAppear {
+            print("🔵 OtherUserProfileView appeared - userId: \(userId)")
+        }
         .task {
+            print("🔵 OtherUserProfileView loading data for userId: \(userId)")
             await viewModel.loadUserData(userId: userId)
         }
     }

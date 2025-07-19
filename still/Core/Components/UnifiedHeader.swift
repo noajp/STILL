@@ -56,9 +56,20 @@ struct UnifiedHeader: View {
                     Button(action: {
                         rightButton.action()
                     }) {
-                        Image(systemName: rightButton.icon)
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundColor(isDarkMode ? .white : MinimalDesign.Colors.primary)
+                        if rightButton.icon == "custom.three.lines" {
+                            // カスタム3本線
+                            VStack(spacing: 5) {
+                                ForEach(0..<3) { _ in
+                                    RoundedRectangle(cornerRadius: 0.5)
+                                        .fill(isDarkMode ? Color.white : MinimalDesign.Colors.primary)
+                                        .frame(width: 22, height: 1.5)
+                                }
+                            }
+                        } else {
+                            Image(systemName: rightButton.icon)
+                                .font(.system(size: 20, weight: .regular))
+                                .foregroundColor(isDarkMode ? .white : MinimalDesign.Colors.primary)
+                        }
                     }
                     .frame(width: 44, height: 44)
                     .padding(.trailing, 2)

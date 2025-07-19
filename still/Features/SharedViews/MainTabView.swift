@@ -15,6 +15,7 @@ struct MainTabView: View {
     @State private var headerOffset: CGFloat = 0
     @State private var lastScrollOffset: CGFloat = 0
     @State private var isUserSearchMode = false
+    @State private var isGroupChatMode = false
     
     var body: some View {
         ZStack {
@@ -57,7 +58,7 @@ struct MainTabView: View {
                     
                     // メッセージ (2) - タブの順序用に2に変更
                     UnifiedNavigationView {
-                        MessagesView()
+                        MessagesView(isGroupChatMode: $isGroupChatMode)
                     }
                     .tag(2)
                     
@@ -110,7 +111,12 @@ struct MainTabView: View {
                             // プロフィールボタンのタップでユーザー検索モードを切り替え
                             isUserSearchMode.toggle()
                         },
-                        isUserSearchMode: $isUserSearchMode
+                        isUserSearchMode: $isUserSearchMode,
+                        onMessageDoubleTap: {
+                            // メッセージボタンのタップでグループチャットモードを切り替え
+                            isGroupChatMode.toggle()
+                        },
+                        isGroupChatMode: $isGroupChatMode
                     )
                 }
                 .offset(y: tabBarOffset)
