@@ -1,13 +1,16 @@
 {
-  "name": "couleur",
+  "name": "still",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "mcp:supabase": "node ./node_modules/@supabase/mcp-server-supabase/dist/transports/stdio.js --project-ref yccjlkcxqybxqewzchen"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "devDependencies": {
+    "@supabase/mcp-server-supabase": "^0.4.5"
+  }
 }
