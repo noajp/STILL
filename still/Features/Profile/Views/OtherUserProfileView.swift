@@ -19,7 +19,7 @@ struct OtherUserProfileView: View {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(MinimalDesign.Colors.accentRed)
                     }
                     
                     Spacer()
@@ -116,8 +116,20 @@ struct OtherUserProfileView: View {
                     // Stats
                     HStack(spacing: 32) {
                         StatItem(value: viewModel.postsCount, label: "Posts")
-                        StatItem(value: viewModel.followersCount, label: "Followers")
-                        StatItem(value: viewModel.followingCount, label: "Following")
+                        
+                        Button(action: {
+                            viewModel.showFollowersList = true
+                        }) {
+                            StatItem(value: viewModel.followersCount, label: "Followers")
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Button(action: {
+                            viewModel.showFollowingList = true
+                        }) {
+                            StatItem(value: viewModel.followingCount, label: "Following")
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                     .padding(.horizontal)
                     
@@ -195,6 +207,14 @@ struct OtherUserProfileView: View {
             print("🔵 OtherUserProfileView loading data for userId: \(userId)")
             await viewModel.loadUserData(userId: userId)
         }
+        .fullScreenCover(isPresented: $viewModel.showFollowersList) {
+            FollowListView(userId: userId, listType: .followers)
+                .environmentObject(AuthManager.shared)
+        }
+        .fullScreenCover(isPresented: $viewModel.showFollowingList) {
+            FollowListView(userId: userId, listType: .following)
+                .environmentObject(AuthManager.shared)
+        }
     }
 }
 
@@ -209,12 +229,28 @@ class OtherUserProfileViewModel: ObservableObject {
     @Published var postsCount: Int = 0
     @Published var followersCount: Int = 0
     @Published var followingCount: Int = 0
+    @Published var showFollowersList = false
+    @Published var showFollowingList = false
     
     private let userRepository = UserRepository()
     private let followService = FollowService.shared
     
+    init() {
+        // Listen for follow status changes
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("followStatusChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.updateFollowCounts()
+            }
+        }
+    }
+    
     func loadUserData(userId: String) async {
         isLoading = true
+        currentUserId = userId  // Store userId for later use
         
         do {
             // Load profile
@@ -223,10 +259,10 @@ class OtherUserProfileViewModel: ObservableObject {
             // Load posts
             userPosts = try await userRepository.fetchUserPosts(userId: userId)
             
-            // Update counts
+            // Update counts with real-time data
             postsCount = userPosts.count
-            followersCount = userProfile?.followersCount ?? 0
-            followingCount = userProfile?.followingCount ?? 0
+            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
+            followingCount = try await userRepository.fetchFollowingCount(userId: userId)
             
             // Check follow status
             let followStatus = try await followService.checkFollowStatus(userId: userId)
@@ -242,22 +278,48 @@ class OtherUserProfileViewModel: ObservableObject {
     func toggleFollow() async {
         guard let userId = userProfile?.id else { return }
         
+        // UIをすぐに更新してレスポンシブに
+        let previousState = isFollowing
+        isFollowing.toggle()
         isLoading = true
         
         do {
-            if isFollowing {
+            if previousState {
                 try await followService.unfollowUser(userId: userId)
-                isFollowing = false
-                followersCount = max(0, followersCount - 1)
             } else {
                 try await followService.followUser(userId: userId)
-                isFollowing = true
-                followersCount += 1
             }
+            
+            // Update follower count with real-time data
+            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
+            
+            // Notify other views about follow status change with user info
+            NotificationCenter.default.post(
+                name: NSNotification.Name("followStatusChanged"), 
+                object: nil,
+                userInfo: ["userId": userId, "isFollowing": isFollowing]
+            )
+            
         } catch {
             print("Error toggling follow: \(error)")
+            // エラーの場合は状態を元に戻す
+            isFollowing = previousState
         }
         
         isLoading = false
+    }
+    
+    private var currentUserId: String?
+    
+    private func updateFollowCounts() async {
+        guard let userId = currentUserId else { return }
+        
+        do {
+            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
+            followingCount = try await userRepository.fetchFollowingCount(userId: userId)
+            print("✅ OtherUserProfileViewModel: Updated counts - followers: \(followersCount), following: \(followingCount)")
+        } catch {
+            print("❌ OtherUserProfileViewModel: Failed to update follow counts: \(error)")
+        }
     }
 }

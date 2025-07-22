@@ -24,6 +24,8 @@ struct MyPageView: View {
     @State private var searchError: String?
     @State private var selectedUserId: String?
     @State private var showingOtherProfile = false
+    @State private var showFollowersList = false
+    @State private var showFollowingList = false
     
     var body: some View {
         NavigationStack {
@@ -151,9 +153,11 @@ struct MyPageView: View {
                         isLoading: viewModel.isLoading,
                         postsCount: viewModel.postsCount,
                         followersCount: viewModel.followersCount,
+                        followingCount: viewModel.followingCount,
                         hasNewFollowers: viewModel.hasNewFollowers,
                         onEditProfile: { showEditProfile = true },
-                        onFollowersTapped: { viewModel.markNewFollowersAsSeen() },
+                        onFollowersTapped: onFollowersTapped,
+                        onFollowingTapped: onFollowingTapped,
                         selectedPhotoItem: $selectedPhotoItem
                     )
                     
@@ -216,6 +220,18 @@ struct MyPageView: View {
                     selectedPost = nil
                 }
             }
+            .fullScreenCover(isPresented: $showFollowersList) {
+                if let currentUserId = authManager.currentUser?.id {
+                    FollowListView(userId: currentUserId, listType: .followers)
+                        .environmentObject(authManager)
+                }
+            }
+            .fullScreenCover(isPresented: $showFollowingList) {
+                if let currentUserId = authManager.currentUser?.id {
+                    FollowListView(userId: currentUserId, listType: .following)
+                        .environmentObject(authManager)
+                }
+            }
         }
     }
     
@@ -243,6 +259,16 @@ struct MyPageView: View {
                 }
             }
         }
+    }
+    
+    private func onFollowersTapped() {
+        // Mark new followers as seen
+        viewModel.markNewFollowersAsSeen()
+        showFollowersList = true
+    }
+    
+    private func onFollowingTapped() {
+        showFollowingList = true
     }
 }
 
@@ -338,9 +364,11 @@ struct ModernProfileSection: View {
     let isLoading: Bool
     let postsCount: Int
     let followersCount: Int
+    let followingCount: Int
     let hasNewFollowers: Bool
     let onEditProfile: () -> Void
     let onFollowersTapped: () -> Void
+    let onFollowingTapped: () -> Void
     @Binding var selectedPhotoItem: PhotosPickerItem?
     @State private var showGridMode = false
     
@@ -425,7 +453,10 @@ struct ModernProfileSection: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                StatItem(value: profile?.followingCount ?? 0, label: "Following")
+                Button(action: onFollowingTapped) {
+                    StatItem(value: followingCount, label: "Following")
+                }
+                .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, MinimalDesign.Spacing.sm)
             

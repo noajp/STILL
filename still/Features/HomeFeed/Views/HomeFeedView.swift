@@ -84,7 +84,7 @@ struct HomeFeedView: View {
                                             await viewModel.toggleLike(for: post)
                                         }
                                     })
-                                    }
+                                }
                             } else {
                                 // Show all posts
                                 ForEach(viewModel.posts) { post in
@@ -93,7 +93,7 @@ struct HomeFeedView: View {
                                             await viewModel.toggleLike(for: post)
                                         }
                                     })
-                                    }
+                                }
                             }
                         }
                     }
@@ -239,41 +239,57 @@ struct PostCardView: View {
     let post: Post
     let onLikeTapped: (Post) -> Void
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var authManager: AuthManager
+    @State private var showProfile = false
     
     var body: some View {
         VStack(spacing: 0) {
             // User Header
             HStack(spacing: 12) {
-                // Avatar
-                AsyncImage(url: URL(string: post.user?.avatarUrl ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(.tertiarySystemBackground))
-                        .overlay(
-                            Text(post.user?.username.prefix(1).uppercased() ?? "?")
+                // Avatar - タップ可能
+                Button(action: {
+                    if post.user?.id != authManager.currentUser?.id {
+                        showProfile = true
+                    }
+                }) {
+                    AsyncImage(url: URL(string: post.user?.avatarUrl ?? "")) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color(.tertiarySystemBackground))
+                            .overlay(
+                                Text(post.user?.username.prefix(1).uppercased() ?? "?")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            )
+                    }
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // User Info - タップ可能
+                Button(action: {
+                    if post.user?.id != authManager.currentUser?.id {
+                        showProfile = true
+                    }
+                }) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(post.user?.username ?? "unknown")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                        
+                        if let location = post.locationName {
+                            Text(location)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                        )
-                }
-                .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                
-                // User Info
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(post.user?.username ?? "unknown")
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                    
-                    if let location = post.locationName {
-                        Text(location)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        }
                     }
                 }
+                .buttonStyle(PlainButtonStyle())
                 
                 Spacer()
                 
@@ -356,6 +372,11 @@ struct PostCardView: View {
             }
         }
         .background(Color(.systemBackground))
+        .fullScreenCover(isPresented: $showProfile) {
+            if let userId = post.user?.id, userId != authManager.currentUser?.id {
+                OtherUserProfileView(userId: userId)
+            }
+        }
     }
     
     private func timeAgoString(from date: Date) -> String {

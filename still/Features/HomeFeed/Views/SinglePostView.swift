@@ -11,6 +11,10 @@ struct SinglePostView: View {
     @StateObject private var viewModel: HomeFeedViewModel
     @Binding var showGridMode: Bool
     @State private var scrollToTop = false
+    @State private var followingUserIds: Set<String> = []
+    @State private var isLoadingFollowing = false
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authManager: AuthManager
     
     init(initialPost: Post, viewModel: HomeFeedViewModel, showGridMode: Binding<Bool>) {
         self.initialPost = initialPost
@@ -19,41 +23,96 @@ struct SinglePostView: View {
     }
     
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    // 選択された投稿を最初に表示
-                    SingleCardView(post: initialPost) { post in
-                        Task {
-                            await viewModel.toggleLike(for: post)
-                        }
-                    }
-                    .id(initialPost.id)
-                    
-                    // それ以外の投稿を下に表示
-                    ForEach(viewModel.posts.filter { $0.id != initialPost.id }) { post in
-                        SingleCardView(post: post) { post in
+        ZStack(alignment: .top) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        // Header space
+                        Color.clear
+                            .frame(height: 105) // Same as HomeFeedView header height
+                            .frame(width: UIScreen.main.bounds.width)
+                        
+                        // 選択された投稿を最初に表示
+                        PostCardView(post: initialPost) { post in
                             Task {
                                 await viewModel.toggleLike(for: post)
                             }
                         }
+                        .id(initialPost.id)
+                        
+                        // フォローしている人の投稿のみを時系列順で表示
+                        ForEach(filteredPosts) { post in
+                            PostCardView(post: post) { post in
+                                Task {
+                                    await viewModel.toggleLike(for: post)
+                                }
+                            }
+                        }
+                        
+                        // Bottom space for tab bar
+                        Color.clear
+                            .frame(height: 110)
+                    }
+                }
+                .onAppear {
+                    // シングルビューモードに切り替え
+                    showGridMode = false
+                    // フォローしているユーザーリストを取得
+                    Task {
+                        await loadFollowingUsers()
+                    }
+                }
+                .onChange(of: scrollToTop) { _, newValue in
+                    if newValue {
+                        withAnimation {
+                            proxy.scrollTo(initialPost.id, anchor: .top)
+                        }
+                        scrollToTop = false
                     }
                 }
             }
-            .onAppear {
-                // シングルビューモードに切り替え
-                showGridMode = false
+            
+            // Header without back button
+            VStack(spacing: 0) {
+                UnifiedHeader(
+                    title: "STILL"
+                )
             }
-            .onChange(of: scrollToTop) { _, newValue in
-                if newValue {
-                    withAnimation {
-                        proxy.scrollTo(initialPost.id, anchor: .top)
-                    }
-                    scrollToTop = false
-                }
-            }
+            .zIndex(1000)
         }
+        .background(Color(.systemBackground))
         .navigationBarHidden(true)
         .ignoresSafeArea(.all, edges: .top)
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var filteredPosts: [Post] {
+        let otherPosts = viewModel.posts.filter { $0.id != initialPost.id }
+        
+        // フォローしているユーザーの投稿のみフィルタリング
+        let followingPosts = otherPosts.filter { post in
+            guard let userId = post.user?.id else { return false }
+            return followingUserIds.contains(userId)
+        }
+        
+        // 時系列順（新しい順）でソート
+        return followingPosts.sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func loadFollowingUsers() async {
+        guard let currentUserId = authManager.currentUser?.id else { return }
+        
+        isLoadingFollowing = true
+        do {
+            let following = try await FollowService.shared.fetchFollowing(userId: currentUserId)
+            followingUserIds = Set(following.map { $0.id })
+            print("📱 SinglePostView: Loaded \(followingUserIds.count) following users")
+        } catch {
+            print("❌ SinglePostView: Failed to load following users: \(error)")
+        }
+        isLoadingFollowing = false
     }
 }

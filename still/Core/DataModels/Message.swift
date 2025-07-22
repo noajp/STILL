@@ -80,41 +80,59 @@ struct Conversation: Identifiable, Codable {
     }
     
     func displayName(currentUserId: String?) -> String {
+        print("🔍 DEBUG - displayName called with currentUserId: \(currentUserId ?? "nil")")
+        
         guard let participants = participants, let currentUserId = currentUserId else {
+            print("🔍 DEBUG - displayName: Missing participants or currentUserId")
             return "Unknown"
+        }
+        
+        print("🔍 DEBUG - displayName: Conversation has \(participants.count) participants:")
+        participants.forEach { participant in
+            print("   - Participant: userId=\(participant.userId), username=\(participant.user?.username ?? "nil"), displayName=\(participant.user?.displayName ?? "nil")")
         }
         
         // Filter out current user from participants (case-insensitive comparison)
         let otherParticipants = participants.filter { $0.userId.lowercased() != currentUserId.lowercased() }
+        print("🔍 DEBUG - displayName: After filtering out current user, \(otherParticipants.count) other participants remain")
         
         if otherParticipants.isEmpty {
+            print("🔍 DEBUG - displayName: No other participants found, returning 'Unknown'")
             return "Unknown"
         }
         
         // For direct messages (1 other participant)
         if otherParticipants.count == 1 {
             if let otherUser = otherParticipants.first?.user {
-                // 表示名のみを表示（display_nameがあればそれを、なければusernameを使用）
-                return otherUser.profileDisplayName
+                let displayName = otherUser.profileDisplayName
+                print("🔍 DEBUG - displayName: Direct message with user \(otherUser.username), returning displayName: '\(displayName)'")
+                return displayName
             } else {
-                return "User-\(String(otherParticipants.first!.userId.prefix(8)))"
+                let fallbackName = "User-\(String(otherParticipants.first!.userId.prefix(8)))"
+                print("🔍 DEBUG - displayName: No user object for participant, returning fallback: '\(fallbackName)'")
+                return fallbackName
             }
         }
         
         // For group chats (multiple other participants)
+        print("🔍 DEBUG - displayName: Group chat with \(otherParticipants.count) other participants")
         let participantNames = otherParticipants.compactMap { participant in
-            participant.user?.profileDisplayName ?? "User-\(String(participant.userId.prefix(8)))"
+            let name = participant.user?.profileDisplayName ?? "User-\(String(participant.userId.prefix(8)))"
+            print("🔍 DEBUG - displayName: Group participant name: '\(name)'")
+            return name
         }
         
         if participantNames.count <= 3 {
             // Show all names for small groups
             let groupName = participantNames.joined(separator: ", ")
+            print("🔍 DEBUG - displayName: Small group, returning: '\(groupName)'")
             return groupName
         } else {
             // Show first few names + count for large groups
             let firstNames = participantNames.prefix(2).joined(separator: ", ")
             let remainingCount = participantNames.count - 2
             let groupName = "\(firstNames) +\(remainingCount) others"
+            print("🔍 DEBUG - displayName: Large group, returning: '\(groupName)'")
             return groupName
         }
     }
@@ -132,27 +150,17 @@ struct Conversation: Identifiable, Codable {
         return otherParticipants.first?.user?.avatarUrl
     }
     
-    // 最後のメッセージプレビューを15文字に制限して表示（復号化版）
+    // 最後のメッセージプレビューを15文字に制限して表示
     var displayLastMessagePreview: String {
         guard let preview = lastMessagePreview else {
             return "Start a conversation"
         }
         
-        // 暗号化された文字列を復号化
-        let decryptedPreview: String
-        do {
-            let keyData = try KeychainManager.shared.getUserKey()
-            let key = CryptoManager.shared.dataToKey(keyData)
-            decryptedPreview = try CryptoManager.shared.decryptFromBase64(base64String: preview, using: key)
-        } catch {
-            // 復号化に失敗した場合（古いメッセージや初回など）はそのまま表示
-            decryptedPreview = preview
-        }
-        
-        if decryptedPreview.count <= 15 {
-            return decryptedPreview
+        // プレビューは既に平文で保存されているので、そのまま表示
+        if preview.count <= 15 {
+            return preview
         } else {
-            return String(decryptedPreview.prefix(15)) + "..."
+            return String(preview.prefix(15)) + "..."
         }
     }
 }

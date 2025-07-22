@@ -64,6 +64,14 @@ final class MyPageViewModel: BaseViewModelClass {
             name: NSNotification.Name("PostCreated"),
             object: nil
         )
+        
+        // Listen for follow status changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleFollowStatusChanged),
+            name: NSNotification.Name("followStatusChanged"),
+            object: nil
+        )
     }
     
     // MARK: - Public Methods
@@ -94,10 +102,10 @@ final class MyPageViewModel: BaseViewModelClass {
             // Check for new followers
             hasNewFollowers = try await FollowService.shared.checkNewFollowers()
             
-            // Update statistics
+            // Update statistics with real-time counts
             postsCount = userPosts.count
-            followersCount = userProfile?.followersCount ?? 0
-            followingCount = userProfile?.followingCount ?? 0
+            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
+            followingCount = try await userRepository.fetchFollowingCount(userId: userId)
             
             hasLoadedInitially = true
             hideLoading()
@@ -280,6 +288,33 @@ final class MyPageViewModel: BaseViewModelClass {
             // Force reload by resetting the flag
             hasLoadedInitially = false
             await loadUserData()
+        }
+    }
+    
+    @objc private func handleFollowStatusChanged() {
+        print("🔄 MyPageViewModel: Follow status changed - updating counts")
+        Task {
+            await updateFollowCounts()
+        }
+    }
+    
+    /// Updates only the follow counts without full reload
+    private func updateFollowCounts() async {
+        guard let userId = currentUserId else { return }
+        
+        do {
+            let newFollowersCount = try await userRepository.fetchFollowersCount(userId: userId)
+            let newFollowingCount = try await userRepository.fetchFollowingCount(userId: userId)
+            
+            // スムーズなアニメーションでカウントを更新
+            withAnimation(.easeInOut(duration: 0.3)) {
+                followersCount = newFollowersCount
+                followingCount = newFollowingCount
+            }
+            
+            print("✅ MyPageViewModel: Updated counts - followers: \(followersCount), following: \(followingCount)")
+        } catch {
+            print("❌ MyPageViewModel: Failed to update follow counts: \(error)")
         }
     }
     

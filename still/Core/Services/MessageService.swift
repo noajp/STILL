@@ -108,6 +108,8 @@ class MessageService: ObservableObject {
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
+        print("🔍 DEBUG - Using currentUserId: \(currentUserId)")
+        print("🔍 DEBUG - About to call RPC 'get_user_conversations' with params: [\"user_id_param\": \"\(currentUserId)\"]")
         
         // Use RPC function to bypass RLS recursion issues
         struct ConversationData: Codable {
@@ -147,17 +149,38 @@ class MessageService: ObservableObject {
             .execute()
             .value
         
+        // TEST: Add logging to show exact raw data from RPC call
+        print("🧪 TEST - Exact count of items returned from RPC call: \(conversationData.count)")
+        print("🧪 TEST - Raw data details for each item:")
+        for (index, item) in conversationData.enumerated() {
+            print("   Item \(index): conversationId=\(item.conversationId), participantUserId=\(item.participantUserId)")
+        }
+        
+        print("🔍 DEBUG - RPC call completed successfully")
+        print("🔍 DEBUG - Raw count returned from RPC: \(conversationData.count)")
+        print("🔍 DEBUG - First few items from RPC response:")
+        for (index, item) in conversationData.enumerated() {
+            if index < 5 { // Show first 5 items
+                print("   Item \(index): conversationId=\(item.conversationId), participantUserId=\(item.participantUserId), userUsername=\(item.userUsername ?? "nil")")
+            }
+        }
+        
         print("📋 MessageService - fetchConversations: Got \(conversationData.count) conversation data items")
+        print("🔍 DEBUG - Raw conversation data: \(conversationData)")
         
         
         // Group by conversation ID and build Conversation objects
         var conversationDict: [String: Conversation] = [:]
         
-        for data in conversationData {
+        print("🔍 DEBUG - Starting conversion loop with \(conversationData.count) items")
+        
+        for (index, data) in conversationData.enumerated() {
+            print("🔍 DEBUG - Processing item \(index + 1)/\(conversationData.count): conversationId=\(data.conversationId)")
             let conversationId = data.conversationId
             
             // Create or get existing conversation
             if conversationDict[conversationId] == nil {
+                print("🔍 DEBUG - Creating new conversation object for ID: \(conversationId)")
                 conversationDict[conversationId] = Conversation(
                     id: conversationId,
                     createdAt: data.conversationCreatedAt,
@@ -168,6 +191,8 @@ class MessageService: ObservableObject {
                     messages: nil,
                     unreadCount: nil
                 )
+            } else {
+                print("🔍 DEBUG - Conversation \(conversationId) already exists in dictionary")
             }
             
             // Create UserProfile if we have user data
@@ -181,6 +206,9 @@ class MessageService: ObservableObject {
                     bio: data.userBio,
                     createdAt: nil
                 )
+                print("🔍 DEBUG - Created UserProfile for conversation \(conversationId): username=\(username), displayName=\(data.userDisplayName ?? "nil"), userId=\(data.participantUserId)")
+            } else {
+                print("🔍 DEBUG - No username for participant \(data.participantUserId) in conversation \(conversationId)")
             }
             
             // Create participant
@@ -195,6 +223,20 @@ class MessageService: ObservableObject {
             
             // Add participant to conversation
             conversationDict[conversationId]?.participants?.append(participant)
+            
+            // Debug: Show participants array after adding
+            if let conversation = conversationDict[conversationId] {
+                print("🔍 DEBUG - Conversation \(conversationId) now has \(conversation.participants?.count ?? 0) participants:")
+                conversation.participants?.forEach { participant in
+                    print("   - Participant: userId=\(participant.userId), username=\(participant.user?.username ?? "nil"), displayName=\(participant.user?.displayName ?? "nil")")
+                }
+            }
+        }
+        
+        print("🔍 DEBUG - Conversion loop completed")
+        print("🔍 DEBUG - Final conversationDict contains \(conversationDict.count) unique conversations:")
+        for (convId, conversation) in conversationDict {
+            print("   Conversation \(convId): \(conversation.participants?.count ?? 0) participants")
         }
         
         let userConversations = Array(conversationDict.values).sorted { (c1, c2) in
@@ -215,7 +257,7 @@ class MessageService: ObservableObject {
         
         
         
-        // Calculate unread count for each conversation
+        // Calculate unread count and fetch latest message for each conversation
         var conversationsWithUnread: [Conversation] = []
         var conversationsWithUnreadMessages = 0
         
@@ -225,6 +267,40 @@ class MessageService: ObservableObject {
             if unreadCount > 0 {
                 conversationsWithUnreadMessages += 1
             }
+            
+            // Fetch the latest message to get the actual decrypted content
+            do {
+                // Fetch only the latest message without join
+                let latestMessageData: [[String: AnyJSON]] = try await supabase
+                    .from("messages")
+                    .select("content")
+                    .eq("conversation_id", value: conversation.id)
+                    .order("created_at", ascending: false)
+                    .limit(1)
+                    .execute()
+                    .value
+                
+                if let messageData = latestMessageData.first,
+                   let encryptedContent = messageData["content"]?.stringValue {
+                    // Decrypt the content
+                    do {
+                        let keyData = try KeychainManager.shared.getUserKey()
+                        let key = CryptoManager.shared.dataToKey(keyData)
+                        let decryptedContent = try CryptoManager.shared.decryptFromBase64(base64String: encryptedContent, using: key)
+                        
+                        // Use the decrypted content for preview
+                        conversation.lastMessagePreview = decryptedContent.count > 50 ? String(decryptedContent.prefix(50)) + "..." : decryptedContent
+                        print("✅ Successfully decrypted preview for conversation \(conversation.id): \(conversation.lastMessagePreview ?? "")")
+                    } catch {
+                        print("❌ Failed to decrypt message preview: \(error)")
+                        // Fallback to "Message" if decryption fails
+                        conversation.lastMessagePreview = "Message"
+                    }
+                }
+            } catch {
+                print("❌ Failed to fetch latest message for conversation \(conversation.id): \(error)")
+            }
+            
             conversationsWithUnread.append(conversation)
         }
         
@@ -347,6 +423,28 @@ class MessageService: ObservableObject {
     
     /// Fetch messages for a conversation
     func fetchMessages(for conversationId: String, limit: Int = 50, before: Date? = nil) async throws -> [Message] {
+        guard let currentUserId = AuthManager.shared.currentUser?.id else {
+            throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+        }
+        
+        // Check if there's a message cutoff time for this user
+        let participantData: [[String: AnyJSON]] = try await supabase
+            .from("conversation_participants")
+            .select("messages_hidden_since")
+            .eq("conversation_id", value: conversationId)
+            .eq("user_id", value: currentUserId)
+            .execute()
+            .value
+        
+        let messagesCutoffTime: Date?
+        if let participant = participantData.first,
+           let cutoffString = participant["messages_hidden_since"]?.stringValue {
+            messagesCutoffTime = ISO8601DateFormatter().date(from: cutoffString)
+            print("📅 Messages cutoff time for user \(currentUserId): \(cutoffString)")
+        } else {
+            messagesCutoffTime = nil
+            print("📅 No message cutoff time for user \(currentUserId)")
+        }
         
         let query = supabase
             .from("messages")
@@ -359,9 +457,19 @@ class MessageService: ObservableObject {
             .limit(limit)
         
         var messages: [Message] = try await query.execute().value
+        
+        // If there's a cutoff time, filter messages after that time on the client side
+        if let cutoffTime = messagesCutoffTime {
+            messages = messages.filter { message in
+                message.createdAt > cutoffTime
+            }
+            print("📅 Filtered messages after cutoff: \(ISO8601DateFormatter().string(from: cutoffTime))")
+            print("📅 \(messages.count) messages remain after filtering")
+        }
+        
         messages.reverse() // Reverse to show oldest first
         
-        
+        print("📨 Fetched \(messages.count) messages for conversation \(conversationId)")
         return messages
     }
     
@@ -403,8 +511,30 @@ class MessageService: ObservableObject {
             .execute()
             .value
         
+        // Update conversation's last_message_preview with the plain text
+        // This ensures the preview can be displayed without decryption issues
+        let previewText = content.count > 50 ? String(content.prefix(50)) + "..." : content
+        let conversationUpdateData: [String: AnyJSON] = [
+            "last_message_preview": AnyJSON.string(previewText),
+            "last_message_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
+        ]
+        
+        try await supabase
+            .from("conversations")
+            .update(conversationUpdateData)
+            .eq("id", value: conversationId)
+            .execute()
+        
         // Ensure sender's participation record exists (in case they deleted the conversation)
         try await ensureParticipationExists(conversationId: conversationId, userId: userId)
+        
+        // Unhide conversation for all participants when a new message is sent
+        // This ensures that even if someone deleted the chat, they'll see new messages
+        print("🔄 About to unhide conversation \(conversationId) for all participants")
+        try await unhideConversationForAllParticipants(conversationId: conversationId)
+        
+        // Clear message cutoff for the sender only (they should see all messages after sending)
+        try await clearMessageCutoffForSender(conversationId: conversationId, senderId: userId)
         
         // Mark conversation as read after sending
         do {
@@ -474,17 +604,25 @@ class MessageService: ObservableObject {
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
-        // Only remove the current user's participation record
-        // This hides the conversation from their view while keeping it for the other participant
+        let deletionTime = Date()
+        
+        // Mark conversation as hidden for the current user (soft delete)
+        // Also record when messages should be hidden from (for future restoration)
+        let updateData: [String: AnyJSON] = [
+            "hidden_for_user": AnyJSON.bool(true),
+            "hidden_at": AnyJSON.string(ISO8601DateFormatter().string(from: deletionTime)),
+            "messages_hidden_since": AnyJSON.string(ISO8601DateFormatter().string(from: deletionTime))
+        ]
+        
         try await supabase
             .from("conversation_participants")
-            .delete()
+            .update(updateData)
             .eq("conversation_id", value: conversationId)
             .eq("user_id", value: currentUserId)
             .execute()
         
         // Note: Messages and conversation record remain intact for the other participant
-        print("🗑️ Conversation \(conversationId) hidden from user \(currentUserId)")
+        print("🗑️ Conversation \(conversationId) marked as hidden for user \(currentUserId) with message cutoff at \(deletionTime)")
     }
     
     // MARK: - Helper Methods
@@ -540,20 +678,29 @@ class MessageService: ObservableObject {
     
     /// Create a new group chat
     func createGroupChat(name: String, description: String? = nil, memberIds: [String] = []) async throws -> String {
-        guard AuthManager.shared.currentUser?.id != nil else {
+        guard let currentUserId = AuthManager.shared.currentUser?.id else {
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
-        let conversationId: String = try await supabase
-            .rpc("create_group_chat", params: [
-                "group_name_param": AnyJSON.string(name),
-                "group_description_param": description.map { AnyJSON.string($0) } ?? AnyJSON.null,
-                "member_ids": AnyJSON.array(memberIds.map { AnyJSON.string($0) })
-            ])
-            .execute()
-            .value
+        print("📱 Creating group chat - Name: \(name), Members: \(memberIds)")
+        print("📱 Current user ID: \(currentUserId)")
         
-        return conversationId
+        do {
+            let conversationId: String = try await supabase
+                .rpc("create_group_chat", params: [
+                    "group_name_param": AnyJSON.string(name),
+                    "group_description_param": description.map { AnyJSON.string($0) } ?? AnyJSON.null,
+                    "member_ids": AnyJSON.array(memberIds.map { AnyJSON.string($0) })
+                ])
+                .execute()
+                .value
+            
+            print("✅ Group chat created successfully with ID: \(conversationId)")
+            return conversationId
+        } catch {
+            print("❌ Failed to create group chat: \(error)")
+            throw error
+        }
     }
     
     /// Fetch group conversations for current user
@@ -562,12 +709,93 @@ class MessageService: ObservableObject {
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
-        let response: [GroupConversation] = try await supabase
-            .rpc("get_user_group_conversations", params: ["user_id_param": AnyJSON.string(currentUserId)])
-            .execute()
-            .value
+        print("📱 Fetching group conversations for user: \(currentUserId)")
         
-        return response
+        do {
+            var groupConversations: [GroupConversation] = try await supabase
+                .rpc("get_user_group_conversations", params: ["user_id_param": AnyJSON.string(currentUserId)])
+                .execute()
+                .value
+            
+            print("✅ Fetched \(groupConversations.count) group conversations")
+            
+            // 各グループチャットの最新メッセージを復号化（通常のメッセージと同じ方法）
+            var updatedGroupConversations: [GroupConversation] = []
+            
+            for var groupConversation in groupConversations {
+                // 最新メッセージを個別に取得して復号化
+                do {
+                    let latestMessageData: [[String: AnyJSON]] = try await supabase
+                        .from("messages")
+                        .select("content")
+                        .eq("conversation_id", value: groupConversation.id)
+                        .order("created_at", ascending: false)
+                        .limit(1)
+                        .execute()
+                        .value
+                    
+                    if let messageData = latestMessageData.first,
+                       let encryptedContent = messageData["content"]?.stringValue {
+                        // Decrypt the content
+                        do {
+                            let keyData = try KeychainManager.shared.getUserKey()
+                            let key = CryptoManager.shared.dataToKey(keyData)
+                            let decryptedContent = try CryptoManager.shared.decryptFromBase64(base64String: encryptedContent, using: key)
+                            
+                            // Use the decrypted content for preview
+                            let preview = decryptedContent.count > 50 ? String(decryptedContent.prefix(50)) + "..." : decryptedContent
+                            
+                            print("✅ Successfully decrypted group preview for \(groupConversation.displayName): \(preview)")
+                            
+                            // GroupConversationのlastMessageContentを更新（構造体なので、新しいインスタンスを作成）
+                            groupConversation = GroupConversation(
+                                id: groupConversation.id,
+                                isGroup: groupConversation.isGroup,
+                                groupName: groupConversation.groupName,
+                                groupDescription: groupConversation.groupDescription,
+                                groupAvatarUrl: groupConversation.groupAvatarUrl,
+                                createdBy: groupConversation.createdBy,
+                                createdAt: groupConversation.createdAt,
+                                updatedAt: groupConversation.updatedAt,
+                                lastMessageAt: groupConversation.lastMessageAt,
+                                lastMessageContent: preview, // 復号化されたコンテンツ
+                                lastMessageSenderId: groupConversation.lastMessageSenderId,
+                                lastMessageSenderUsername: groupConversation.lastMessageSenderUsername,
+                                unreadCount: groupConversation.unreadCount
+                            )
+                        } catch {
+                            print("❌ Failed to decrypt group message preview: \(error)")
+                            // 復号化に失敗した場合は "Message" を表示
+                            groupConversation = GroupConversation(
+                                id: groupConversation.id,
+                                isGroup: groupConversation.isGroup,
+                                groupName: groupConversation.groupName,
+                                groupDescription: groupConversation.groupDescription,
+                                groupAvatarUrl: groupConversation.groupAvatarUrl,
+                                createdBy: groupConversation.createdBy,
+                                createdAt: groupConversation.createdAt,
+                                updatedAt: groupConversation.updatedAt,
+                                lastMessageAt: groupConversation.lastMessageAt,
+                                lastMessageContent: "Message",
+                                lastMessageSenderId: groupConversation.lastMessageSenderId,
+                                lastMessageSenderUsername: groupConversation.lastMessageSenderUsername,
+                                unreadCount: groupConversation.unreadCount
+                            )
+                        }
+                    }
+                } catch {
+                    print("❌ Failed to fetch latest message for group \(groupConversation.id): \(error)")
+                }
+                
+                updatedGroupConversations.append(groupConversation)
+                print("  Group: \(groupConversation.displayName) - Preview: \(groupConversation.displayLastMessagePreview)")
+            }
+            
+            return updatedGroupConversations
+        } catch {
+            print("❌ Failed to fetch group conversations: \(error)")
+            throw error
+        }
     }
     
     /// Add member to group chat
@@ -639,5 +867,34 @@ class MessageService: ObservableObject {
             
             print("🔄 Restored participation for user \(userId) in conversation \(conversationId)")
         }
+    }
+    
+    /// Unhide conversation for all participants when a new message is sent
+    private func unhideConversationForAllParticipants(conversationId: String) async throws {
+        print("🔄 unhideConversationForAllParticipants called for conversation: \(conversationId)")
+        
+        // Use RPC function with SECURITY DEFINER to bypass RLS restrictions
+        try await supabase
+            .rpc("unhide_conversation_for_all_participants", params: [
+                "conversation_id_param": AnyJSON.string(conversationId)
+            ])
+            .execute()
+        
+        print("👁️ Conversation \(conversationId) unhidden for all participants via RPC")
+    }
+    
+    /// Clear message cutoff for sender when they send a message
+    private func clearMessageCutoffForSender(conversationId: String, senderId: String) async throws {
+        print("🔄 clearMessageCutoffForSender called for conversation: \(conversationId), sender: \(senderId)")
+        
+        // Use RPC function to clear message cutoff for sender only
+        try await supabase
+            .rpc("clear_message_cutoff_for_user", params: [
+                "conversation_id_param": AnyJSON.string(conversationId),
+                "user_id_param": AnyJSON.string(senderId)
+            ])
+            .execute()
+        
+        print("✅ Message cutoff cleared for sender \(senderId) in conversation \(conversationId)")
     }
 }

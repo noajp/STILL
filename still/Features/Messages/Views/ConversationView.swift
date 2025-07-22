@@ -213,10 +213,10 @@ struct ConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .accentColor(MinimalDesign.Colors.accentRed)
-        .toolbar {
-            // Custom back button with icon and name
-            ToolbarItem(placement: .navigationBarLeading) {
-                HStack(spacing: 8) {
+        .overlay(
+            // Custom Navigation Bar
+            VStack {
+                HStack {
                     Button(action: {
                         dismiss()
                     }) {
@@ -225,25 +225,71 @@ struct ConversationView: View {
                             .foregroundColor(MinimalDesign.Colors.accentRed)
                     }
                     
-                    if let avatarUrl = viewModel.conversation?.displayAvatar(currentUserId: authManager.currentUser?.id),
-                       let conversation = viewModel.conversation,
-                       let otherParticipant = conversation.participants?.first(where: { $0.userId != authManager.currentUser?.id }) {
-                        NavigationLink(destination: OtherUserProfileView(userId: otherParticipant.userId)) {
-                            RemoteImageView(imageURL: avatarUrl)
-                                .frame(width: 32, height: 32)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                    // User content - aligned to left
+                    HStack(spacing: 8) {
+                        if let conversation = viewModel.conversation,
+                           let currentUserId = authManager.currentUser?.id,
+                           let otherParticipant = conversation.participants?.first(where: { $0.userId.lowercased() != currentUserId.lowercased() }) {
+                            
+                            NavigationLink(destination: OtherUserProfileView(userId: otherParticipant.userId)) {
+                                HStack(spacing: 8) {
+                                    // プロフィール画像
+                                    if let avatarUrl = conversation.displayAvatar(currentUserId: authManager.currentUser?.id) {
+                                        RemoteImageView(imageURL: avatarUrl)
+                                            .frame(width: 32, height: 32)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 32, height: 32)
+                                            .overlay(
+                                                Text(String(conversation.displayName(currentUserId: authManager.currentUser?.id).prefix(1)))
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(.white)
+                                            )
+                                    }
+                                    
+                                    // ユーザー名
+                                    Text(conversation.displayName(currentUserId: authManager.currentUser?.id))
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(MinimalDesign.Colors.primary)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        } else {
+                            Text("Message")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(MinimalDesign.Colors.primary)
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                     
-                    Text(viewModel.conversation?.displayName(currentUserId: authManager.currentUser?.id) ?? "Message")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(MinimalDesign.Colors.primary)
+                    Spacer()
                 }
+                .padding(.horizontal)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .background(Color(.systemBackground))
+                
+                Spacer()
             }
-        }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        )
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear {
+            // Debug navigation
+            if let conversation = viewModel.conversation,
+               let currentUserId = authManager.currentUser?.id,
+               let otherParticipant = conversation.participants?.first(where: { $0.userId.lowercased() != currentUserId.lowercased() }) {
+                
+                print("🔍 ConversationView Navigation - currentUserId: \(currentUserId)")
+                print("🔍 ConversationView Navigation - otherParticipant.userId: \(otherParticipant.userId)")
+                print("🔍 ConversationView Navigation - otherParticipant.user?.username: \(otherParticipant.user?.username ?? "nil")")
+                print("🔍 ConversationView Navigation - All participants:")
+                conversation.participants?.forEach { participant in
+                    print("    - \(participant.userId) (\(participant.user?.username ?? "unknown"))")
+                }
+            }
+            
             Task {
                 await viewModel.markAsRead()
             }
@@ -322,7 +368,7 @@ struct MessageInputView: View {
                             .frame(width: 20, height: 20)
                     } else {
                         Image(systemName: "paperplane.fill")
-                            .foregroundColor(MinimalDesign.Colors.primary)
+                            .foregroundColor(MinimalDesign.Colors.accentRed)
                     }
                 }
                 .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)

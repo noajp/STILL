@@ -205,6 +205,26 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    func createGroupChat(name: String, with memberIds: [String]) async -> String? {
+        do {
+            // グループチャットを作成
+            let conversationId = try await messageService.createGroupChat(
+                name: name,
+                description: nil,
+                memberIds: memberIds
+            )
+            
+            // 会話リストを更新
+            await refreshConversations()
+            
+            return conversationId
+        } catch {
+            print("❌ Failed to create group chat: \(error)")
+            errorMessage = "Failed to create group chat"
+            return nil
+        }
+    }
+    
     func deleteConversation(_ conversationId: String) async {
         do {
             try await messageService.deleteConversation(conversationId)

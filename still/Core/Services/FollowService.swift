@@ -20,6 +20,20 @@ class FollowService: ObservableObject {
             throw NSError(domain: "FollowService", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
         
+        // Check if already following to prevent duplicates
+        let existingFollow = try await supabase
+            .from("follows")
+            .select("*", head: true, count: .exact)
+            .eq("follower_id", value: currentUserId)
+            .eq("following_id", value: userId)
+            .execute()
+            .count ?? 0
+        
+        if existingFollow > 0 {
+            // Already following, no need to insert again
+            return
+        }
+        
         let follow = [
             "follower_id": currentUserId,
             "following_id": userId
@@ -87,27 +101,85 @@ class FollowService: ObservableObject {
     // MARK: - Followers/Following Lists
     
     func fetchFollowers(userId: String) async throws -> [UserProfile] {
-        let response = try await supabase
+        // First, get all follow relationships where this user is being followed
+        let followResponse = try await supabase
             .from("follows")
-            .select("follower:profiles!follower_id(*)")
+            .select("follower_id")
             .eq("following_id", value: userId)
             .order("created_at", ascending: false)
             .execute()
         
-        let follows = try JSONDecoder().decode([Follow].self, from: response.data)
-        return follows.compactMap { $0.follower }
+        // Parse follower IDs
+        let followData = try JSONDecoder().decode([[String: String]].self, from: followResponse.data)
+        let followerIds = followData.compactMap { $0["follower_id"] }
+        
+        print("🔍 fetchFollowers - Found \(followerIds.count) follower IDs for user \(userId)")
+        
+        // If no followers, return empty array
+        guard !followerIds.isEmpty else {
+            return []
+        }
+        
+        // Then fetch user profiles for those IDs with proper date handling
+        let profilesResponse = try await supabase
+            .from("profiles")
+            .select("id, username, display_name, avatar_url, bio, created_at")
+            .in("id", values: followerIds)
+            .execute()
+        
+        // Use a custom decoder for Supabase date format
+        let decoder = JSONDecoder()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        decoder.dateDecodingStrategy = .formatted(formatter)
+        
+        let profiles = try decoder.decode([UserProfile].self, from: profilesResponse.data)
+        print("🔍 fetchFollowers - Fetched \(profiles.count) follower profiles")
+        
+        return profiles
     }
     
     func fetchFollowing(userId: String) async throws -> [UserProfile] {
-        let response = try await supabase
+        // First, get all follow relationships where this user is following others
+        let followResponse = try await supabase
             .from("follows")
-            .select("following:profiles!following_id(*)")
+            .select("following_id")
             .eq("follower_id", value: userId)
             .order("created_at", ascending: false)
             .execute()
         
-        let follows = try JSONDecoder().decode([Follow].self, from: response.data)
-        return follows.compactMap { $0.following }
+        // Parse following IDs
+        let followData = try JSONDecoder().decode([[String: String]].self, from: followResponse.data)
+        let followingIds = followData.compactMap { $0["following_id"] }
+        
+        print("🔍 fetchFollowing - Found \(followingIds.count) following IDs for user \(userId)")
+        
+        // If not following anyone, return empty array
+        guard !followingIds.isEmpty else {
+            return []
+        }
+        
+        // Then fetch user profiles for those IDs with proper date handling
+        let profilesResponse = try await supabase
+            .from("profiles")
+            .select("id, username, display_name, avatar_url, bio, created_at")
+            .in("id", values: followingIds)
+            .execute()
+        
+        // Use a custom decoder for Supabase date format
+        let decoder = JSONDecoder()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        decoder.dateDecodingStrategy = .formatted(formatter)
+        
+        let profiles = try decoder.decode([UserProfile].self, from: profilesResponse.data)
+        print("🔍 fetchFollowing - Fetched \(profiles.count) following profiles")
+        
+        return profiles
     }
     
     // MARK: - New Follower Notification
