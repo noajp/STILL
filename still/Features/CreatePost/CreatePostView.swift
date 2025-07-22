@@ -265,45 +265,41 @@ struct CreatePostView: View {
     
     @MainActor
     private func loadImageFromPhotosPickerItem(_ item: PhotosPickerItem) async {
-        do {
-            // 画像の識別子を取得
-            guard let itemIdentifier = item.itemIdentifier else {
-                print("❌ PhotosPickerItemの識別子が取得できません")
-                return
-            }
-            
-            print("📷 画像識別子: \(itemIdentifier)")
-            
-            // 別の方法で画像を読み込む
-            if let image = try? await item.loadTransferable(type: Image.self) {
-                // SwiftUI ImageをUIImageに変換する方法が必要
-                print("⚠️ SwiftUI Imageとして読み込まれましたが、UIImageへの変換が必要です")
-            }
-            
-            // データとして読み込んでみる
-            let supportedContentTypes: [UTType] = [.jpeg, .png, .heif, .heic, .rawImage]
-            
-            for contentType in supportedContentTypes {
-                if item.supportedContentTypes.contains(contentType) {
-                    print("📷 サポートされているタイプ: \(contentType)")
-                    
-                    // その型でデータを読み込んでみる
-                    if let data = try? await item.loadTransferable(type: Data.self) {
-                        if let uiImage = UIImage(data: data) {
-                            print("✅ \(contentType)として画像を読み込みました")
-                            viewModel.mediaType = .photo
-                            imageToEdit = uiImage
-                            showingPhotoEditor = true
-                            return
-                        }
+        // 画像の識別子を取得
+        guard let itemIdentifier = item.itemIdentifier else {
+            print("❌ PhotosPickerItemの識別子が取得できません")
+            return
+        }
+        
+        print("📷 画像識別子: \(itemIdentifier)")
+        
+        // 別の方法で画像を読み込む
+        if let _ = try? await item.loadTransferable(type: Image.self) {
+            // SwiftUI ImageをUIImageに変換する方法が必要
+            print("⚠️ SwiftUI Imageとして読み込まれましたが、UIImageへの変換が必要です")
+        }
+        
+        // データとして読み込んでみる
+        let supportedContentTypes: [UTType] = [.jpeg, .png, .heif, .heic, .rawImage]
+        
+        for contentType in supportedContentTypes {
+            if item.supportedContentTypes.contains(contentType) {
+                print("📷 サポートされているタイプ: \(contentType)")
+                
+                // その型でデータを読み込んでみる
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    if let uiImage = UIImage(data: data) {
+                        print("✅ \(contentType)として画像を読み込みました")
+                        viewModel.mediaType = .photo
+                        imageToEdit = uiImage
+                        showingPhotoEditor = true
+                        return
                     }
                 }
             }
-            
-            print("❌ すべての方法で画像の読み込みに失敗しました")
-        } catch {
-            print("❌ エラー: \(error.localizedDescription)")
         }
+        
+        print("❌ すべての方法で画像の読み込みに失敗しました")
     }
     
     // MARK: - Minimal Components

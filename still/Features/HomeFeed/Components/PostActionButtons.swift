@@ -24,7 +24,7 @@ struct PostActionButtons: View {
             
             // Comment Button
             CommentButton(
-                commentCount: post.commentCount ?? 0,
+                commentCount: post.commentCount,
                 action: onCommentTapped
             )
             
@@ -59,16 +59,21 @@ struct PostActionButtons_Previews: PreviewProvider {
                     id: "1",
                     userId: "user1",
                     mediaUrl: "https://example.com/image.jpg",
+                    mediaType: .photo,
+                    thumbnailUrl: nil,
+                    mediaWidth: nil,
+                    mediaHeight: nil,
                     caption: "Sample post",
+                    locationName: nil,
+                    latitude: nil,
+                    longitude: nil,
+                    isPublic: true,
                     createdAt: Date(),
                     likeCount: 0,
                     commentCount: 0,
-                    isLikedByMe: false,
                     user: nil,
-                    locationName: nil,
-                    locationLatitude: nil,
-                    locationLongitude: nil,
-                    aspectRatio: nil
+                    isLikedByMe: false,
+                    isSavedByMe: false
                 ),
                 isSaved: false,
                 onLikeTapped: {},
@@ -83,16 +88,21 @@ struct PostActionButtons_Previews: PreviewProvider {
                     id: "2",
                     userId: "user2",
                     mediaUrl: "https://example.com/image2.jpg",
+                    mediaType: .photo,
+                    thumbnailUrl: nil,
+                    mediaWidth: nil,
+                    mediaHeight: nil,
                     caption: "Another post",
+                    locationName: nil,
+                    latitude: nil,
+                    longitude: nil,
+                    isPublic: true,
                     createdAt: Date(),
                     likeCount: 42,
                     commentCount: 15,
-                    isLikedByMe: true,
                     user: nil,
-                    locationName: nil,
-                    locationLatitude: nil,
-                    locationLongitude: nil,
-                    aspectRatio: nil
+                    isLikedByMe: true,
+                    isSavedByMe: true
                 ),
                 isSaved: true,
                 onLikeTapped: {},

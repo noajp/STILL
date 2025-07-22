@@ -146,8 +146,7 @@ struct ArticleEditorView: View {
     
     private func insertImage(from item: PhotosPickerItem) {
         Task {
-            if let data = try? await item.loadTransferable(type: Data.self),
-               let uiImage = UIImage(data: data) {
+            if let data = try? await item.loadTransferable(type: Data.self) {
                 await MainActor.run {
                     // 現在編集中の位置の次に画像を挿入
                     let insertIndex = min(currentEditingIndex + 1, elements.count)

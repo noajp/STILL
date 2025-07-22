@@ -21,16 +21,16 @@ struct SearchView: View {
                 UnifiedHeader(title: "Search")
                 
                 // 検索バー
-                SearchBarView(searchText: $viewModel.searchText, onSearch: { searchQuery in
+                SearchBarView(searchText: $viewModel.searchText) { searchQuery in
                     switch selectedTab {
                     case .posts:
                         viewModel.searchPosts(searchQuery)
                     case .users:
                         viewModel.searchUsers(searchQuery)
                     }
-                })
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
                 
                 // タブスイッチャー
                 HStack(spacing: 0) {
@@ -82,19 +82,12 @@ struct SearchView: View {
                     } else if !viewModel.searchResults.isEmpty {
                         // 投稿検索結果を表示
                         ScrollView {
-                            LazyVGrid(columns: [
-                                GridItem(.flexible(), spacing: 8),
-                                GridItem(.flexible(), spacing: 8)
-                            ], spacing: 16) {
-                                ForEach(viewModel.searchResults) { post in
-                                    PinCardView(post: post, onLikeTapped: { _ in
-                                        // TODO: Add like functionality to search
-                                    })
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-                            }
-                            .padding(.horizontal)
+                            // TODO: Implement post search results display
+                            Text("Post search coming soon")
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
+                        .padding(.horizontal)
                     } else {
                         // デフォルト表示
                         ScrollView {

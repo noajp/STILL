@@ -712,7 +712,7 @@ class MessageService: ObservableObject {
         print("📱 Fetching group conversations for user: \(currentUserId)")
         
         do {
-            var groupConversations: [GroupConversation] = try await supabase
+            let groupConversations: [GroupConversation] = try await supabase
                 .rpc("get_user_group_conversations", params: ["user_id_param": AnyJSON.string(currentUserId)])
                 .execute()
                 .value

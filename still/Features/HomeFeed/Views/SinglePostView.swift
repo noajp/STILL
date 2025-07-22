@@ -40,11 +40,31 @@ struct SinglePostView: View {
                         }
                         .id(initialPost.id)
                         
-                        // フォローしている人の投稿のみを時系列順で表示
-                        ForEach(filteredPosts) { post in
-                            PostCardView(post: post) { post in
-                                Task {
-                                    await viewModel.toggleLike(for: post)
+                        // フォローしている人がいない場合のメッセージ
+                        if followingUserIds.isEmpty && !isLoadingFollowing {
+                            VStack(spacing: 20) {
+                                Image(systemName: "person.2.slash")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.gray)
+                                
+                                Text("まだ誰もフォローしていません")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Text("他のユーザーをフォローして\n投稿を見てみましょう")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.top, 100)
+                            .frame(maxWidth: .infinity)
+                        } else if !isLoadingFollowing {
+                            // フォローしている人の投稿のみを時系列順で表示
+                            ForEach(filteredPosts) { post in
+                                PostCardView(post: post) { post in
+                                    Task {
+                                        await viewModel.toggleLike(for: post)
+                                    }
                                 }
                             }
                         }
