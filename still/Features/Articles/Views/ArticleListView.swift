@@ -13,14 +13,17 @@ struct ArticleListView: View {
     @State private var showingArticleEditor = false
     
     var body: some View {
-        ScrollableHeaderView(
+        UnifiedScreenView(
             title: "Articles",
             rightButton: HeaderButton(
                 icon: "plus",
                 action: {
                     showingArticleEditor = true
                 }
-            )
+            ),
+            onRefresh: {
+                await viewModel.refreshArticles()
+            }
         ) {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.articles) { article in
@@ -32,10 +35,13 @@ struct ArticleListView: View {
                     Divider()
                         .padding(.leading, 16)
                 }
+                
+                // タブバー用の下部余白
+                Color.clear
+                    .frame(height: 110)
             }
             .padding(.vertical, 8)
         }
-        .background(Color(.systemBackground))
         .fullScreenCover(isPresented: $showingArticleEditor) {
             ArticleEditorView()
         }

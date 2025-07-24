@@ -26,16 +26,20 @@ struct MessagesView: View {
             }
         }
         
-        return ScrollableHeaderView(
+        return UnifiedScreenView(
             title: headerTitle,
             rightButton: HeaderButton(
                 icon: headerIcon,
                 action: headerAction
-            )
+            ),
+            onRefresh: {
+                await viewModel.refreshConversations()
+            }
         ) {
             if viewModel.isLoading {
                 ProgressView("Loading conversations...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 100)
             } else if viewModel.conversations.isEmpty {
                 if isGroupChatMode {
                     GroupChatEmptyStateView()
@@ -98,24 +102,24 @@ struct MessagesView: View {
                                 .padding(.leading, 70)
                         }
                     }
+                    
+                    // タブバー用の下部余白
+                    Color.clear
+                        .frame(height: 110)
                 }
-                .padding(.bottom, 100) // タブバー分のスペース
             }
         }
-        .refreshable {
-                await viewModel.refreshConversations()
-            }
-            .onAppear {
-                Task {
-                    // 初回読み込みでない場合はサイレント更新を使用
-                    if viewModel.conversations.isEmpty {
-                        await viewModel.refreshConversations()
-                    } else {
-                        await viewModel.silentRefreshConversations()
-                    }
+        .onAppear {
+            Task {
+                // 初回読み込みでない場合はサイレント更新を使用
+                if viewModel.conversations.isEmpty {
+                    await viewModel.refreshConversations()
+                } else {
+                    await viewModel.silentRefreshConversations()
                 }
             }
-            .navigationDestination(isPresented: $isNavigatingToNewMessage) {
+        }
+        .navigationDestination(isPresented: $isNavigatingToNewMessage) {
                 NewMessageView { userId in
                     Task {
                         print("🔄 Starting conversation creation with user: \(userId)")

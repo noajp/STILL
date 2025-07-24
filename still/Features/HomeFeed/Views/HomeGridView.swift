@@ -1,144 +1,27 @@
 //======================================================================
-// MARK: - HomeFeedView.swift
-// Purpose: Main feed displaying posts in grid or single view (グリッドまたはシングルビューで投稿を表示するメインフィード)
-// Path: still/Features/HomeFeed/Views/HomeFeedView.swift
+// MARK: - HomeGridView.swift
+// Purpose: Main feed displaying posts in grid or following post view
+// Path: still/Features/HomeFeed/Views/HomeGridView.swift
 //======================================================================
 import SwiftUI
 import Combine
 
 @MainActor
-struct HomeFeedView: View {
+struct HomeGridView: View {
     @StateObject private var viewModel = HomeFeedViewModel()
     @StateObject private var postStatusManager = PostStatusManager.shared
     @Binding var showGridMode: Bool
     @Binding var showingCreatePost: Bool
     @Binding var isInSingleView: Bool
-    @Binding var headerOffset: CGFloat
-    let onBackToGrid: (() -> Void)?
-    let onScrollChanged: ((CGFloat) -> Void)?
     @State private var selectedPost: Post?
     @State private var navigateToSingleView: Bool = false
-    @State private var lastScrollY: CGFloat = 0
     @Environment(\.dismiss) private var dismiss
     
-    private let headerHeight: CGFloat = 105 // ヘッダーの高さを少し増やす
-    
     var body: some View {
-        ZStack(alignment: .top) {
-            // Content
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        // Scroll tracking - より信頼性の高い方法
-                        GeometryReader { geometry in
-                            Color.clear
-                                .onChange(of: geometry.frame(in: .named("scroll")).minY) { _, newValue in
-                                    updateScrollOffset(scrollOffset: newValue)
-                                }
-                        }
-                        .frame(height: 1)
-                        .id("scrollTracker")
-                    // Header space
-                    Color.clear
-                        .frame(height: headerHeight - 8)
-                        .frame(width: UIScreen.main.bounds.width)
-                    
-                    if viewModel.isLoading {
-                        ProgressView("Loading...")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if viewModel.posts.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "photo.on.rectangle.angled")
-                                .font(.system(size: 60))
-                                .foregroundColor(.gray)
-                            Text("No posts yet")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            Text("Tap the + button\nto create your first post")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.top, 100)
-                    } else {
-                        // Posts Display - Grid or List mode
-                        if showGridMode {
-                            // Custom Grid View with alternating layout
-                            CustomGridView(posts: viewModel.posts, showGridMode: $showGridMode, selectedPost: $selectedPost, navigateToSingleView: $navigateToSingleView)
-                        } else {
-                            // List View (default)
-                            if let selectedPost = selectedPost {
-                                // Show selected post first, then other posts
-                                PostCardView(post: selectedPost, onLikeTapped: { post in
-                                    Task {
-                                        await viewModel.toggleLike(for: post)
-                                    }
-                                })
-                                .id(selectedPost.id)
-                                
-                                // Show other posts below
-                                ForEach(viewModel.posts.filter { $0.id != selectedPost.id }) { post in
-                                    PostCardView(post: post, onLikeTapped: { post in
-                                        Task {
-                                            await viewModel.toggleLike(for: post)
-                                        }
-                                    })
-                                }
-                            } else {
-                                // Show all posts
-                                ForEach(viewModel.posts) { post in
-                                    PostCardView(post: post, onLikeTapped: { post in
-                                        Task {
-                                            await viewModel.toggleLike(for: post)
-                                        }
-                                    })
-                                }
-                            }
-                        }
-                    }
-                    
-                    // タブバー用の下部余白（タブバーの位置に合わせて調整）
-                    Color.clear
-                        .frame(height: 110)
-                }
-                .frame(width: UIScreen.main.bounds.width)
-            }
-            .coordinateSpace(name: "scroll")
-            .background(Color.clear)
-            .ignoresSafeArea(.all)
-            .refreshable {
-                await viewModel.forceRefreshPosts()
-            }
-        }
-        .navigationDestination(isPresented: $navigateToSingleView) {
-            if let selectedPost = selectedPost {
-                SinglePostView(
-                    initialPost: selectedPost,
-                    viewModel: viewModel,
-                    showGridMode: $showGridMode
-                )
-                .onAppear {
-                    isInSingleView = true
-                }
-                .onDisappear {
-                    isInSingleView = false
-                }
-            }
-        }
-            
-            // Floating Header with Status Bar
+        UnifiedScreenView(
+            title: "STILL"
+        ) {
             VStack(spacing: 0) {
-                UnifiedHeader(
-                    title: "STILL",
-                    rightButton: HeaderButton(
-                        icon: "plus",
-                        action: {
-                            showingCreatePost = true
-                        }
-                    )
-                )
-                
                 // Post Upload Status Bar
                 if PostStatusManager.shared.showStatus {
                     VStack(spacing: 0) {
@@ -173,13 +56,58 @@ struct HomeFeedView: View {
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
+                
+                // Content
+                if viewModel.isLoading {
+                    ProgressView("Loading...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(.top, 100)
+                } else if viewModel.posts.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        Text("No posts yet")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Tap the + button\nto create your first post")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 100)
+                } else {
+                    // Posts Display - Grid or List mode
+                    if showGridMode {
+                        // Custom Grid View with alternating layout
+                        CustomGridView(posts: viewModel.posts, showGridMode: $showGridMode, selectedPost: $selectedPost, navigateToSingleView: $navigateToSingleView)
+                    } else {
+                        // Following Post View mode - フォローしている人と自分の投稿のみ表示
+                        FollowingPostView(viewModel: viewModel)
+                    }
+                }
+                
+                // タブバー用の下部余白
+                Color.clear
+                    .frame(height: 110)
             }
-            .offset(y: headerOffset)
-            .animation(.easeInOut(duration: 0.5), value: headerOffset)
-            .zIndex(1000)
         }
-        .background(Color(.systemBackground))
-        .ignoresSafeArea(.all)
+        .navigationDestination(isPresented: $navigateToSingleView) {
+            if let selectedPost = selectedPost {
+                SinglePostView(
+                    initialPost: selectedPost,
+                    viewModel: viewModel,
+                    showGridMode: $showGridMode
+                )
+                .onAppear {
+                    isInSingleView = true
+                }
+                .onDisappear {
+                    isInSingleView = false
+                }
+            }
+        }
         .onAppear {
             Task {
                 await viewModel.loadPostsIfNeeded()
@@ -204,33 +132,6 @@ struct HomeFeedView: View {
                 selectedPost = nil
             }
         }
-        // HomeFeedViewでの通知受信は無効化（MainTabViewで処理）
-    }
-    
-    private func updateScrollOffset(scrollOffset: CGFloat) {
-        // スクロールの変化量を計算
-        let deltaY = lastScrollY - scrollOffset
-        lastScrollY = scrollOffset
-        
-        // ヘッダーの表示/非表示を制御
-        if deltaY > 3 {
-            // 下にスクロール: ヘッダーを隠す
-            if headerOffset != -headerHeight {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    headerOffset = -headerHeight
-                }
-            }
-        } else if deltaY < -0.5 || scrollOffset > -50 {
-            // 上にスクロール: ヘッダーを表示（または上端付近）
-            if headerOffset != 0 {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    headerOffset = 0
-                }
-            }
-        }
-        
-        // タブバーの制御のためにコールバックを呼び出す
-        onScrollChanged?(scrollOffset)
     }
 }
 
@@ -608,11 +509,13 @@ struct OddRowView: View {
     }
     
     private var squareSize: CGFloat {
-        availableWidth / 3 // 3等分した1つ分
+        // 3列のグリッドで、間に2つのspacing（各1.5）があるため
+        (availableWidth - (spacing * 2)) / 3
     }
     
     private var rectangleWidth: CGFloat {
-        squareSize * 2 // 正方形の2倍の幅
+        // 正方形2つ分 + 間の1つのspacing
+        (squareSize * 2) + spacing
     }
 }
 
@@ -686,7 +589,8 @@ struct EvenRowView: View {
     }
     
     private var squareSize: CGFloat {
-        availableWidth / 3 // 3等分した1つ分（奇数段の正方形と同じサイズ）
+        // 3列のグリッドで、間に2つのspacing（各1.5）があるため
+        (availableWidth - (spacing * 2)) / 3
     }
     
     private var totalHeight: CGFloat {
@@ -760,15 +664,12 @@ struct GridImageView: View {
     }
 }
 
-struct HomeFeedView_Previews: PreviewProvider {
+struct HomeGridView_Previews: PreviewProvider {
     static var previews: some View {
-        HomeFeedView(
+        HomeGridView(
             showGridMode: .constant(false), 
             showingCreatePost: .constant(false),
-            isInSingleView: .constant(false),
-            headerOffset: .constant(0),
-            onBackToGrid: nil,
-            onScrollChanged: nil
+            isInSingleView: .constant(false)
         )
     }
 }

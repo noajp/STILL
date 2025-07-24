@@ -64,10 +64,6 @@ struct PhotoPickerView: View {
                                 .fill(colorScheme == .dark ? Color.black : Color.white)
                                 .frame(height: 20)
                             
-                            // 仕切り線（ヘッダーと同じ色）
-                            Rectangle()
-                                .fill(colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.85))
-                                .frame(height: 1)
                             
                             // Library タイトル
                             HStack {
@@ -167,7 +163,7 @@ struct PhotoPickerView: View {
             
             Spacer()
             
-            Button("次へ") {
+            Button("Edit") {
                 print("🔵 次へボタンが押されました")
                 
                 if let asset = selectedAsset {
@@ -208,12 +204,6 @@ struct PhotoPickerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(
-            Rectangle()
-                .fill(colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.85))
-                .frame(height: 1),
-            alignment: .bottom
-        )
     }
     
     

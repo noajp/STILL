@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 struct CreatePostView: View {
     @StateObject private var viewModel = CreatePostViewModel()
     @Environment(\.dismiss) var dismiss
-    @State private var showingMediaPicker = false
+    @State private var showingMediaPicker = true
     @State private var selectedItem: PhotosPickerItem?
     @State private var locationName: String = ""
     @State private var showingPhotoEditor = false
@@ -20,50 +20,49 @@ struct CreatePostView: View {
     @State private var selectedFilter: FilterType = .none
     @State private var showingFilterPreview = false
     @State private var filterIntensity: Float = 1.0
-    @State private var showingPhotoPicker = false
+    @State private var showingPhotoPicker = true
     @State private var editorData: PhotoEditorData? = nil
     @State private var showSuccessAnimation = false
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Header
-                UnifiedHeader(
-                    title: "New Post",
-                    showBackButton: true,
-                    rightButton: viewModel.canPost ? HeaderButton(
-                        icon: "checkmark",
-                        action: {
-                            // Start background upload
-                            viewModel.createPostInBackground()
-                            // Immediately dismiss and return to feed
-                            dismiss()
-                        }
-                    ) : nil,
-                    onBack: { dismiss() }
-                )
-                
-                // Content
-                ScrollView {
-                    LazyVStack(spacing: MinimalDesign.Spacing.lg) {
-                        // Media Selection
-                        MinimalMediaPickerSection(
-                            selectedImage: $viewModel.selectedImage,
-                            selectedVideoURL: $viewModel.selectedVideoURL,
-                            mediaType: $viewModel.mediaType,
-                            showingMediaPicker: $showingMediaPicker,
-                            selectedItem: $selectedItem,
-                            showingPhotoEditor: $showingPhotoEditor,
-                            imageToEdit: $imageToEdit,
-                            showingCustomCamera: $showingCustomCamera,
-                            selectedFilter: $selectedFilter,
-                            showingFilterPreview: $showingFilterPreview,
-                            filterIntensity: $filterIntensity,
-                            showingPhotoPicker: $showingPhotoPicker
-                        )
-                        
-                        // Quick Filter Selection
-                        if viewModel.selectedImage != nil && viewModel.mediaType == .photo {
+        Text("CreatePostView - Currently Disabled")
+            .font(.title2)
+            .foregroundColor(.secondary)
+        
+        /*
+        if viewModel.selectedImage == nil {
+            // 写真が選択されるまでは空のビューを表示
+            Color.clear
+                .onAppear {
+                    // 初回表示時に自動的にPhotoPickerを開く
+                    if !showingPhotoPicker {
+                        showingPhotoPicker = true
+                    }
+                }
+        } else {
+            NavigationView {
+                VStack(spacing: 0) {
+                    // Header
+                    UnifiedHeader(
+                        title: "New Post",
+                        showBackButton: true,
+                        rightButton: viewModel.canPost ? HeaderButton(
+                            icon: "checkmark",
+                            action: {
+                                // Start background upload
+                                viewModel.createPostInBackground()
+                                // Immediately dismiss and return to feed
+                                dismiss()
+                            }
+                        ) : nil,
+                        onBack: { dismiss() }
+                    )
+                    
+                    // Content
+                    ScrollView {
+                        LazyVStack(spacing: MinimalDesign.Spacing.lg) {
+                            // Quick Filter Selection
+                            if viewModel.selectedImage != nil && viewModel.mediaType == .photo {
                             QuickFilterSection(
                                 originalImage: viewModel.selectedImage,
                                 selectedFilter: $selectedFilter,
@@ -84,23 +83,23 @@ struct CreatePostView: View {
                         // Upload Progress
                         if viewModel.isLoading {
                             MinimalProgressView(progress: viewModel.uploadProgress)
+                            }
                         }
+                        .padding(.vertical, MinimalDesign.Spacing.md)
                     }
-                    .padding(.vertical, MinimalDesign.Spacing.md)
                 }
+                .background(MinimalDesign.Colors.background)
+                .navigationBarHidden(true)
             }
-            .background(MinimalDesign.Colors.background)
-            .navigationBarHidden(true)
-        }
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK") { }
-        } message: {
-            Text(viewModel.errorMessage ?? "Failed to create post")
-        }
-        .onChange(of: locationName) { _, newLocation in
-            viewModel.locationName = newLocation
-        }
-        .sheet(isPresented: $showingPhotoEditor) {
+            .alert("Error", isPresented: $viewModel.showError) {
+                Button("OK") { }
+            } message: {
+                Text(viewModel.errorMessage ?? "Failed to create post")
+            }
+            .onChange(of: locationName) { _, newLocation in
+                viewModel.locationName = newLocation
+            }
+            .sheet(isPresented: $showingPhotoEditor) {
             if let editorData = editorData {
                 // RAW画像の編集
                 ModernPhotoEditorView(
@@ -166,13 +165,14 @@ struct CreatePostView: View {
                 print("🟢 PhotoPickerから画像受信")
                 self.editorData = editorData
                 self.imageToEdit = editorData.previewImage
+                self.viewModel.selectedImage = editorData.previewImage
+                self.viewModel.mediaType = .photo
                 
-                // PhotoPickerViewを閉じてから編集画面を開く
+                // PhotoPickerViewを閉じる
                 self.showingPhotoPicker = false
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.showingPhotoEditor = true
-                }
+            }
+            .onAppear {
+                print("🟡 DEBUG: PhotoPicker sheet onAppear")
             }
         }
         .onChange(of: showingPhotoPicker) { _, newValue in
@@ -722,5 +722,6 @@ struct CreatePostView: View {
             }
             .padding(.horizontal, MinimalDesign.Spacing.md)
         }
+        */
     }
 }

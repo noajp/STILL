@@ -15,9 +15,9 @@ final class ViewSnapshotTests: XCTestCase {
         // Configure for snapshot testing
     }
     
-    // MARK: - Single Card View Tests
+    // MARK: - Single View Tests
     
-    func testSingleCardViewDefault() {
+    func testSingleViewDefault() {
         // Given
         let testPost = TestUtilities.createTestPost(
             caption: "Beautiful sunset over the mountains 🌅",
@@ -32,14 +32,14 @@ final class ViewSnapshotTests: XCTestCase {
         
         // When/Then
         let view = SnapshotTestHelper.createTestView {
-            SingleCardView(post: postWithUser)
+            SinglePostCard(post: postWithUser)
                 .frame(width: 350)
         }
         
         assertSnapshot(matching: view, record: false)
     }
     
-    func testSingleCardViewDarkMode() {
+    func testSingleViewDarkMode() {
         // Given
         let testPost = TestUtilities.createTestPost(
             caption: "Night photography session 📸✨",
@@ -54,7 +54,7 @@ final class ViewSnapshotTests: XCTestCase {
         
         // When/Then
         let view = SnapshotTestHelper.createTestViewDark {
-            SingleCardView(post: postWithUser)
+            SinglePostCard(post: postWithUser)
                 .frame(width: 350)
         }
         
@@ -65,7 +65,7 @@ final class ViewSnapshotTests: XCTestCase {
         )
     }
     
-    func testSingleCardViewWithLongCaption() {
+    func testSingleViewWithLongCaption() {
         // Given
         let longCaption = "This is a very long caption that should test how the card handles text wrapping and layout when there's a lot of text content. It should demonstrate proper text truncation or expansion behavior. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
         
@@ -82,7 +82,7 @@ final class ViewSnapshotTests: XCTestCase {
         
         // When/Then
         let view = SnapshotTestHelper.createTestView {
-            SingleCardView(post: postWithUser)
+            SinglePostCard(post: postWithUser)
                 .frame(width: 350)
         }
         
@@ -271,7 +271,7 @@ final class ViewSnapshotTests: XCTestCase {
     
     // MARK: - iPad Layout Tests
     
-    func testSingleCardViewIPad() {
+    func testSingleViewIPad() {
         // Given
         let testPost = TestUtilities.createTestPost(
             caption: "iPad layout test for larger screens",
@@ -286,7 +286,7 @@ final class ViewSnapshotTests: XCTestCase {
         
         // When/Then
         let view = SnapshotTestHelper.createTestView {
-            SingleCardView(post: postWithUser)
+            SinglePostCard(post: postWithUser)
                 .frame(width: 500) // iPad-like width
         }
         

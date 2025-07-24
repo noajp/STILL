@@ -19,7 +19,7 @@ final class AppCoordinator: ObservableObject {
     
     // MARK: - Published Properties
     @Published var currentTab: MainTab = .home
-    @Published var showGridMode = false
+    @Published var showGridMode = true
     @Published var showingCreatePost = false
     @Published var isInSingleView = false
     
@@ -185,13 +185,10 @@ struct EnhancedMainTabView: View {
     var body: some View {
         TabView(selection: $coordinator.currentTab) {
             // Home Feed
-            HomeFeedView(
+            HomeGridView(
                 showGridMode: $coordinator.showGridMode, 
                 showingCreatePost: $coordinator.showingCreatePost, 
-                isInSingleView: $coordinator.isInSingleView, 
-                headerOffset: Binding.constant(0),
-                onBackToGrid: { () -> Void in },
-                onScrollChanged: { (_: CGFloat) -> Void in }
+                isInSingleView: $coordinator.isInSingleView
             )
                 .tabItem {
                     Image(systemName: MainTab.home.iconName)

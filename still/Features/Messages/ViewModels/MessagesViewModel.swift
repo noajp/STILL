@@ -21,6 +21,7 @@ class MessagesViewModel: ObservableObject {
     private let messageService = MessageService.shared
     private var hasLoadedInitially = false
     private var cancellables = Set<AnyCancellable>()
+    private var conversationLoadTask: Task<Void, Never>?
     
     init() {
         Task {
@@ -105,24 +106,40 @@ class MessagesViewModel: ObservableObject {
     }
     
     func loadConversations() async {
-        isLoading = true
-        errorMessage = nil
+        // Cancel previous task if exists
+        conversationLoadTask?.cancel()
         
-        do {
-            async let directConversations = messageService.fetchConversations()
-            async let groupChats = messageService.fetchGroupConversations()
+        conversationLoadTask = Task {
+            isLoading = true
+            errorMessage = nil
             
-            conversations = try await directConversations
-            groupConversations = try await groupChats
+            do {
+                // Check if task was cancelled
+                try Task.checkCancellation()
+                
+                async let directConversations = messageService.fetchConversations()
+                async let groupChats = messageService.fetchGroupConversations()
+                
+                // Check if task was cancelled before updating
+                try Task.checkCancellation()
+                
+                conversations = try await directConversations
+                groupConversations = try await groupChats
+                
+                print("📋 MessagesViewModel - Loaded \(conversations.count) direct conversations and \(groupConversations.count) group chats")
+                hasLoadedInitially = true
+            } catch is CancellationError {
+                print("🔄 MessagesViewModel - Load conversations was cancelled")
+                return
+            } catch {
+                print("❌ MessagesViewModel - Failed to load conversations: \(error.localizedDescription)")
+                errorMessage = "Failed to load conversations: \(error.localizedDescription)"
+            }
             
-            print("📋 MessagesViewModel - Loaded \(conversations.count) direct conversations and \(groupConversations.count) group chats")
-            hasLoadedInitially = true
-        } catch {
-            print("❌ MessagesViewModel - Failed to load conversations: \(error.localizedDescription)")
-            errorMessage = "Failed to load conversations: \(error.localizedDescription)"
+            isLoading = false
         }
         
-        isLoading = false
+        await conversationLoadTask?.value
     }
     
     // 会話リストを強制的に更新（チャットルームから戻った時など）

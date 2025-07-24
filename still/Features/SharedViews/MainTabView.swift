@@ -3,11 +3,14 @@
 // Path: foodai/Features/SharedViews/MainTabView.swift
 //======================================================================
 import SwiftUI
+import PhotosUI
 
 struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var showingCreatePost = false
-    @State private var showGridMode = false
+    @State private var showingPhotoEditor = false
+    @State private var editorData: PhotoEditorData?
+    @State private var showGridMode = true
     @State private var pageSelection = 1  // 0: Camera, 1: Feed
     @State private var isInSingleView = false
     @State private var isInProfileSingleView = false
@@ -30,56 +33,41 @@ struct MainTabView: View {
                 // ホーム → アーティクル → メッセージ → プロフィール
                 TabView(selection: $selectedTab) {
                     // ホームフィード (0)
-                    UnifiedNavigationView {
-                        HomeFeedView(
-                            showGridMode: $showGridMode, 
-                            showingCreatePost: $showingCreatePost,
-                            isInSingleView: $isInSingleView,
-                            headerOffset: $headerOffset,
-                            onBackToGrid: {
-                                // シングルビューからグリッドビューに戻る
-                                if isInSingleView {
-                                    isInSingleView = false
-                                    showGridMode = true
-                                }
-                            },
-                            onScrollChanged: { scrollOffset in
-                                updateUIForScroll(scrollOffset: scrollOffset)
-                            }
-                        )
-                    }
+                    HomeGridView(
+                        showGridMode: $showGridMode, 
+                        showingCreatePost: $showingCreatePost,
+                        isInSingleView: $isInSingleView
+                    )
                     .tag(0)
                     
                     // アーティクル (1)
-                    UnifiedNavigationView {
+                    NavigationStack {
                         ArticleListView()
                     }
                     .tag(1)
                     
                     // メッセージ (2) - タブの順序用に2に変更
-                    UnifiedNavigationView {
+                    NavigationStack {
                         MessagesView(isGroupChatMode: $isGroupChatMode)
                     }
                     .tag(2)
                     
                     // プロフィール (3) - タブの順序用に3に変更
-                    UnifiedNavigationView {
-                        MyPageView(
-                            isInProfileSingleView: $isInProfileSingleView,
-                            isUserSearchMode: $isUserSearchMode
-                        )
-                    }
+                    MyPageView(
+                        isInProfileSingleView: $isInProfileSingleView,
+                        isUserSearchMode: $isUserSearchMode
+                    )
                     .tag(3)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .background(Color.clear)
+                .background(Color(.systemBackground))
                 .ignoresSafeArea(.all)
                 .tag(1)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             
-            // Status bar moved to HomeFeedView
+            // Status bar moved to HomeGridView
             
             // カメラビューの時はタブバーを非表示
             if pageSelection == 1 {
@@ -124,12 +112,38 @@ struct MainTabView: View {
                 .clipped() // 背景も含めて完全に隠すためにクリッピング
             }
         }
-        .background(Color.clear)
+        .background(Color(.systemBackground))
         .ignoresSafeArea(.all)
         .accentColor(MinimalDesign.Colors.accentRed)
         .fullScreenCover(isPresented: $showingCreatePost) {
-            CreatePostNavigationView()
-                .transition(.move(edge: .bottom))
+            NavigationStack {
+                PhotoPickerView { editorData in
+                    print("🟢 MainTabViewで画像受信")
+                    self.editorData = editorData
+                    self.showingCreatePost = false
+                    self.showingPhotoEditor = true
+                }
+            }
+            .transition(.move(edge: .bottom))
+        }
+        .fullScreenCover(isPresented: $showingPhotoEditor) {
+            if let editorData = editorData {
+                NavigationStack {
+                    ModernPhotoEditorView(
+                        editorData: editorData,
+                        onComplete: { editedImage in
+                            print("🟢 編集完了")
+                            showingPhotoEditor = false
+                            self.editorData = nil
+                        },
+                        onCancel: {
+                            print("🟢 編集キャンセル")
+                            showingPhotoEditor = false
+                            self.editorData = nil
+                        }
+                    )
+                }
+            }
         }
     }
     

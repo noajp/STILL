@@ -6,6 +6,33 @@
 import Foundation
 import Supabase
 
+/// Actor for managing mutable state in UserRepository
+actor UserRepositoryActor {
+    private var currentProfileTask: Task<UserProfile, Error>?
+    private var profileCache: [String: (profile: UserProfile, timestamp: Date)] = [:]
+    private let cacheExpiry: TimeInterval = 300 // 5 minutes
+    
+    func getCachedProfile(userId: String) -> UserProfile? {
+        if let cached = profileCache[userId],
+           Date().timeIntervalSince(cached.timestamp) < cacheExpiry {
+            return cached.profile
+        }
+        return nil
+    }
+    
+    func cacheProfile(_ profile: UserProfile, userId: String) {
+        profileCache[userId] = (profile: profile, timestamp: Date())
+    }
+    
+    func cancelCurrentTask() {
+        currentProfileTask?.cancel()
+    }
+    
+    func setCurrentTask(_ task: Task<UserProfile, Error>) {
+        currentProfileTask = task
+    }
+}
+
 /// Protocol defining user data operations
 protocol UserRepositoryProtocol: Sendable {
     func fetchUserProfile(userId: String) async throws -> UserProfile
@@ -20,27 +47,44 @@ protocol UserRepositoryProtocol: Sendable {
 /// Implementation of UserRepository
 final class UserRepository: UserRepositoryProtocol, Sendable {
     private let supabaseClient: SupabaseClient
+    private let actor = UserRepositoryActor()
     
     nonisolated init(supabaseClient: SupabaseClient = SupabaseManager.shared.client) {
         self.supabaseClient = supabaseClient
     }
     
-    /// Fetches user profile by ID
+    /// Fetches user profile by ID with caching and deduplication
     func fetchUserProfile(userId: String) async throws -> UserProfile {
-        do {
-            let profile: UserProfile = try await supabaseClient
-                .from("profiles")
-                .select()
-                .eq("id", value: userId)
-                .single()
-                .execute()
-                .value
-            
-            return profile
-        } catch {
-            Logger.shared.error("Failed to fetch user profile: \(error)")
-            throw ViewModelError.network("Failed to load profile")
+        // Check cache first
+        if let cachedProfile = await actor.getCachedProfile(userId: userId) {
+            return cachedProfile
         }
+        
+        // Cancel previous task if exists
+        await actor.cancelCurrentTask()
+        
+        // Create new task
+        let task = Task {
+            do {
+                let profile: UserProfile = try await supabaseClient
+                    .from("profiles")
+                    .select()
+                    .eq("id", value: userId)
+                    .single()
+                    .execute()
+                    .value
+                
+                // Cache the result
+                await actor.cacheProfile(profile, userId: userId)
+                return profile
+            } catch {
+                Logger.shared.error("Failed to fetch user profile: \(error)")
+                throw ViewModelError.network("Failed to load profile")
+            }
+        }
+        
+        await actor.setCurrentTask(task)
+        return try await task.value
     }
     
     /// Fetches all posts for a user

@@ -29,7 +29,7 @@ struct MyPageView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollableHeaderView(
+            UnifiedScreenView(
             title: isUserSearchMode ? "User Search" : "Profile",
             rightButton: isUserSearchMode ? nil : HeaderButton(
                 icon: "custom.three.lines",
@@ -178,15 +178,18 @@ struct MyPageView: View {
                         }
                     )
                 }
+                
+                // タブバー用の下部余白
+                Color.clear
+                    .frame(height: 110)
             }
             .padding(.top, 0)
             .padding(.bottom, MinimalDesign.Spacing.xs)
-            .padding(.bottom, 100) // タブバー分のスペース
         }
         .background(MinimalDesign.Colors.background)
-        .sheet(isPresented: $showEditProfile) {
-                EditProfileView(viewModel: viewModel)
-            }
+        .navigationDestination(isPresented: $showEditProfile) {
+            EditProfileView(viewModel: viewModel)
+        }
             .navigationDestination(isPresented: $navigateToSettings) {
                 SettingsView()
                     .environmentObject(authManager)

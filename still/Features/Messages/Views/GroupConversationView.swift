@@ -17,6 +17,7 @@ class GroupConversationViewModel: ObservableObject {
     private let messageService = MessageService.shared
     private var cancellables = Set<AnyCancellable>()
     private var hasLoadedInitialMessages = false
+    var hasScrolledOnce = false
     
     init(conversationId: String, groupConversation: GroupConversation? = nil) {
         self.conversationId = conversationId
@@ -181,9 +182,12 @@ struct GroupConversationView: View {
                     }
                 }
                 .onAppear {
-                    // Scroll to bottom on appear
-                    if let lastMessage = viewModel.messages.last {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    // Scroll to bottom only on first load, not on every appear
+                    if !viewModel.hasScrolledOnce && !viewModel.messages.isEmpty {
+                        if let lastMessage = viewModel.messages.last {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            viewModel.hasScrolledOnce = true
+                        }
                     }
                 }
             }

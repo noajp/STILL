@@ -40,7 +40,7 @@ struct ScrollableHeaderView<Content: View>: View {
                 LazyVStack(spacing: 0) {
                     // Header space
                     Color.clear
-                        .frame(height: headerHeight - 50) // 補正分を考慮
+                        .frame(height: headerHeight - 10) // ヘッダー位置を-10に調整
                     
                     // Content
                     content
@@ -65,7 +65,7 @@ struct ScrollableHeaderView<Content: View>: View {
                 rightButton: rightButton,
                 onBack: onBack
             )
-            .offset(y: headerOffset - 50) // UnifiedHeaderのpadding-top(50pt)を完全に補正
+            .offset(y: headerOffset - 10) // ヘッダー位置を-10に調整
             .animation(.easeInOut(duration: 0.5), value: headerOffset)
             .zIndex(1000)
         }

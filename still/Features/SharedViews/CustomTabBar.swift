@@ -56,12 +56,12 @@ struct CustomTabBar: View {
                         // グリッドモード時
                         Image(systemName: "square.grid.3x3.fill")
                             .font(.system(size: 20, weight: .light))
-                            .foregroundColor(Color(red: 0.949, green: 0.098, blue: 0.020))
+                            .foregroundColor(MinimalDesign.Colors.accentRed)
                     } else if selectedTab == 0 {
                         // シングルモード時（選択中）
                         Image(systemName: "square.fill")
                             .font(.system(size: 20, weight: .light))
-                            .foregroundColor(Color(red: 0.949, green: 0.098, blue: 0.020))
+                            .foregroundColor(MinimalDesign.Colors.accentRed)
                     } else {
                         // 非選択時
                         Image(systemName: showGridMode ? "square.grid.3x3" : "square")
@@ -78,25 +78,23 @@ struct CustomTabBar: View {
             }) {
                 Image(systemName: selectedTab == 1 ? "book.fill" : "book")
                     .font(.system(size: 20, weight: .light))
-                    .foregroundColor(selectedTab == 1 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                    .foregroundColor(selectedTab == 1 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
             }
             .frame(maxWidth: .infinity)
             
-            // 投稿ボタン（中央）- 非表示にする
-            /*
+            // 投稿ボタン（中央）
             Button(action: onCreatePost) {
                 ZStack {
                     Circle()
-                        .fill(MinimalDesign.Colors.accentRed)
-                        .frame(width: 44, height: 44)
+                        .fill(MinimalDesign.Colors.accentRed.opacity(0.8))
+                        .frame(width: 36, height: 36)
                     
                     Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .regular))
+                        .font(.system(size: 18, weight: .light))
                         .foregroundColor(.white)
                 }
             }
             .frame(maxWidth: .infinity)
-            */
             
             // メッセージボタン
             VStack {
@@ -113,21 +111,21 @@ struct CustomTabBar: View {
                                 // 左側のメッセージ（右向き、水平反転、小さい）
                                 Image(systemName: selectedTab == 2 ? "message.fill" : "message")
                                     .font(.system(size: 12, weight: .light))
-                                    .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
                                     .scaleEffect(x: -1, y: 1) // 水平反転で右向きに
                                     .frame(width: 12, height: 20, alignment: .center) // 固定フレーム
                                 
                                 // 右側のメッセージ（左向き、通常、大きい）
                                 Image(systemName: selectedTab == 2 ? "message.fill" : "message")
                                     .font(.system(size: 18, weight: .light))
-                                    .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
                                     .frame(width: 18, height: 20, alignment: .center) // 固定フレーム
                             }
                         } else {
                             // 個人メッセージ: 通常のメッセージアイコン
                             Image(systemName: messageIconName)
                                 .font(.system(size: 20, weight: .light))
-                                .foregroundColor(selectedTab == 2 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                                .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
                                 .frame(width: 20, height: 20, alignment: .center) // 固定フレーム
                         }
                     }
@@ -135,7 +133,7 @@ struct CustomTabBar: View {
                     // 未読メッセージバッジ
                     if unreadMessageCount > 0 {
                         Circle()
-                            .fill(Color(red: 0.949, green: 0.098, blue: 0.020))
+                            .fill(MinimalDesign.Colors.accentRed)
                             .frame(width: 8, height: 8)
                             .offset(x: 8, y: -4)
                     }
@@ -157,7 +155,7 @@ struct CustomTabBar: View {
             VStack {
                 Image(systemName: profileIconName)
                     .font(.system(size: 20, weight: .light))
-                    .foregroundColor(selectedTab == 3 ? Color(red: 0.949, green: 0.098, blue: 0.020) : (colorScheme == .dark ? .white : .black))
+                    .foregroundColor(selectedTab == 3 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
