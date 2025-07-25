@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - HomeGridView.swift
-// Purpose: Main feed displaying posts in grid or following post view
+// Purpose: Home feed grid layout with masonry-style post display, landscape/square aspect handling, and infinite scroll (メインフィードグリッドレイアウト：メイソンリースタイル投稿表示、横長/正方形アスペクト処理、無限スクロール)
 // Path: still/Features/HomeFeed/Views/HomeGridView.swift
 //======================================================================
 import SwiftUI
@@ -18,7 +18,7 @@ struct HomeGridView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        UnifiedScreenView(
+        ScrollableHeaderView(
             title: "STILL"
         ) {
             VStack(spacing: 0) {

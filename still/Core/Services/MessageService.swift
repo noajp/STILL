@@ -1,6 +1,7 @@
 //======================================================================
 // MARK: - MessageService.swift
-// Path: foodai/Core/Services/MessageService.swift
+// Purpose: Message service with encrypted messaging, conversation management, and real-time subscription handling (暗号化メッセージング、会話管理、リアルタイム購読処理を持つメッセージサービス)
+// Path: still/Core/Services/MessageService.swift
 //======================================================================
 import Foundation
 import Supabase

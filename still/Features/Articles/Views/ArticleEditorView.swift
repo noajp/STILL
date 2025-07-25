@@ -178,7 +178,7 @@ struct ArticleEditorView: View {
         for element in elements {
             if element.type == .text && !element.content.isEmpty {
                 fullContent += element.content + "\n\n"
-            } else if element.type == .image, let imageData = element.imageData {
+            } else if element.type == .image, let _ = element.imageData {
                 // 画像は後でURLに変換する必要がある
                 // TODO: 画像をSupabase Storageにアップロード
                 fullContent += "[IMAGE]\n\n"
@@ -186,21 +186,21 @@ struct ArticleEditorView: View {
         }
         
         // コンテンツを暗号化
-        var encryptedTitle: String = ""
-        var encryptedContent: String = ""
+        var _: String = ""  // encryptedTitle placeholder
+        var _: String = ""  // encryptedContent placeholder
         do {
             let keyData = try KeychainManager.shared.getUserKey()
             let key = CryptoManager.shared.dataToKey(keyData)
-            encryptedTitle = try CryptoManager.shared.encryptToBase64(text: title, using: key)
-            encryptedContent = try CryptoManager.shared.encryptToBase64(text: fullContent, using: key)
+            _ = try CryptoManager.shared.encryptToBase64(text: title, using: key)
+            _ = try CryptoManager.shared.encryptToBase64(text: fullContent, using: key)
         } catch KeychainError.keyNotFound {
             // 初回の場合はキーを生成
             let newKey = CryptoManager.shared.generateUserKey()
             let keyData = CryptoManager.shared.keyToData(newKey)
             do {
                 try KeychainManager.shared.saveUserKey(keyData)
-                encryptedTitle = try CryptoManager.shared.encryptToBase64(text: title, using: newKey)
-                encryptedContent = try CryptoManager.shared.encryptToBase64(text: fullContent, using: newKey)
+                _ = try CryptoManager.shared.encryptToBase64(text: title, using: newKey)
+                _ = try CryptoManager.shared.encryptToBase64(text: fullContent, using: newKey)
             } catch {
                 print("暗号化エラー: \(error)")
                 isPublishing = false

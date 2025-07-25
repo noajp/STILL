@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - ScrollableHeader.swift
-// Purpose: ScrollableHeader implementation (ScrollableHeaderの実装)
+// Purpose: Auto-hiding scrollable header component with scroll offset tracking and animated show/hide transitions (スクロールオフセット追跡とアニメーション付き表示/非表示遷移を持つ自動隠れるスクロール可能ヘッダーコンポーネント)
 // Path: still/Core/Components/ScrollableHeader.swift
 //======================================================================
 import SwiftUI

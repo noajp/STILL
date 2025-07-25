@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - Post.swift
-// Purpose: Data model for posts with media content, location, and social features (メディアコンテンツ、位置情報、ソーシャル機能を持つ投稿のデータモデル)
+// Purpose: Core data model for posts with media, location, user interaction states, and aspect ratio calculations (メディア、位置情報、ユーザーインタラクション状態、アスペクト比計算を持つ投稿のコアデータモデル)
 // Path: still/Core/DataModels/Post.swift
 //======================================================================
 import Foundation

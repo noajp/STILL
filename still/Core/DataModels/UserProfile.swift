@@ -1,6 +1,7 @@
 //======================================================================
-// MARK: - UserProfile.swift（ユーザープロフィール）
-// Path: foodai/Core/DataModels/UserProfile.swift
+// MARK: - UserProfile.swift
+// Purpose: User profile data model with username validation, display name handling, and follower/following count tracking (ユーザー名検証、表示名処理、フォロワー/フォロー数追跡を持つユーザープロフィールデータモデル)
+// Path: still/Core/DataModels/UserProfile.swift
 //======================================================================
 import Foundation
 

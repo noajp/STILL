@@ -1,6 +1,7 @@
 //======================================================================
 // MARK: - Message.swift
-// Path: foodai/Core/DataModels/Message.swift
+// Purpose: Encrypted message data models with conversation management, participant handling, and secure content decryption (会話管理、参加者処理、セキュアコンテンツ復号化を持つ暗号化メッセージデータモデル)
+// Path: still/Core/DataModels/Message.swift
 //======================================================================
 import Foundation
 

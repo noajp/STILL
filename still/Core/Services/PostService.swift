@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - PostService.swift
-// Purpose: Handles post-related operations including CRUD operations and like management (投稿関連の操作：CRUD操作といいね管理)
+// Purpose: Post management service with creation, fetching, uploading, and Supabase integration for media and metadata (作成、取得、アップロード、メディアとメタデータのSupabase統合を持つ投稿管理サービス)
 // Path: still/Core/Services/PostService.swift
 //======================================================================
 import Foundation

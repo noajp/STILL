@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - CoreImageManager.swift
-// Purpose: Manager class for system operations (CoreImageManagerのシステム操作管理クラス)
+// Purpose: Core Image processing manager with filter application, image transformations, and performance optimization (フィルター適用、画像変換、パフォーマンス最適化を持つCore Image処理マネージャー)
 // Path: still/Core/ImageProcessing/CoreImageManager.swift
 //======================================================================
 //

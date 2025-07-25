@@ -1,7 +1,7 @@
 //======================================================================
-// MARK: - Logger
-// Purpose: Centralized logging system for the app
-// Usage: Logger.shared.info("message"), Logger.shared.error("error")
+// MARK: - Logger.swift
+// Purpose: Utility functions for logging (ログ出力のユーティリティ)
+// Path: still/Core/Utilities/Logger.swift
 //======================================================================
 import Foundation
 import os.log

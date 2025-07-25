@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - ModernPhotoEditorView.swift
-// Purpose: SwiftUI view component (ModernPhotoEditorViewビューコンポーネント)
+// Purpose: Advanced photo editor with RAW processing, filter presets, adjustment controls, and direct post creation integration (RAW処理、フィルタープリセット、調整コントロール、直接投稿作成統合を持つ高度な写真エディター)
 // Path: still/Features/PhotoEditor/Views/ModernPhotoEditorView.swift
 //======================================================================
 //
@@ -85,52 +85,66 @@ struct ModernPhotoEditorView: View {
     
     // MARK: - Body
     var body: some View {
+        mainContent
+    }
+    
+    private var mainContent: some View {
         ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
+            backgroundView
+            contentView
+            headerButtons
+        }
+    }
+    
+    private var backgroundView: some View {
+        Color.black.ignoresSafeArea()
+    }
+    
+    private var contentView: some View {
+        VStack(spacing: 0) {
+            // メイン画像（全画面表示）
+            mainImageView
             
-            VStack(spacing: 0) {
-                // メイン画像（全画面表示）
-                mainImageView
+            // 編集メニュー
+            editMenuView
+        }
+    }
+    
+    private var headerButtons: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .foregroundColor(.white)
                 
-                // 編集メニュー
-                editMenuView
-            }
-            
-            // ヘッダーボタン - 画面最上部に配置
-            VStack(spacing: 0) {
-                HStack {
-                    Button("Cancel", action: onCancel)
-                        .actionTextButtonStyle()
-                    
-                    Spacer()
-                    
-                    Text("Edit Photo")
-                        .font(MinimalDesign.Typography.headline)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        print("🟢 Button tapped! onPost is nil: \(onPost == nil)")
-                        if let editedImage = viewModel.currentImage {
-                            if let onPost = onPost {
-                                print("🟢 Calling onPost")
-                                onPost(editedImage)
-                            } else {
-                                print("🟢 Calling onComplete")
-                                onComplete(editedImage)
-                            }
+                Spacer()
+                
+                Text("Edit Photo")
+                    .font(MinimalDesign.Typography.headline)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: {
+                    print("🟢 Button tapped! onPost is nil: \(onPost == nil)")
+                    if let editedImage = viewModel.currentImage {
+                        if let onPost = onPost {
+                            print("🟢 Calling onPost")
+                            onPost(editedImage)
                         } else {
-                            print("🔴 No editedImage available")
+                            print("🟢 Calling onComplete")
+                            onComplete(editedImage)
                         }
-                    }) {
+                    } else {
+                        print("🔴 No editedImage available")
+                    }
+                }) {
                         if postViewModel?.isLoading == true {
                             ProgressView()
                                 .scaleEffect(0.8)
                         } else {
                             buttonText
-                                .actionTextButtonStyle()
                                 .fontWeight(.semibold)
+                                .foregroundColor(.white)
                         }
                     }
                     .disabled(postViewModel?.isLoading == true)
@@ -269,9 +283,7 @@ struct ModernPhotoEditorView_Previews: PreviewProvider {
         ModernPhotoEditorView(
             image: UIImage(systemName: "photo")!,
             onComplete: { _ in },
-            onCancel: { },
-            onPost: { _ in },
-            postViewModel: CreatePostViewModel()
+            onCancel: { }
         )
     }
 }

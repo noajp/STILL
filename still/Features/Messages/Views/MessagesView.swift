@@ -26,15 +26,12 @@ struct MessagesView: View {
             }
         }
         
-        return UnifiedScreenView(
+        return ScrollableHeaderView(
             title: headerTitle,
             rightButton: HeaderButton(
                 icon: headerIcon,
                 action: headerAction
-            ),
-            onRefresh: {
-                await viewModel.refreshConversations()
-            }
+            )
         ) {
             if viewModel.isLoading {
                 ProgressView("Loading conversations...")

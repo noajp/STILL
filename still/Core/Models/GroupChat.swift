@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - GroupChat.swift
-// Purpose: Data models for group chat functionality
+// Purpose: Group chat data models with conversation management, member roles, and unread message tracking (会話管理、メンバーロール、未読メッセージ追跡を持つグループチャットデータモデル)
 // Path: still/Core/Models/GroupChat.swift
 //======================================================================
 import Foundation

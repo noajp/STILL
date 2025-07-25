@@ -1,6 +1,7 @@
 //======================================================================
 // MARK: - LikeService.swift
-// Path: foodai/Core/Services/LikeService.swift
+// Purpose: Like/unlike service managing post interactions, optimistic updates, and database synchronization (投稿インタラクション、楽観的更新、データベース同期を管理するいいね/いいね解除サービス)
+// Path: still/Core/Services/LikeService.swift
 //======================================================================
 import Foundation
 import Supabase

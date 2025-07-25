@@ -92,7 +92,7 @@ struct SettingsView: View {
                             Text("Sign Out")
                                 .font(.system(size: 16))
                         }
-                        .destructiveTextButtonStyle()
+                        .foregroundColor(.red)
                         .frame(maxWidth: .infinity)
                     }
                     

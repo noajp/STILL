@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - SinglePostView.swift
-// Purpose: SwiftUI view component (SinglePostViewビューコンポーネント)
+// Purpose: Individual post display view with media rendering, user interactions, aspect ratio handling, and action button integration (メディアレンダリング、ユーザーインタラクション、アスペクト比処理、アクションボタン統合を持つ個別投稿表示ビュー)
 // Path: still/Features/HomeFeed/Views/SinglePostView.swift
 //======================================================================
 import SwiftUI

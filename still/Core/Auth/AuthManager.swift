@@ -1,5 +1,6 @@
 //======================================================================
-// MARK: - AuthManager.swift (Secure Authentication System)
+// MARK: - AuthManager.swift
+// Purpose: Authentication manager with user session handling, secure token management, and Supabase auth integration (ユーザーセッション処理、セキュアトークン管理、Supabase認証統合を持つ認証マネージャー)
 // Path: still/Core/Auth/AuthManager.swift
 //======================================================================
 import Foundation

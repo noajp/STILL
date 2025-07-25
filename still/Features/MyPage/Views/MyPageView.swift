@@ -29,7 +29,7 @@ struct MyPageView: View {
     
     var body: some View {
         NavigationStack {
-            UnifiedScreenView(
+            ScrollableHeaderView(
             title: isUserSearchMode ? "User Search" : "Profile",
             rightButton: isUserSearchMode ? nil : HeaderButton(
                 icon: "custom.three.lines",

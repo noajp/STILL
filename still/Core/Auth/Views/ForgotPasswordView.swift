@@ -21,8 +21,8 @@ struct ForgotPasswordView: View {
                 Button("←") {
                     dismiss()
                 }
-                .actionTextButtonStyle()
                 .font(.system(size: 24))
+                .foregroundColor(.primary)
                 
                 Spacer()
             }
@@ -96,13 +96,11 @@ struct ForgotPasswordView: View {
             Button("OK") {
                 dismiss()
             }
-            .actionTextButtonStyle()
         } message: {
             Text("Password reset link has been sent to \(email). Please check your email.")
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") { }
-                .actionTextButtonStyle()
         } message: {
             Text(errorMessage)
         }

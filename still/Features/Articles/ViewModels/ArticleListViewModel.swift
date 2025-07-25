@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - ArticleListViewModel.swift
-// Purpose: View model for data and business logic (ArticleListViewModelのデータとビジネスロジック)
+// Purpose: View model for article list (記事一覧のビューモデル)
 // Path: still/Features/Articles/ViewModels/ArticleListViewModel.swift
 //======================================================================
 //

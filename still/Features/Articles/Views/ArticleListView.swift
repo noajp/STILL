@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - ArticleListView.swift
-// Purpose: Article list with left photo and right text layout
+// Purpose: Article list view with unified header, refresh capability, and navigation to article creation and detail views (統一ヘッダーとリフレッシュ機能、記事作成と詳細画面への遷移を持つ記事一覧ビュー)
 // Path: still/Features/Articles/Views/ArticleListView.swift
 //======================================================================
 
@@ -13,17 +13,14 @@ struct ArticleListView: View {
     @State private var showingArticleEditor = false
     
     var body: some View {
-        UnifiedScreenView(
+        ScrollableHeaderView(
             title: "Articles",
             rightButton: HeaderButton(
                 icon: "plus",
                 action: {
                     showingArticleEditor = true
                 }
-            ),
-            onRefresh: {
-                await viewModel.refreshArticles()
-            }
+            )
         ) {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.articles) { article in

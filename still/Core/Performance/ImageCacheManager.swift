@@ -55,7 +55,7 @@ final class ImageCacheManager: ObservableObject {
     
     /// サムネイルを非同期で取得（キャッシュ優先）
     func loadThumbnail(from urlString: String, size: String = "medium") async -> UIImage? {
-        guard let url = URL(string: urlString) else { return nil }
+        guard URL(string: urlString) != nil else { return nil }
         
         let cacheKey = "\(urlString)_thumb_\(size)" as NSString
         

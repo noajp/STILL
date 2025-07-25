@@ -1,7 +1,7 @@
 //======================================================================
-// MARK: - UserRepository
-// Purpose: Handles all user-related data operations
-// Usage: Inject into ViewModels for user data access
+// MARK: - UserRepository.swift
+// Purpose: User data repository with profile management, search functionality, and Supabase integration for user operations (プロフィール管理、検索機能、ユーザー操作のSupabase統合を持つユーザーデータリポジトリ)
+// Path: still/Core/Repositories/UserRepository.swift
 //======================================================================
 import Foundation
 import Supabase

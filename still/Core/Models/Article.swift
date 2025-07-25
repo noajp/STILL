@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - Article.swift
-// Purpose: Article implementation (Articleの実装)
+// Purpose: Blog article data model with support for newspaper/magazine types, status management, categories, and user interaction tracking (新聞/雑誌タイプ、状態管理、カテゴリ、ユーザーインタラクション追跡をサポートするブログ記事データモデル)
 // Path: still/Core/Models/Article.swift
 //======================================================================
 //

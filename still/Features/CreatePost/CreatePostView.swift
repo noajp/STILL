@@ -1,5 +1,6 @@
 //======================================================================
-// MARK: - CreatePostView（Minimal Design）
+// MARK: - CreatePostView.swift
+// Purpose: Photo/video post creation view with media picker, filter selection, photo editor integration, and background upload functionality (メディアピッカー、フィルター選択、写真エディター統合、バックグラウンドアップロード機能を持つ写真・動画投稿作成ビュー)
 // Path: still/Features/CreatePost/CreatePostView.swift
 //======================================================================
 import SwiftUI

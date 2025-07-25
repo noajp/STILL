@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - ArticleRepository.swift
-// Purpose: Data repository with CRUD operations (ArticleRepositoryのCRUD操作データリポジトリ)
+// Purpose: Article data repository with CRUD operations, search, filtering, and database transaction management (記事データリポジトリはCRUD操作、検索、フィルタリング、データベーストランザクション管理を持つ)
 // Path: still/Core/Repositories/ArticleRepository.swift
 //======================================================================
 //

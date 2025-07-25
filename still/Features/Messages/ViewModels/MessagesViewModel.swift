@@ -1,6 +1,7 @@
 //======================================================================
 // MARK: - MessagesViewModel.swift
-// Path: foodai/Features/Messages/ViewModels/MessagesViewModel.swift
+// Purpose: View model for messages (メッセージのビューモデル)
+// Path: still/Features/Messages/ViewModels/MessagesViewModel.swift
 //======================================================================
 import Foundation
 import SwiftUI

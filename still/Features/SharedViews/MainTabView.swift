@@ -1,6 +1,7 @@
 //======================================================================
-// MARK: - MainTabView.swift（5タブ版 - 中央に投稿ボタン）
-// Path: foodai/Features/SharedViews/MainTabView.swift
+// MARK: - MainTabView.swift
+// Purpose: Main tab navigation controller with custom tab bar, tab switching, and root view management (カスタムタブバー、タブ切り替え、ルートビュー管理を持つメインタブナビゲーションコントローラー)
+// Path: still/Features/SharedViews/MainTabView.swift
 //======================================================================
 import SwiftUI
 import PhotosUI

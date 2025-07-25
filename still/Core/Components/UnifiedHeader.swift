@@ -1,6 +1,6 @@
 //======================================================================
 // MARK: - UnifiedHeader.swift
-// Purpose: Unified header component used across the app (アプリ全体で使用される統一ヘッダーコンポーネント)
+// Purpose: Consistent header component with title, optional back button, and right action button supporting custom icons and dark mode (タイトル、オプションの戻るボタン、カスタムアイコンとダークモードに対応した右アクションボタンを持つ一貫したヘッダーコンポーネント)
 // Path: still/Core/Components/UnifiedHeader.swift
 //======================================================================
 import SwiftUI

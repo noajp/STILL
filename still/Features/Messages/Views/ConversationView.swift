@@ -1,6 +1,9 @@
 //======================================================================
 // MARK: - ConversationView.swift
-// Path: foodai/Features/Messages/Views/ConversationView.swift
+// Purpose: Direct message conversation view with encrypted messaging, 
+// real-time updates, and participant management 
+// (暗号化メッセージング、リアルタイム更新、参加者管理を持つダイレクトメッセージ会話ビュー)
+// Path: still/Features/Messages/Views/ConversationView.swift
 //======================================================================
 import SwiftUI
 import Combine

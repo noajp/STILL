@@ -1,6 +1,7 @@
 //======================================================================
-// MARK: - CreatePostViewModel（画像・動画対応版）
-// Path: foodai/Features/CreatePost/ViewModels/CreatePostViewModel.swift
+// MARK: - CreatePostViewModel.swift
+// Purpose: View model for post creation (投稿作成のビューモデル)
+// Path: still/Features/CreatePost/ViewModels/CreatePostViewModel.swift
 //======================================================================
 import SwiftUI
 import PhotosUI
