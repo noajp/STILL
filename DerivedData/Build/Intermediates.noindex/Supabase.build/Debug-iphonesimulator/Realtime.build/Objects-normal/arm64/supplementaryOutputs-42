@@ -1,0 +1,18 @@
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/RealtimeError.swift":
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeError.swiftdeps"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeError.swiftconstvalues"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeError.o"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeError.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeError.d"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/RealtimeJoinConfig.swift":
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeJoinConfig.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeJoinConfig.d"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeJoinConfig.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeJoinConfig.swiftdeps"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeJoinConfig.o"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/RealtimeClientV2.swift":
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeClientV2.d"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeClientV2.dia"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeClientV2.swiftconstvalues"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeClientV2.o"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeClientV2.swiftdeps"

@@ -112,6 +112,9 @@ class MessageService: ObservableObject {
         print("🔍 DEBUG - Using currentUserId: \(currentUserId)")
         print("🔍 DEBUG - About to call RPC 'get_user_conversations' with params: [\"user_id_param\": \"\(currentUserId)\"]")
         
+        // Force clear any cached RPC function definitions by creating a fresh client instance
+        let freshClient = SupabaseManager.shared.createFreshClient()
+        
         // Use RPC function to bypass RLS recursion issues
         struct ConversationData: Codable {
             let conversationId: String
@@ -119,9 +122,9 @@ class MessageService: ObservableObject {
             let conversationUpdatedAt: Date
             let conversationLastMessageAt: Date?
             let conversationLastMessagePreview: String?
-            let participantId: String
-            let participantUserId: String
-            let participantJoinedAt: Date
+            let participantId: String?
+            let participantUserId: String?
+            let participantJoinedAt: Date?
             let participantLastReadAt: Date?
             let userUsername: String?
             let userDisplayName: String?
@@ -145,16 +148,38 @@ class MessageService: ObservableObject {
             }
         }
         
-        let conversationData: [ConversationData] = try await supabase
-            .rpc("get_user_conversations", params: ["user_id_param": AnyJSON.string(currentUserId)])
+        // Use view query instead of RPC to avoid caching issues
+        print("🔍 DEBUG - Using view query instead of RPC...")
+        let conversationData: [ConversationData] = try await freshClient
+            .from("user_conversations_view")
+            .select("*")
+            .eq("current_user_id", value: currentUserId)
             .execute()
             .value
+        
+        print("🧪 RAW RESPONSE DEBUG: Successfully decoded \(conversationData.count) items")
+        
+        // Manual JSON test for debugging
+        if let firstItem = conversationData.first {
+            print("🧪 FIRST ITEM DETAILED ANALYSIS:")
+            print("   conversationId: '\(firstItem.conversationId)'")
+            print("   participantId: '\(firstItem.participantId ?? "NIL")'")
+            print("   participantUserId: '\(firstItem.participantUserId ?? "NIL")'")
+            print("   userUsername: '\(firstItem.userUsername ?? "NIL")'")
+            print("   userDisplayName: '\(firstItem.userDisplayName ?? "NIL")'")
+            print("   participantJoinedAt: '\(firstItem.participantJoinedAt?.description ?? "NIL")'")
+        }
         
         // TEST: Add logging to show exact raw data from RPC call
         print("🧪 TEST - Exact count of items returned from RPC call: \(conversationData.count)")
         print("🧪 TEST - Raw data details for each item:")
         for (index, item) in conversationData.enumerated() {
-            print("   Item \(index): conversationId=\(item.conversationId), participantUserId=\(item.participantUserId)")
+            print("   Item \(index): conversationId=\(item.conversationId)")
+            print("      participantUserId=\(item.participantUserId ?? "NIL")")
+            print("      userUsername=\(item.userUsername ?? "NIL")")
+            print("      userDisplayName=\(item.userDisplayName ?? "NIL")")
+            print("      participantId=\(item.participantId ?? "NIL")")
+            print("      participantJoinedAt=\(item.participantJoinedAt?.description ?? "NIL")")
         }
         
         print("🔍 DEBUG - RPC call completed successfully")
@@ -162,7 +187,7 @@ class MessageService: ObservableObject {
         print("🔍 DEBUG - First few items from RPC response:")
         for (index, item) in conversationData.enumerated() {
             if index < 5 { // Show first 5 items
-                print("   Item \(index): conversationId=\(item.conversationId), participantUserId=\(item.participantUserId), userUsername=\(item.userUsername ?? "nil")")
+                print("   Item \(index): conversationId=\(item.conversationId), participantUserId=\(item.participantUserId ?? "nil"), userUsername=\(item.userUsername ?? "nil")")
             }
         }
         
@@ -198,32 +223,39 @@ class MessageService: ObservableObject {
             
             // Create UserProfile if we have user data
             var userProfile: UserProfile? = nil
-            if let username = data.userUsername {
+            if let username = data.userUsername, let participantUserId = data.participantUserId {
                 userProfile = UserProfile(
-                    id: data.participantUserId,
+                    id: participantUserId,
                     username: username,
                     displayName: data.userDisplayName,
                     avatarUrl: data.userAvatarUrl,
                     bio: data.userBio,
                     createdAt: nil
                 )
-                print("🔍 DEBUG - Created UserProfile for conversation \(conversationId): username=\(username), displayName=\(data.userDisplayName ?? "nil"), userId=\(data.participantUserId)")
+                print("🔍 DEBUG - Created UserProfile for conversation \(conversationId): username=\(username), displayName=\(data.userDisplayName ?? "nil"), userId=\(participantUserId)")
             } else {
-                print("🔍 DEBUG - No username for participant \(data.participantUserId) in conversation \(conversationId)")
+                print("🔍 DEBUG - No username or participantUserId for conversation \(conversationId) - username: \(data.userUsername ?? "nil"), participantUserId: \(data.participantUserId ?? "nil")")
             }
             
-            // Create participant
-            let participant = ConversationParticipant(
-                id: data.participantId,
-                conversationId: conversationId,
-                userId: data.participantUserId,
-                joinedAt: data.participantJoinedAt,
-                lastReadAt: data.participantLastReadAt,
-                user: userProfile
-            )
-            
-            // Add participant to conversation
-            conversationDict[conversationId]?.participants?.append(participant)
+            // Create participant only if we have required data
+            if let participantId = data.participantId, 
+               let participantUserId = data.participantUserId,
+               let participantJoinedAt = data.participantJoinedAt {
+                let participant = ConversationParticipant(
+                    id: participantId,
+                    conversationId: conversationId,
+                    userId: participantUserId,
+                    joinedAt: participantJoinedAt,
+                    lastReadAt: data.participantLastReadAt,
+                    user: userProfile
+                )
+                
+                // Add participant to conversation
+                conversationDict[conversationId]?.participants?.append(participant)
+                print("🔍 DEBUG - Added participant \(participantUserId) to conversation \(conversationId)")
+            } else {
+                print("🔍 DEBUG - Missing participant data for conversation \(conversationId) - participantId: \(data.participantId ?? "nil"), participantUserId: \(data.participantUserId ?? "nil"), participantJoinedAt: \(data.participantJoinedAt?.description ?? "nil")")
+            }
             
             // Debug: Show participants array after adding
             if let conversation = conversationDict[conversationId] {
@@ -238,6 +270,9 @@ class MessageService: ObservableObject {
         print("🔍 DEBUG - Final conversationDict contains \(conversationDict.count) unique conversations:")
         for (convId, conversation) in conversationDict {
             print("   Conversation \(convId): \(conversation.participants?.count ?? 0) participants")
+            conversation.participants?.forEach { participant in
+                print("      - Final participant: userId=\(participant.userId), username=\(participant.user?.username ?? "nil")")
+            }
         }
         
         let userConversations = Array(conversationDict.values).sorted { (c1, c2) in
@@ -309,6 +344,16 @@ class MessageService: ObservableObject {
         self.unreadConversationsCount = conversationsWithUnreadMessages
         
         print("📋 MessageService - fetchConversations: Returning \(conversationsWithUnread.count) conversations")
+        print("🔍 DEBUG - Final conversations array being returned to MessagesView:")
+        for (index, conversation) in conversationsWithUnread.enumerated() {
+            print("   [\(index)] ID: \(conversation.id)")
+            print("       Participants: \(conversation.participants?.count ?? 0)")
+            conversation.participants?.forEach { participant in
+                print("         - \(participant.user?.username ?? "unknown") (\(participant.userId))")
+            }
+            print("       Last message: \(conversation.lastMessagePreview ?? "none")")
+            print("       Unread count: \(conversation.unreadCount ?? 0)")
+        }
         return conversationsWithUnread
     }
     

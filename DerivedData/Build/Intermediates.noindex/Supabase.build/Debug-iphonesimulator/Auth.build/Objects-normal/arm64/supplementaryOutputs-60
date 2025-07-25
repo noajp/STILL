@@ -1,0 +1,18 @@
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Auth/Storage/KeychainLocalStorage.swift":
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/KeychainLocalStorage.swiftdeps"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/KeychainLocalStorage.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/KeychainLocalStorage.d"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/KeychainLocalStorage.o"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/KeychainLocalStorage.swiftconstvalues"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Auth/Storage/WinCredLocalStorage.swift":
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/WinCredLocalStorage.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/WinCredLocalStorage.swiftdeps"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/WinCredLocalStorage.dia"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/WinCredLocalStorage.o"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/WinCredLocalStorage.d"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Auth/Types.swift":
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Types.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Types.d"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Types.o"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Types.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Types.swiftdeps"

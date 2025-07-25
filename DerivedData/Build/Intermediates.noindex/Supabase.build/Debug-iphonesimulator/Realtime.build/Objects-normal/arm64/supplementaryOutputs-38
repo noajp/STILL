@@ -1,0 +1,24 @@
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/Deprecated/Push.swift":
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Push.swiftdeps"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Push.d"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Push.dia"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Push.o"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Push.swiftconstvalues"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/Deprecated/HeartbeatTimer.swift":
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/HeartbeatTimer.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/HeartbeatTimer.d"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/HeartbeatTimer.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/HeartbeatTimer.swiftdeps"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/HeartbeatTimer.o"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/Deprecated/PhoenixTransport.swift":
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PhoenixTransport.o"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PhoenixTransport.d"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PhoenixTransport.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PhoenixTransport.swiftdeps"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PhoenixTransport.dia"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/Deprecated/Presence.swift":
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Presence.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Presence.d"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Presence.o"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Presence.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/Presence.swiftdeps"

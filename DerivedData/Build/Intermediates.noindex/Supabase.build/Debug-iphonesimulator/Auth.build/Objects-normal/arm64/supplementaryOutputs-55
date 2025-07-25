@@ -1,0 +1,18 @@
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Auth/Internal/APIClient.swift":
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/APIClient.swiftconstvalues"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/APIClient.d"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/APIClient.o"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/APIClient.swiftdeps"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/APIClient.dia"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Auth/Exports.swift":
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Exports.d"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Exports.dia"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Exports.swiftconstvalues"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Exports.o"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Exports.swiftdeps"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Auth/Deprecated.swift":
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Deprecated.o"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Deprecated.swiftdeps"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Deprecated.d"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Deprecated.dia"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth.build/Objects-normal/arm64/Deprecated.swiftconstvalues"

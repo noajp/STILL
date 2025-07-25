@@ -1,0 +1,18 @@
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/RealtimeChannel+AsyncAwait.swift":
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannel+AsyncAwait.swiftconstvalues"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannel+AsyncAwait.swiftdeps"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannel+AsyncAwait.o"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannel+AsyncAwait.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannel+AsyncAwait.d"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/RealtimeChannelV2.swift":
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannelV2.o"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannelV2.swiftdeps"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannelV2.dia"
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannelV2.d"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/RealtimeChannelV2.swiftconstvalues"
+"/Users/nakanotakanori/Dev/STILL/DerivedData/SourcePackages/checkouts/supabase-swift/Sources/Realtime/PushV2.swift":
+  dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PushV2.d"
+  swift-dependencies: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PushV2.swiftdeps"
+  object: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PushV2.o"
+  diagnostics: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PushV2.dia"
+  const-values: "/Users/nakanotakanori/Dev/STILL/DerivedData/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Realtime.build/Objects-normal/arm64/PushV2.swiftconstvalues"

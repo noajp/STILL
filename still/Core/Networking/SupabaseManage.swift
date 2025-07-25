@@ -38,5 +38,24 @@ final class SupabaseManager: @unchecked Sendable {
         // 追加のセキュリティ設定
         secureLogger.debug("Supabase security configuration completed")
     }
+    
+    /// Create a fresh client instance to avoid cached RPC function definitions
+    func createFreshClient() -> SupabaseClient {
+        guard let supabaseURL = URL(string: SecureConfig.shared.supabaseURL) else {
+            secureLogger.error("Invalid Supabase URL configuration")
+            fatalError("Invalid Supabase URL")
+        }
+        
+        let supabaseKey = SecureConfig.shared.supabaseAnonKey
+        guard !supabaseKey.isEmpty else {
+            secureLogger.error("Missing Supabase anonymous key")
+            fatalError("Missing Supabase configuration")
+        }
+        
+        return SupabaseClient(
+            supabaseURL: supabaseURL,
+            supabaseKey: supabaseKey
+        )
+    }
 }
 

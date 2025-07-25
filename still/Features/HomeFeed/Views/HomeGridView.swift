@@ -298,7 +298,8 @@ struct CustomGridView: View {
     @State private var groupLoadStatus: [Int: Bool] = [:]
     
     var body: some View {
-        LazyVStack(spacing: 1.5) {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 1.5) {
             ForEach(0..<groupedPosts.count, id: \.self) { groupIndex in
                 let group = groupedPosts[groupIndex]
                 let isOddRow = groupIndex % 2 == 0
@@ -331,6 +332,7 @@ struct CustomGridView: View {
                         navigateToSingleView = true
                     }
                 }
+            }
             }
         }
         .background(Color(.systemBackground))
