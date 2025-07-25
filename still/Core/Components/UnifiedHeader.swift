@@ -77,7 +77,7 @@ struct UnifiedHeader: View {
             }
             .padding(.horizontal, MinimalDesign.Spacing.sm)
             .padding(.vertical, MinimalDesign.Spacing.xs)
-            .padding(.top, 50) // 元の位置に戻す
+            .padding(.top, 8) // Safe Areaを考慮した適切な位置
             .background(Color.clear)
         }
     }

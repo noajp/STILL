@@ -35,7 +35,7 @@ struct SettingsView: View {
                 .foregroundColor(MinimalDesign.Colors.accentRed)
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color(UIColor.systemBackground))
             
             Form {
                 Section(header: Text("Account")) {
@@ -84,7 +84,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section {
+                Section(header: Text("")) {
                     Button(action: { showSignOutAlert = true }) {
                         HStack {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -98,7 +98,7 @@ struct SettingsView: View {
                     
                     Button(action: {}) {
                         Text("Delete Account")
-                            .destructiveTextButtonStyle()
+                            .foregroundColor(.red)
                             .frame(maxWidth: .infinity)
                     }
                 }

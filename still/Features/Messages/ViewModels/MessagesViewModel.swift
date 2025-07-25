@@ -172,17 +172,21 @@ class MessagesViewModel: ObservableObject {
         do {
             let conversationId = try await messageService.getOrCreateDirectConversation(with: userId)
             
-            // 会話リストを更新して、新しい会話が確実に含まれるようにする
+            // 強制的にフレッシュデータを取得
+            hasLoadedInitially = false
             await refreshConversations()
             
+            // 少し待って再度確認
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+            
             // 新しい会話がリストに追加されたことを確認
-            if conversations.contains(where: { $0.id == conversationId }) {
-                print("✅ New conversation created and added to list: \(conversationId)")
-                return conversationId
-            } else {
-                print("⚠️ New conversation created but not found in list: \(conversationId)")
-                return conversationId  // Still return the ID even if not in list yet
+            if !conversations.contains(where: { $0.id == conversationId }) {
+                // まだリストにない場合、もう一度更新を試す
+                await refreshConversations()
             }
+            
+            print("✅ New conversation created: \(conversationId)")
+            return conversationId
         } catch {
             errorMessage = "Failed to create conversation: \(error.localizedDescription)"
             print("❌ Failed to create conversation: \(error)")

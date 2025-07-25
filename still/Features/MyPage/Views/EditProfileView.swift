@@ -21,116 +21,19 @@ struct EditProfileView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Profile Photo")) {
-                    HStack {
-                        // Current profile image
-                        if let profileImage = profileImage {
-                            Image(uiImage: profileImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 80, height: 80)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } else if let avatarUrl = viewModel.userProfile?.avatarUrl {
-                            AsyncImage(url: URL(string: avatarUrl)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } placeholder: {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.gray.opacity(0.3))
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .foregroundColor(.white)
-                                            .font(.system(size: 30))
-                                    )
-                            }
-                            .frame(width: 80, height: 80)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } else {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 80, height: 80)
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                        .foregroundColor(.white)
-                                        .font(.system(size: 30))
-                                )
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            PhotosPicker("Change Photo", selection: $selectedImage, matching: .images)
-                                .foregroundColor(.blue)
-                                .disabled(isUploadingImage)
-                            
-                            if isUploadingImage {
-                                HStack {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                    Text("Uploading...")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                }
-                
-                Section(header: Text("Basic Information")) {
-                    HStack {
-                        Text("Username")
-                            .foregroundColor(MinimalDesign.Colors.secondary)
-                        TextField("@username", text: $username)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                    
-                    HStack {
-                        Text("Display Name")
-                            .foregroundColor(MinimalDesign.Colors.secondary)
-                        TextField("Your name", text: $displayName)
-                    }
-                }
-                
-                Section(header: Text("Bio")) {
-                    TextEditor(text: $bio)
-                        .frame(minHeight: 100)
-                        .padding(.vertical, 4)
-                }
-                
-                Section {
-                    Text("Maximum 200 characters")
-                        .font(.caption)
-                        .foregroundColor(MinimalDesign.Colors.secondary)
-                }
+                profilePhotoSection
+                basicInfoSection
+                bioSection
+                bioHintSection
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .actionTextButtonStyle()
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveProfile()
-                    }
-                    .actionTextButtonStyle()
-                    .fontWeight(.semibold)
-                    .disabled(username.isEmpty || displayName.isEmpty)
-                }
+                toolbarContent
             }
             .alert("Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) {}
-                    .actionTextButtonStyle()
+                    .foregroundColor(.primary)
             } message: {
                 Text(alertMessage)
             }
@@ -142,6 +45,130 @@ struct EditProfileView: View {
                     loadSelectedImage(newValue)
                 }
             }
+        }
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var profilePhotoSection: some View {
+        Section(header: Text("Profile Photo")) {
+            HStack {
+                profileImageView
+                photoPickerSection
+                Spacer()
+            }
+            .padding(.vertical, 8)
+        }
+    }
+    
+    private var profileImageView: some View {
+        Group {
+            if let profileImage = profileImage {
+                Image(uiImage: profileImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 80, height: 80)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else if let avatarUrl = viewModel.userProfile?.avatarUrl {
+                AsyncImage(url: URL(string: avatarUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .foregroundColor(.white)
+                                .font(.system(size: 30))
+                        )
+                }
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 80, height: 80)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 30))
+                    )
+            }
+        }
+    }
+    
+    private var photoPickerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            PhotosPicker("Change Photo", selection: $selectedImage, matching: .images)
+                .foregroundColor(.blue)
+                .disabled(isUploadingImage)
+            
+            if isUploadingImage {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Uploading...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
+    private var basicInfoSection: some View {
+        Section(header: Text("Basic Information")) {
+            HStack {
+                Text("Username")
+                    .foregroundColor(.secondary)
+                TextField("@username", text: $username)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+            }
+            
+            HStack {
+                Text("Display Name")
+                    .foregroundColor(.secondary)
+                TextField("Your name", text: $displayName)
+            }
+        }
+    }
+    
+    private var bioSection: some View {
+        Section(header: Text("Bio")) {
+            TextEditor(text: $bio)
+                .frame(minHeight: 100)
+                .padding(.vertical, 4)
+        }
+    }
+    
+    private var bioHintSection: some View {
+        Section {
+            Text("Maximum 200 characters")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button("Cancel") {
+                dismiss()
+            }
+            .foregroundColor(.primary)
+        }
+        
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button("Save") {
+                saveProfile()
+            }
+            .foregroundColor(.primary)
+            .fontWeight(.semibold)
+            .disabled(username.isEmpty || displayName.isEmpty)
         }
     }
     

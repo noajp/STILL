@@ -92,8 +92,8 @@ struct MagazineFeedView: View {
                     }
                     .padding(.top, 24)
                     .padding(.bottom, 100) // タブバー分のスペース
-                }
             }
+        }
         .onAppear {
             Task {
                 await viewModel.loadArticles()

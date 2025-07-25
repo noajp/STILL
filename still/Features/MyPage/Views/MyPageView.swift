@@ -338,29 +338,6 @@ struct UserSearchResultRow: View {
 
 // MARK: - Modern Profile Components
 
-struct ModernProfileHeader: View {
-    let onSettings: () -> Void
-    
-    var body: some View {
-        HStack {
-            Text("Profile")
-                .font(MinimalDesign.Typography.title)
-                .fontWeight(.light)
-                .foregroundColor(MinimalDesign.Colors.primary)
-            
-            Spacer()
-            
-            Button(action: onSettings) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 18, weight: .light))
-                    .foregroundColor(MinimalDesign.Colors.secondary)
-            }
-        }
-        .padding(.horizontal, MinimalDesign.Spacing.md)
-        .padding(.vertical, MinimalDesign.Spacing.sm)
-    }
-}
-
 @MainActor
 struct ModernProfileSection: View {
     let profile: UserProfile?

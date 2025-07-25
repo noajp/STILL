@@ -159,7 +159,6 @@ struct ModernPhotoEditorView: View {
                 
                 Spacer() // ヘッダーを最上部に固定
             }
-        }
         .gesture(
             DragGesture()
                 .onEnded { value in

@@ -108,12 +108,8 @@ struct MessagesView: View {
         }
         .onAppear {
             Task {
-                // 初回読み込みでない場合はサイレント更新を使用
-                if viewModel.conversations.isEmpty {
-                    await viewModel.refreshConversations()
-                } else {
-                    await viewModel.silentRefreshConversations()
-                }
+                // 常にリストを更新して最新の状態を保つ
+                await viewModel.refreshConversations()
             }
         }
         .navigationDestination(isPresented: $isNavigatingToNewMessage) {
@@ -122,6 +118,10 @@ struct MessagesView: View {
                         print("🔄 Starting conversation creation with user: \(userId)")
                         if let conversationId = await viewModel.createNewConversation(with: userId) {
                             print("✅ Conversation created with ID: \(conversationId)")
+                            
+                            // 会話リストを強制更新してUIに反映
+                            await viewModel.refreshConversations()
+                            
                             // 会話作成が完了してから画面遷移
                             await MainActor.run {
                                 print("🎯 Setting selectedConversationId to: \(conversationId)")
@@ -130,6 +130,9 @@ struct MessagesView: View {
                             }
                         } else {
                             print("❌ Failed to create conversation")
+                            await MainActor.run {
+                                isNavigatingToNewMessage = false
+                            }
                         }
                     }
                 }
