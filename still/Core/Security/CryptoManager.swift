@@ -45,14 +45,26 @@ class CryptoManager: @unchecked Sendable {
     
     // データを復号化
     func decrypt(data: Data, using key: SymmetricKey) throws -> String {
-        let sealedBox = try AES.GCM.SealedBox(combined: data)
-        let decryptedData = try AES.GCM.open(sealedBox, using: key)
+        print("🔐 CryptoManager.decrypt - Input data length: \(data.count)")
         
-        guard let text = String(data: decryptedData, encoding: .utf8) else {
+        do {
+            let sealedBox = try AES.GCM.SealedBox(combined: data)
+            print("🔐 CryptoManager.decrypt - Successfully created SealedBox")
+            
+            let decryptedData = try AES.GCM.open(sealedBox, using: key)
+            print("🔐 CryptoManager.decrypt - Successfully opened SealedBox, decrypted data length: \(decryptedData.count)")
+            
+            guard let text = String(data: decryptedData, encoding: .utf8) else {
+                print("❌ CryptoManager.decrypt - Failed to convert decrypted data to UTF-8 string")
+                throw CryptoError.decryptionFailed
+            }
+            
+            print("🔐 CryptoManager.decrypt - Successfully converted to string: \(text)")
+            return text
+        } catch {
+            print("❌ CryptoManager.decrypt - AES.GCM operation failed: \(error)")
             throw CryptoError.decryptionFailed
         }
-        
-        return text
     }
     
     // Base64エンコード（データベース保存用）
@@ -63,11 +75,25 @@ class CryptoManager: @unchecked Sendable {
     
     // Base64デコードして復号化
     func decryptFromBase64(base64String: String, using key: SymmetricKey) throws -> String {
+        print("🔐 CryptoManager - Starting Base64 decryption")
+        print("🔐 CryptoManager - Base64 string length: \(base64String.count)")
+        print("🔐 CryptoManager - Base64 preview: \(String(base64String.prefix(50)))")
+        
         guard let data = Data(base64Encoded: base64String) else {
+            print("❌ CryptoManager - Invalid Base64 string")
             throw CryptoError.invalidBase64
         }
         
-        return try decrypt(data: data, using: key)
+        print("🔐 CryptoManager - Successfully decoded Base64 to data, length: \(data.count)")
+        
+        do {
+            let result = try decrypt(data: data, using: key)
+            print("🔐 CryptoManager - Successfully decrypted data")
+            return result
+        } catch {
+            print("❌ CryptoManager - Decryption failed: \(error)")
+            throw error
+        }
     }
 }
 

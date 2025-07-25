@@ -38,6 +38,8 @@ class KeychainManager: @unchecked Sendable {
     
     // 暗号化キーを取得
     func getUserKey() throws -> Data {
+        print("🔑 KeychainManager - Attempting to retrieve user key")
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
@@ -49,11 +51,15 @@ class KeychainManager: @unchecked Sendable {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         
+        print("🔑 KeychainManager - Keychain query status: \(status)")
+        
         guard status == errSecSuccess,
               let keyData = result as? Data else {
+            print("❌ KeychainManager - Key not found in keychain, status: \(status)")
             throw KeychainError.keyNotFound
         }
         
+        print("🔑 KeychainManager - Successfully retrieved key, length: \(keyData.count)")
         return keyData
     }
     

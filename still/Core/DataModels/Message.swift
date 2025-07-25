@@ -22,11 +22,23 @@ struct Message: Identifiable, Codable {
     var decryptedContent: String {
         // Base64エンコードされた暗号化データをデコード
         do {
+            print("🔐 DEBUG - Attempting to decrypt message: \(id)")
+            print("🔐 DEBUG - Content length: \(content.count)")
+            print("🔐 DEBUG - Content preview: \(String(content.prefix(50)))")
+            
             let keyData = try KeychainManager.shared.getUserKey()
+            print("🔐 DEBUG - Successfully retrieved key from keychain")
+            
             let key = CryptoManager.shared.dataToKey(keyData)
-            return try CryptoManager.shared.decryptFromBase64(base64String: content, using: key)
+            print("🔐 DEBUG - Successfully converted keyData to key")
+            
+            let decrypted = try CryptoManager.shared.decryptFromBase64(base64String: content, using: key)
+            print("🔐 DEBUG - Successfully decrypted message: \(decrypted)")
+            return decrypted
         } catch {
             // 復号化に失敗した場合（古いメッセージなど）はそのまま表示
+            print("❌ DEBUG - Failed to decrypt message \(id): \(error)")
+            print("❌ DEBUG - Returning raw content: \(content)")
             return content
         }
     }
