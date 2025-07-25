@@ -22,7 +22,7 @@ struct SinglePostView: View {
     var body: some View {
         ZStack(alignment: .top) {
             ScrollViewReader { proxy in
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 0) {
                         // Header space
                         Color.clear

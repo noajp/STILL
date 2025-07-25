@@ -29,7 +29,7 @@ struct ScrollableHeaderView<Content: View>: View {
     }
     
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
                 // ヘッダーをコンテンツの一部として配置
                 UnifiedHeader(

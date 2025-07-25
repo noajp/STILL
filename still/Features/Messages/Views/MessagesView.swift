@@ -562,21 +562,24 @@ struct ConversationPreviewFullScreen: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(MinimalDesign.Colors.background)
+            .background(
+                Color(.systemBackground)
+                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            )
             
             // Messages area
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 20) {
                         if previewModel.isLoading {
                             ProgressView()
                                 .padding()
                         } else {
                             // Add spacer at top to push messages to bottom
                             Spacer()
-                                .frame(minHeight: 50)
+                                .frame(minHeight: 80)
                             
-                            ForEach(previewModel.messages.suffix(15)) { message in
+                            ForEach(previewModel.messages.suffix(20)) { message in
                                 MessageBubblePreview(
                                     message: message,
                                     isCurrentUser: isCurrentUserMessage(message)
@@ -585,14 +588,23 @@ struct ConversationPreviewFullScreen: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                .background(MinimalDesign.Colors.background)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(.systemGray6).opacity(0.3),
+                            Color(.systemBackground)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .defaultScrollAnchor(.bottom)
                 .onChange(of: previewModel.messages.count) { _, newCount in
-                    // Only scroll to bottom once when messages are first loaded
-                    if newCount > 0 && !previewModel.hasScrolledToBottom {
+                    // Only scroll to bottom once when messages are first loaded, not during loading
+                    if newCount > 0 && !previewModel.hasScrolledToBottom && !previewModel.isLoading {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                             if let lastMessage = previewModel.messages.last {
                                 proxy.scrollTo(lastMessage.id, anchor: .bottom)
@@ -644,16 +656,31 @@ struct MessageBubblePreview: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 0) {
             if isCurrentUser { 
-                Spacer(minLength: 50) 
+                Spacer(minLength: 40) 
             }
             
-            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 6) {
                 Text(message.decryptedContent)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(isCurrentUser ? MinimalDesign.Colors.accentRed : Color.gray.opacity(0.2))
-                    .foregroundColor(isCurrentUser ? MinimalDesign.Colors.background : MinimalDesign.Colors.primary)
-                    .cornerRadius(18)
+                    .font(.system(size: 16))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(
+                        Group {
+                            if isCurrentUser {
+                                MinimalDesign.Colors.accentRed
+                            } else {
+                                Color(.systemGray5)
+                                    .opacity(0.9)
+                            }
+                        }
+                    )
+                    .foregroundColor(
+                        isCurrentUser ? 
+                        MinimalDesign.Colors.background : 
+                        Color(.label)
+                    )
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 2)
                 
                 if message.isEdited {
                     Text("Edited")
@@ -664,7 +691,7 @@ struct MessageBubblePreview: View {
             .frame(maxWidth: .infinity, alignment: isCurrentUser ? .trailing : .leading)
             
             if !isCurrentUser { 
-                Spacer(minLength: 50) 
+                Spacer(minLength: 40) 
             }
         }
     }

@@ -183,11 +183,13 @@ struct ConversationView: View {
                     }
                     .padding()
                 }
-                .onChange(of: viewModel.messages.count) { _, _ in
-                    // Scroll to bottom when new message is added
-                    if let lastMessage = viewModel.messages.last {
-                        withAnimation {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                .onChange(of: viewModel.messages.count) { oldCount, newCount in
+                    // Only scroll to bottom when a new message is added, not when loading
+                    if newCount > oldCount && !viewModel.isLoading {
+                        if let lastMessage = viewModel.messages.last {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
                 }
