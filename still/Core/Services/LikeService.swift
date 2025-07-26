@@ -25,6 +25,10 @@ class LikeService: ObservableObject, @unchecked Sendable {
     }
     
     func likePost(postId: String, userId: String) async throws {
+        print("🔵 LikeService.likePost called:")
+        print("  - postId: \(postId)")
+        print("  - userId: \(userId)")
+        
         // Insert like record
         let like = Like(
             id: UUID().uuidString,
@@ -38,18 +42,26 @@ class LikeService: ObservableObject, @unchecked Sendable {
             .insert(like)
             .execute()
         
+        print("✅ Like record inserted successfully")
+        
         // Update post like count
         try await incrementLikeCount(postId: postId)
         
         // Create like notification
+        print("🔔 Creating like notification...")
         await createLikeNotification(fromUserId: userId, postId: postId)
         
         print("✅ LikeService: Successfully liked post \(postId)")
     }
     
     private func createLikeNotification(fromUserId: String, postId: String) async {
+        print("🔔 createLikeNotification called:")
+        print("  - fromUserId: \(fromUserId)")
+        print("  - postId: \(postId)")
+        
         do {
             // Get post details to find the post owner
+            print("🔔 Fetching post details...")
             let posts: [Post] = try await client
                 .from("posts")
                 .select("user_id")
@@ -57,15 +69,25 @@ class LikeService: ObservableObject, @unchecked Sendable {
                 .execute()
                 .value
             
-            guard let post = posts.first, post.userId != fromUserId else {
-                // Don't create notification for own posts
+            guard let post = posts.first else {
+                print("⚠️ Post not found: \(postId)")
+                return
+            }
+            
+            print("🔔 Post found, owner: \(post.userId)")
+            
+            guard post.userId != fromUserId else {
+                print("⚠️ Not creating notification for own post")
                 return
             }
             
             // Get sender's profile
+            print("🔔 Fetching sender profile...")
             let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: fromUserId)
+            print("🔔 Sender profile fetched: \(senderProfile.username)")
             
             // Create notification using NotificationService
+            print("🔔 Calling NotificationService.createLikeNotification...")
             await NotificationService.shared.createLikeNotification(
                 fromUserId: fromUserId,
                 toUserId: post.userId,
@@ -76,6 +98,7 @@ class LikeService: ObservableObject, @unchecked Sendable {
             print("✅ Like notification created for post \(postId)")
         } catch {
             print("❌ Failed to create like notification: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
     

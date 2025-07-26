@@ -60,31 +60,23 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
             return cachedProfile
         }
         
-        // Cancel previous task if exists
-        await actor.cancelCurrentTask()
-        
-        // Create new task
-        let task = Task {
-            do {
-                let profile: UserProfile = try await supabaseClient
-                    .from("profiles")
-                    .select()
-                    .eq("id", value: userId)
-                    .single()
-                    .execute()
-                    .value
-                
-                // Cache the result
-                await actor.cacheProfile(profile, userId: userId)
-                return profile
-            } catch {
-                Logger.shared.error("Failed to fetch user profile: \(error)")
-                throw ViewModelError.network("Failed to load profile")
-            }
+        // Fetch directly without task cancellation to avoid -999 errors
+        do {
+            let profile: UserProfile = try await supabaseClient
+                .from("profiles")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+            
+            // Cache the result
+            await actor.cacheProfile(profile, userId: userId)
+            return profile
+        } catch {
+            Logger.shared.error("Failed to fetch user profile: \(error)")
+            throw ViewModelError.network("Failed to load profile")
         }
-        
-        await actor.setCurrentTask(task)
-        return try await task.value
     }
     
     /// Fetches all posts for a user

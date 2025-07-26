@@ -102,7 +102,16 @@ class NotificationService: ObservableObject {
         postId: String,
         senderProfile: UserProfile
     ) async {
-        guard fromUserId != toUserId else { return }
+        print("🔔 NotificationService.createLikeNotification called:")
+        print("  - fromUserId: \(fromUserId)")
+        print("  - toUserId: \(toUserId)")
+        print("  - postId: \(postId)")
+        print("  - senderProfile: \(senderProfile.username)")
+        
+        guard fromUserId != toUserId else { 
+            print("⚠️ Skipping notification creation: same user")
+            return 
+        }
         
         let notification = AppNotification(
             id: UUID().uuidString,
@@ -122,6 +131,7 @@ class NotificationService: ObservableObject {
             )
         )
         
+        print("🔔 Like notification object created, calling saveNotification...")
         await saveNotification(notification)
     }
     
@@ -130,7 +140,15 @@ class NotificationService: ObservableObject {
         toUserId: String,
         senderProfile: UserProfile
     ) async {
-        guard fromUserId != toUserId else { return }
+        print("🔔 NotificationService.createFollowNotification called:")
+        print("  - fromUserId: \(fromUserId)")
+        print("  - toUserId: \(toUserId)")
+        print("  - senderProfile: \(senderProfile.username)")
+        
+        guard fromUserId != toUserId else { 
+            print("⚠️ Skipping notification creation: same user")
+            return 
+        }
         
         let notification = AppNotification(
             id: UUID().uuidString,
@@ -150,44 +168,92 @@ class NotificationService: ObservableObject {
             )
         )
         
+        print("🔔 Follow notification object created, calling saveNotification...")
         await saveNotification(notification)
     }
     
     private func saveNotification(_ notification: AppNotification) async {
+        print("🔔 Attempting to save notification:")
+        print("  - ID: \(notification.id)")
+        print("  - UserID: \(notification.userId)")
+        print("  - Type: \(notification.type)")
+        print("  - Title: \(notification.title)")
+        print("  - Message: \(notification.message)")
+        
         do {
             struct NotificationInsert: Encodable {
-                let id: String
-                let user_id: String
+                let id: UUID
+                let user_id: UUID
                 let type: String
                 let title: String
                 let message: String
                 let is_read: Bool
-                let created_at: Double
-                let related_user_id: String?
-                let related_post_id: String?
+                let created_at: Date
+                let related_user_id: UUID?
+                let related_post_id: UUID?
                 let metadata: AppNotification.NotificationMetadata?
             }
             
             let insertData = NotificationInsert(
-                id: notification.id,
-                user_id: notification.userId,
+                id: UUID(uuidString: notification.id) ?? UUID(),
+                user_id: UUID(uuidString: notification.userId) ?? UUID(),
                 type: notification.type.rawValue,
                 title: notification.title,
                 message: notification.message,
                 is_read: notification.isRead,
-                created_at: notification.createdAt.timeIntervalSince1970,
-                related_user_id: notification.relatedUserId,
-                related_post_id: notification.relatedPostId,
+                created_at: notification.createdAt,
+                related_user_id: notification.relatedUserId != nil ? UUID(uuidString: notification.relatedUserId!) : nil,
+                related_post_id: notification.relatedPostId != nil ? UUID(uuidString: notification.relatedPostId!) : nil,
                 metadata: notification.metadata
             )
             
-            try await SupabaseManager.shared.client
+            print("🔔 Insert data prepared:")
+            print("  - user_id: \(insertData.user_id)")
+            print("  - type: \(insertData.type)")
+            print("  - created_at: \(insertData.created_at)")
+            
+            let response = try await SupabaseManager.shared.client
                 .from("notifications")
                 .insert(insertData)
                 .execute()
             
+            print("✅ Notification saved successfully")
+            print("  - Response status: \(response.status)")
+            
         } catch {
             print("❌ Error saving notification: \(error)")
+            print("❌ Error type: \(type(of: error))")
+            if let nsError = error as NSError? {
+                print("❌ Error domain: \(nsError.domain)")
+                print("❌ Error code: \(nsError.code)")
+                print("❌ Error userInfo: \(nsError.userInfo)")
+            }
         }
+    }
+    
+    // MARK: - Debug Methods
+    
+    func createTestNotification(for userId: String) async {
+        print("🔔 Creating test notification for user: \(userId)")
+        
+        let testNotification = AppNotification(
+            id: UUID().uuidString,
+            userId: userId,
+            type: .follow,
+            title: "Test Notification",
+            message: "This is a test notification to verify the system is working",
+            isRead: false,
+            createdAt: Date(),
+            relatedUserId: nil,
+            relatedPostId: nil,
+            metadata: AppNotification.NotificationMetadata(
+                postImageUrl: nil,
+                senderAvatarUrl: nil,
+                senderDisplayName: "Test User",
+                senderUsername: "testuser"
+            )
+        )
+        
+        await saveNotification(testNotification)
     }
 }

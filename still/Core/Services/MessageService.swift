@@ -148,14 +148,11 @@ class MessageService: ObservableObject {
             }
         }
         
-        // Use view query instead of RPC to avoid caching issues
-        // Convert user ID to lowercase to match database format
-        let lowercaseUserId = currentUserId.lowercased()
-        print("🔍 DEBUG - Using view query with lowercase userID: \(lowercaseUserId)")
+        // Use restored view query
+        print("🔍 DEBUG - Using restored view for user conversations")
         let conversationData: [ConversationData] = try await freshClient
             .from("user_conversations_view")
             .select("*")
-            .eq("current_user_id", value: lowercaseUserId)
             .execute()
             .value
         

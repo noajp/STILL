@@ -20,6 +20,10 @@ class FollowService: ObservableObject {
             throw NSError(domain: "FollowService", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
         
+        print("🔵 FollowService.followUser called:")
+        print("  - currentUserId: \(currentUserId)")
+        print("  - targetUserId: \(userId)")
+        
         // Check if already following to prevent duplicates
         let existingFollow = try await supabase
             .from("follows")
@@ -30,7 +34,7 @@ class FollowService: ObservableObject {
             .count ?? 0
         
         if existingFollow > 0 {
-            // Already following, no need to insert again
+            print("⚠️ Already following user \(userId), skipping")
             return
         }
         
@@ -44,16 +48,26 @@ class FollowService: ObservableObject {
             .insert(follow)
             .execute()
         
+        print("✅ Follow relationship created successfully")
+        
         // Create follow notification
+        print("🔔 Creating follow notification...")
         await createFollowNotification(fromUserId: currentUserId, toUserId: userId)
     }
     
     private func createFollowNotification(fromUserId: String, toUserId: String) async {
+        print("🔔 createFollowNotification called:")
+        print("  - fromUserId: \(fromUserId)")
+        print("  - toUserId: \(toUserId)")
+        
         do {
             // Get sender's profile
+            print("🔔 Fetching sender profile...")
             let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: fromUserId)
+            print("🔔 Sender profile fetched: \(senderProfile.username)")
             
             // Create notification using NotificationService
+            print("🔔 Calling NotificationService.createFollowNotification...")
             await NotificationService.shared.createFollowNotification(
                 fromUserId: fromUserId,
                 toUserId: toUserId,
@@ -63,6 +77,7 @@ class FollowService: ObservableObject {
             print("✅ Follow notification created for user \(toUserId)")
         } catch {
             print("❌ Failed to create follow notification: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
     
