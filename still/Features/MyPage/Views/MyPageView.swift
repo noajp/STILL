@@ -26,6 +26,7 @@ struct MyPageView: View {
     @State private var showingOtherProfile = false
     @State private var showFollowersList = false
     @State private var showFollowingList = false
+    @State private var showNotifications = false
     
     var body: some View {
         NavigationStack {
@@ -35,6 +36,12 @@ struct MyPageView: View {
                 icon: "custom.three.lines",
                 action: { 
                     navigateToSettings = true
+                }
+            ),
+            extraRightButton: isUserSearchMode ? nil : HeaderButton(
+                icon: "bell",
+                action: {
+                    showNotifications = true
                 }
             )
         ) {
@@ -234,6 +241,10 @@ struct MyPageView: View {
                     FollowListView(userId: currentUserId, listType: .following)
                         .environmentObject(authManager)
                 }
+            }
+            .fullScreenCover(isPresented: $showNotifications) {
+                NotificationListView()
+                    .environmentObject(authManager)
             }
         }
     }

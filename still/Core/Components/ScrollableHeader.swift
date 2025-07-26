@@ -11,6 +11,7 @@ struct ScrollableHeaderView<Content: View>: View {
     let title: String
     let showBackButton: Bool
     let rightButton: HeaderButton?
+    let extraRightButton: HeaderButton?
     let onBack: (() -> Void)?
     let content: Content
     
@@ -18,12 +19,14 @@ struct ScrollableHeaderView<Content: View>: View {
         title: String,
         showBackButton: Bool = false,
         rightButton: HeaderButton? = nil,
+        extraRightButton: HeaderButton? = nil,
         onBack: (() -> Void)? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.showBackButton = showBackButton
         self.rightButton = rightButton
+        self.extraRightButton = extraRightButton
         self.onBack = onBack
         self.content = content()
     }
@@ -36,6 +39,7 @@ struct ScrollableHeaderView<Content: View>: View {
                     title: title,
                     showBackButton: showBackButton,
                     rightButton: rightButton,
+                    extraRightButton: extraRightButton,
                     onBack: onBack
                 )
                 
