@@ -97,25 +97,44 @@ struct NotificationListView: View {
 
 struct NotificationRowView: View {
     let notification: AppNotification
+    @State private var navigateToProfile = false
     
     var body: some View {
         HStack(spacing: 12) {
-            // Avatar
-            AsyncImage(url: URL(string: notification.metadata?.senderAvatarUrl ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Circle()
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.gray)
-                            .font(.system(size: 20))
-                    )
+            // Avatar with badge
+            HStack(spacing: 0) {
+                // Unread Badge
+                if !notification.isRead {
+                    Circle()
+                        .fill(MinimalDesign.Colors.accentRed)
+                        .frame(width: 8, height: 8)
+                } else {
+                    // Invisible spacer to maintain consistent spacing
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 8, height: 8)
+                }
+                
+                Spacer()
+                    .frame(width: 8)
+                
+                // Avatar
+                AsyncImage(url: URL(string: notification.metadata?.senderAvatarUrl ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 20))
+                        )
+                }
+                .frame(width: 50, height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .frame(width: 50, height: 50)
-            .clipShape(Circle())
             
             VStack(alignment: .leading, spacing: 4) {
                 // Title and Message
@@ -133,10 +152,25 @@ struct NotificationRowView: View {
                     
                     Spacer()
                     
-                    // Type Icon
-                    Image(systemName: notification.type.icon)
-                        .foregroundColor(Color(notification.type.color))
-                        .font(.system(size: 16))
+                    // View Button for follow notifications
+                    if notification.type == .follow {
+                        Button(action: {
+                            navigateToProfile = true
+                        }) {
+                            Text("View")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 6)
+                                .background(MinimalDesign.Colors.accentRed)
+                                .cornerRadius(6)
+                        }
+                    } else {
+                        // Type Icon for other notifications
+                        Image(systemName: notification.type.icon)
+                            .foregroundColor(Color(notification.type.color))
+                            .font(.system(size: 16))
+                    }
                 }
                 
                 // Post Image (for like notifications)
@@ -154,17 +188,15 @@ struct NotificationRowView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
             }
-            
-            // Unread Indicator
-            if !notification.isRead {
-                Circle()
-                    .fill(MinimalDesign.Colors.accentRed)
-                    .frame(width: 8, height: 8)
-            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(notification.isRead ? Color.clear : Color.gray.opacity(0.05))
+        .navigationDestination(isPresented: $navigateToProfile) {
+            if let userId = notification.relatedUserId {
+                OtherUserProfileView(userId: userId)
+            }
+        }
     }
 }
 

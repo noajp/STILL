@@ -18,6 +18,20 @@ struct AppNotification: Identifiable, Codable {
     let relatedPostId: String?
     let metadata: NotificationMetadata?
     
+    // CodingKeys to map between Swift property names and database column names
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case type
+        case title
+        case message
+        case isRead = "is_read"
+        case createdAt = "created_at"
+        case relatedUserId = "related_user_id"
+        case relatedPostId = "related_post_id"
+        case metadata
+    }
+    
     enum NotificationType: String, Codable, CaseIterable {
         case like = "like"
         case follow = "follow"
