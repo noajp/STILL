@@ -71,7 +71,9 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
     
     private func setupSecurityConfiguration() {
         // セキュア設定の初期化
-        SecureConfig.shared.setupCredentials()
+        #if DEBUG
+        SecureConfig.shared.initializeForDevelopment()
+        #endif
         secureLogger.info("AuthManager initialized with secure configuration")
     }
     

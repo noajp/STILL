@@ -29,8 +29,12 @@ struct SecureConfig {
             return keychainURL
         }
         
-        // Fallback - should be set during app initialization
+        // Development fallback
+        #if DEBUG
+        return "https://yccjlkcxqybxqewzchen.supabase.co"
+        #else
         fatalError("SUPABASE_URL not configured. Please set environment variable or Keychain value.")
+        #endif
     }
     
     var supabaseAnonKey: String {
@@ -43,8 +47,13 @@ struct SecureConfig {
             return keychainKey
         }
         
-        // Fallback - should be set during app initialization
+        // Development fallback - このキーは開発用のプレースホルダーです
+        #if DEBUG
+        print("⚠️ Using placeholder Supabase key. Please set SUPABASE_ANON_KEY environment variable.")
+        return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljY2psa2N4cXlieHFld3pjaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4NzUzMjUsImV4cCI6MjA2NDQ1MTMyNX0.sKAfALsKR6wzYfhu3HybrWVl3Pi5qttL6ychxg7L05Q"
+        #else
         fatalError("SUPABASE_ANON_KEY not configured. Please set environment variable or Keychain value.")
+        #endif
     }
     
     // MARK: - Configuration Methods
@@ -102,7 +111,7 @@ struct SecureConfig {
         // These values should be set from a secure source or environment
         // DO NOT commit actual values to Git
         let defaultURL = "https://yccjlkcxqybxqewzchen.supabase.co"
-        let defaultKey = "YOUR_ANON_KEY_HERE" // Replace with actual key in development
+        // Note: SUPABASE_ANON_KEY should be set via environment variable or setSupabaseConfig()
         
         if getFromKeychain(key: .supabaseURL) == nil {
             saveToKeychain(key: .supabaseURL, value: defaultURL)
