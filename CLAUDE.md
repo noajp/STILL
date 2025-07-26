@@ -18,6 +18,27 @@
 - No comments unless explicitly requested
 - Keep responses concise and to the point
 
+### File Header Requirements
+**ALWAYS** include this header format in every new file created:
+```swift
+//======================================================================
+// MARK: - FileName.swift
+// Purpose: Brief description of file purpose (日本語での簡潔な説明)
+// Path: relative/path/to/file.swift
+//======================================================================
+```
+
+**Example:**
+```swift
+//======================================================================
+// MARK: - AuthManager.swift
+// Purpose: Authentication manager with user session handling, secure token management, and Supabase auth integration (ユーザーセッション処理、セキュアトークン管理、Supabase認証統合を持つ認証マネージャー)
+// Path: still/Core/Auth/AuthManager.swift
+//======================================================================
+```
+
+**Important**: If you encounter files without this header, add it immediately during any file modification.
+
 ## Architecture Patterns
 - MVVM pattern with @StateObject and @ObservableObject
 - ViewModels handle business logic
@@ -99,12 +120,32 @@ still/
 - Review audit logs for suspicious activity
 - Update RLS policies if data access patterns change
 
-## UI/UX Principles
-- Minimal design aesthetic
-- Red accent color (MinimalDesign.Colors.accentRed)
-- Dark mode support throughout
-- No emojis unless user requests
-- Clean, simple interfaces
+## UI/UX Principles & Design Philosophy
+
+### Design Reference
+- **Atlassian Design System**: https://atlassian.design/
+- Follow Atlassian's philosophy: "Design with clarity, Build with confidence"
+- Reference their foundations for systematic design approach
+
+### Core Design Principles
+- **Clarity First**: Users should never be confused about how to interact with the interface
+- **Minimal design aesthetic**: Clean, purposeful elements without unnecessary decoration
+- **Systematic approach**: Use design tokens for consistency across all components
+- **Accessibility**: Design for broad usability and good user experience
+- **Modular components**: Reusable, flexible UI elements that can be composed
+
+### Visual Design Standards
+- **Red accent color**: MinimalDesign.Colors.accentRed for primary actions and highlights
+- **Dark mode support**: Full theme compatibility throughout the app
+- **Typography**: Consistent font weights and sizes that enhance readability
+- **Spacing**: Systematic spacing using design tokens for visual hierarchy
+- **No emojis**: Unless explicitly requested by user
+
+### Interaction Design
+- **Intuitive navigation**: Users should understand where they are and how to get where they want to go
+- **Immediate feedback**: Visual responses to user actions (button states, loading indicators)
+- **Gentle animations**: Subtle transitions that guide attention without distraction
+- **Touch targets**: Appropriate sizing for mobile interaction following design standards
 
 ## Common Issues & Solutions
 - UUID case sensitivity: Always convert to lowercase for comparisons
