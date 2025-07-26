@@ -92,8 +92,21 @@ iOSInjectionProject/
 # macOS
 .DS_Store
 
-# Secrets
+# Secrets and Configuration
 Secrets.plist
+.env
+.env.local
+.env.development
+.env.production
+Config.plist
+*Config.plist
+*.xcconfig
+
+# Sensitive files
+still.xcodeproj/project.pbxproj.backup*
+*.key
+*.pem
+*.p12
 
 # Node
 node_modules/
