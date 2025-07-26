@@ -62,11 +62,42 @@ still/
 - Image storage for posts and profiles
 - Database views used instead of RPC functions to avoid caching issues
 
-## Security Considerations
-- Never expose or log secrets/keys
-- Input validation using InputValidator
-- Secure configuration via SecureConfig
-- Message encryption for private communications
+## Security Requirements & Standards
+
+### Database Security (Implemented)
+- **RLS (Row Level Security)** enabled on all tables with appropriate policies
+- **Function Security**: search_path explicitly set to prevent SQL injection
+- **Extension Security**: pgaudit moved to extensions schema with proper permissions
+- **Data Retention**: Policies configured for automated cleanup
+
+### Authentication Security
+- ✅ **Keychain Storage**: Secrets migrated from Secrets.plist to secure Keychain
+- ✅ **SecureConfig**: Centralized secure configuration management
+- ⚠️ **Password Protection**: HaveIBeenPwned breach detection (requires Supabase dashboard config)
+- ⚠️ **MFA Enhancement**: Additional multi-factor auth methods needed
+
+### Application Security Standards
+- **Never expose or log secrets/keys** - Use SecureConfig for all sensitive data
+- **Input validation** using InputValidator for all user inputs
+- **Message encryption** for private communications
+- **Rate limiting** implemented to prevent brute force attacks
+- **Security monitoring** via audit logs and honeypot tables
+
+### Key Management
+- **Supabase URL**: `https://yccjlkcxqybxqewzchen.supabase.co`
+- **API Keys**: Stored in Keychain, accessed via SecureConfig
+- **Environment Variables**: Use for development, Keychain for production
+
+### Ongoing Security Tasks
+1. Enable HaveIBeenPwned protection in Supabase dashboard
+2. Configure additional MFA methods (TOTP, SMS)
+3. Regular security audits using `mcp__supabase__get_advisors`
+4. Monitor security logs for anomalies
+
+### Security Incident Response
+- Immediately rotate API keys if compromised
+- Review audit logs for suspicious activity
+- Update RLS policies if data access patterns change
 
 ## UI/UX Principles
 - Minimal design aesthetic
@@ -87,6 +118,7 @@ still/
 - Test on iPhone 16 Pro simulator
 
 ## Important Reminders
+- **ALWAYS** read tasks.md at the start of each session for current task status
 - **NEVER** create files unless absolutely necessary
 - **ALWAYS** prefer editing existing files
 - **NEVER** proactively create documentation unless requested
