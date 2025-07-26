@@ -43,6 +43,27 @@ class FollowService: ObservableObject {
             .from("follows")
             .insert(follow)
             .execute()
+        
+        // Create follow notification
+        await createFollowNotification(fromUserId: currentUserId, toUserId: userId)
+    }
+    
+    private func createFollowNotification(fromUserId: String, toUserId: String) async {
+        do {
+            // Get sender's profile
+            let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: fromUserId)
+            
+            // Create notification using NotificationService
+            await NotificationService.shared.createFollowNotification(
+                fromUserId: fromUserId,
+                toUserId: toUserId,
+                senderProfile: senderProfile
+            )
+            
+            print("✅ Follow notification created for user \(toUserId)")
+        } catch {
+            print("❌ Failed to create follow notification: \(error)")
+        }
     }
     
     func unfollowUser(userId: String) async throws {

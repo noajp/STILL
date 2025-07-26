@@ -41,7 +41,42 @@ class LikeService: ObservableObject, @unchecked Sendable {
         // Update post like count
         try await incrementLikeCount(postId: postId)
         
+        // Create like notification
+        await createLikeNotification(fromUserId: userId, postId: postId)
+        
         print("✅ LikeService: Successfully liked post \(postId)")
+    }
+    
+    private func createLikeNotification(fromUserId: String, postId: String) async {
+        do {
+            // Get post details to find the post owner
+            let posts: [Post] = try await client
+                .from("posts")
+                .select("user_id")
+                .eq("id", value: postId)
+                .execute()
+                .value
+            
+            guard let post = posts.first, post.userId != fromUserId else {
+                // Don't create notification for own posts
+                return
+            }
+            
+            // Get sender's profile
+            let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: fromUserId)
+            
+            // Create notification using NotificationService
+            await NotificationService.shared.createLikeNotification(
+                fromUserId: fromUserId,
+                toUserId: post.userId,
+                postId: postId,
+                senderProfile: senderProfile
+            )
+            
+            print("✅ Like notification created for post \(postId)")
+        } catch {
+            print("❌ Failed to create like notification: \(error)")
+        }
     }
     
     func unlikePost(postId: String, userId: String) async throws {

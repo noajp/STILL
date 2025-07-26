@@ -24,8 +24,8 @@ class NotificationService: ObservableObject {
             let response: [AppNotification] = try await SupabaseManager.shared.client
                 .from("notifications")
                 .select("*")
-                .eq("userId", value: userId)
-                .order("createdAt", ascending: false)
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
                 .limit(50)
                 .execute()
                 .value
@@ -43,7 +43,7 @@ class NotificationService: ObservableObject {
         do {
             try await SupabaseManager.shared.client
                 .from("notifications")
-                .update(["isRead": true])
+                .update(["is_read": true])
                 .eq("id", value: notificationId)
                 .execute()
             
@@ -71,9 +71,9 @@ class NotificationService: ObservableObject {
         do {
             try await SupabaseManager.shared.client
                 .from("notifications")
-                .update(["isRead": true])
-                .eq("userId", value: userId)
-                .eq("isRead", value: false)
+                .update(["is_read": true])
+                .eq("user_id", value: userId)
+                .eq("is_read", value: false)
                 .execute()
             
             notifications = notifications.map { notification in
@@ -157,27 +157,27 @@ class NotificationService: ObservableObject {
         do {
             struct NotificationInsert: Encodable {
                 let id: String
-                let userId: String
+                let user_id: String
                 let type: String
                 let title: String
                 let message: String
-                let isRead: Bool
-                let createdAt: Double
-                let relatedUserId: String?
-                let relatedPostId: String?
+                let is_read: Bool
+                let created_at: Double
+                let related_user_id: String?
+                let related_post_id: String?
                 let metadata: AppNotification.NotificationMetadata?
             }
             
             let insertData = NotificationInsert(
                 id: notification.id,
-                userId: notification.userId,
+                user_id: notification.userId,
                 type: notification.type.rawValue,
                 title: notification.title,
                 message: notification.message,
-                isRead: notification.isRead,
-                createdAt: notification.createdAt.timeIntervalSince1970,
-                relatedUserId: notification.relatedUserId,
-                relatedPostId: notification.relatedPostId,
+                is_read: notification.isRead,
+                created_at: notification.createdAt.timeIntervalSince1970,
+                related_user_id: notification.relatedUserId,
+                related_post_id: notification.relatedPostId,
                 metadata: notification.metadata
             )
             
