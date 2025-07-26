@@ -10,17 +10,10 @@ import PhotosUI
 struct ArticleListView: View {
     @StateObject private var viewModel = ArticleListViewModel()
     @Environment(\.colorScheme) var colorScheme
-    @State private var showingArticleEditor = false
     
     var body: some View {
         ScrollableHeaderView(
-            title: "Articles",
-            rightButton: HeaderButton(
-                icon: "plus",
-                action: {
-                    showingArticleEditor = true
-                }
-            )
+            title: "Articles"
         ) {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.articles) { article in
@@ -38,9 +31,6 @@ struct ArticleListView: View {
                     .frame(height: 110)
             }
             .padding(.vertical, 8)
-        }
-        .fullScreenCover(isPresented: $showingArticleEditor) {
-            ArticleEditorView()
         }
         .task {
             await viewModel.loadArticles()

@@ -20,6 +20,8 @@ struct MainTabView: View {
     @State private var lastScrollOffset: CGFloat = 0
     @State private var isUserSearchMode = false
     @State private var isGroupChatMode = false
+    @State private var showingPostTypeSelection = false
+    @State private var showingCreateArticle = false
     
     var body: some View {
         ZStack {
@@ -80,7 +82,7 @@ struct MainTabView: View {
                         showGridMode: $showGridMode,
                         unreadMessageCount: 0,
                         onCreatePost: {
-                            showingCreatePost = true
+                            showingPostTypeSelection = true
                         },
                         isInSingleView: isInSingleView,
                         onBackToGrid: {
@@ -111,6 +113,19 @@ struct MainTabView: View {
                 .offset(y: tabBarOffset)
                 .animation(.easeInOut(duration: 0.5), value: tabBarOffset)
                 .clipped() // 背景も含めて完全に隠すためにクリッピング
+            }
+            // 投稿タイプ選択ポップアップ
+            if showingPostTypeSelection {
+                PostTypeSelectionPopup(
+                    isPresented: $showingPostTypeSelection,
+                    onPictureSelected: {
+                        showingCreatePost = true
+                    },
+                    onArticleSelected: {
+                        showingCreateArticle = true
+                    }
+                )
+                .zIndex(999) // 最前面に表示
             }
         }
         .background(Color(.systemBackground))
@@ -145,6 +160,9 @@ struct MainTabView: View {
                     )
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showingCreateArticle) {
+            ArticleEditorView()
         }
     }
     
