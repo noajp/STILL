@@ -13,7 +13,6 @@ struct AppNotification: Identifiable, Codable {
     let title: String
     let message: String
     let isRead: Bool
-    let createdAt: Date
     let relatedUserId: String?
     let relatedPostId: String?
     let metadata: NotificationMetadata?
@@ -26,7 +25,6 @@ struct AppNotification: Identifiable, Codable {
         case title
         case message
         case isRead = "is_read"
-        case createdAt = "created_at"
         case relatedUserId = "related_user_id"
         case relatedPostId = "related_post_id"
         case metadata
@@ -35,6 +33,7 @@ struct AppNotification: Identifiable, Codable {
     enum NotificationType: String, Codable, CaseIterable {
         case like = "like"
         case follow = "follow"
+        case followRequest = "follow_request"
         case comment = "comment"
         case message = "message"
         
@@ -42,6 +41,7 @@ struct AppNotification: Identifiable, Codable {
             switch self {
             case .like: return "heart.fill"
             case .follow: return "person.badge.plus"
+            case .followRequest: return "person.crop.circle.badge.clock"
             case .comment: return "message"
             case .message: return "bubble.left"
             }
@@ -51,6 +51,7 @@ struct AppNotification: Identifiable, Codable {
             switch self {
             case .like: return "red"
             case .follow: return "blue"
+            case .followRequest: return "orange"
             case .comment: return "green"
             case .message: return "blue"
             }
@@ -66,12 +67,6 @@ struct AppNotification: Identifiable, Codable {
 }
 
 extension AppNotification {
-    var relativeTimeString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: createdAt, relativeTo: Date())
-    }
-    
     var displayTitle: String {
         return title
     }

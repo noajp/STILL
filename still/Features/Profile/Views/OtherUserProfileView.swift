@@ -11,6 +11,67 @@ struct OtherUserProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
     
+    // Computed properties for follow button
+    private var followButtonText: String {
+        if viewModel.hasIncomingFollowRequest {
+            return "Accept"
+        }
+        
+        switch viewModel.followStatus {
+        case .accepted:
+            return "Following"
+        case .pending:
+            return "Requested"
+        case .declined, .none:
+            return "Follow"
+        }
+    }
+    
+    private var buttonTextColor: Color {
+        if viewModel.hasIncomingFollowRequest {
+            return .white
+        }
+        
+        switch viewModel.followStatus {
+        case .accepted:
+            return colorScheme == .dark ? .white : .black
+        case .pending:
+            return .gray
+        case .declined, .none:
+            return .white
+        }
+    }
+    
+    private var buttonBackgroundColor: Color {
+        if viewModel.hasIncomingFollowRequest {
+            return .green
+        }
+        
+        switch viewModel.followStatus {
+        case .accepted:
+            return Color.clear
+        case .pending:
+            return Color.gray.opacity(0.2)
+        case .declined, .none:
+            return MinimalDesign.Colors.accentRed
+        }
+    }
+    
+    private var buttonBorderColor: Color {
+        if viewModel.hasIncomingFollowRequest {
+            return Color.clear
+        }
+        
+        switch viewModel.followStatus {
+        case .accepted:
+            return colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.3)
+        case .pending:
+            return Color.gray.opacity(0.5)
+        case .declined, .none:
+            return Color.clear
+        }
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -24,9 +85,18 @@ struct OtherUserProfileView: View {
                     
                     Spacer()
                     
-                    Text("Profile")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                    HStack(spacing: 4) {
+                        Text("Profile")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                        
+                        // Lock icon for private accounts
+                        if viewModel.userProfile?.isPrivate == true {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
+                    }
                     
                     Spacer()
                     
@@ -89,23 +159,39 @@ struct OtherUserProfileView: View {
                             
                             Spacer(minLength: 8)
                             
-                            // Follow/Unfollow button
+                            // Follow/Unfollow/Accept button with request status
                             Button(action: {
                                 Task {
-                                    await viewModel.toggleFollow()
+                                    if viewModel.hasIncomingFollowRequest {
+                                        await viewModel.acceptFollowRequest()
+                                    } else if viewModel.followStatus == .accepted {
+                                        await viewModel.unfollowUser()
+                                    } else {
+                                        await viewModel.followUser()
+                                    }
                                 }
                             }) {
-                                Text(viewModel.isFollowing ? "Following" : "Follow")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(viewModel.isFollowing ? (colorScheme == .dark ? .white : .black) : .white)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 8)
-                                    .background(viewModel.isFollowing ? Color.clear : Color(red: 0.949, green: 0.098, blue: 0.020))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(viewModel.isFollowing ? (colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.3)) : Color.clear, lineWidth: 1)
-                                    )
-                                    .cornerRadius(6)
+                                HStack(spacing: 4) {
+                                    if viewModel.hasIncomingFollowRequest {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 12))
+                                    } else if viewModel.followStatus == .pending {
+                                        Image(systemName: "clock")
+                                            .font(.system(size: 12))
+                                    }
+                                    
+                                    Text(followButtonText)
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .foregroundColor(buttonTextColor)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 8)
+                                .background(buttonBackgroundColor)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(buttonBorderColor, lineWidth: 1)
+                                )
+                                .cornerRadius(6)
                             }
                             .disabled(viewModel.isLoading)
                         }
@@ -146,8 +232,26 @@ struct OtherUserProfileView: View {
                 }
                 .padding(.vertical)
                 
-                // Posts grid
-                if viewModel.userPosts.isEmpty {
+                // Posts grid or private account message
+                if viewModel.userProfile?.isPrivate == true && viewModel.followStatus != .accepted {
+                    // Private account - show restricted access message
+                    VStack(spacing: 16) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray)
+                        
+                        Text("This Account is Private")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                        
+                        Text("Follow this account to see their photos and articles")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(height: 300)
+                } else if viewModel.userPosts.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "camera")
                             .font(.system(size: 48))
@@ -218,108 +322,3 @@ struct OtherUserProfileView: View {
     }
 }
 
-// MARK: - ViewModel
-
-@MainActor
-class OtherUserProfileViewModel: ObservableObject {
-    @Published var userProfile: UserProfile?
-    @Published var userPosts: [Post] = []
-    @Published var isFollowing: Bool = false
-    @Published var isLoading: Bool = false
-    @Published var postsCount: Int = 0
-    @Published var followersCount: Int = 0
-    @Published var followingCount: Int = 0
-    @Published var showFollowersList = false
-    @Published var showFollowingList = false
-    
-    private let userRepository = UserRepository()
-    private let followService = FollowService.shared
-    
-    init() {
-        // Listen for follow status changes
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("followStatusChanged"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task {
-                await self?.updateFollowCounts()
-            }
-        }
-    }
-    
-    func loadUserData(userId: String) async {
-        isLoading = true
-        currentUserId = userId  // Store userId for later use
-        
-        do {
-            // Load profile
-            userProfile = try await userRepository.fetchUserProfile(userId: userId)
-            
-            // Load posts
-            userPosts = try await userRepository.fetchUserPosts(userId: userId)
-            
-            // Update counts with real-time data
-            postsCount = userPosts.count
-            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
-            followingCount = try await userRepository.fetchFollowingCount(userId: userId)
-            
-            // Check follow status
-            let followStatus = try await followService.checkFollowStatus(userId: userId)
-            isFollowing = followStatus.isFollowing
-            
-        } catch {
-            print("Error loading user data: \(error)")
-        }
-        
-        isLoading = false
-    }
-    
-    func toggleFollow() async {
-        guard let userId = userProfile?.id else { return }
-        
-        // UIをすぐに更新してレスポンシブに
-        let previousState = isFollowing
-        isFollowing.toggle()
-        isLoading = true
-        
-        do {
-            if previousState {
-                try await followService.unfollowUser(userId: userId)
-            } else {
-                try await followService.followUser(userId: userId)
-            }
-            
-            // Update follower count with real-time data
-            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
-            
-            // Notify other views about follow status change with user info
-            NotificationCenter.default.post(
-                name: NSNotification.Name("followStatusChanged"), 
-                object: nil,
-                userInfo: ["userId": userId, "isFollowing": isFollowing]
-            )
-            
-        } catch {
-            print("Error toggling follow: \(error)")
-            // エラーの場合は状態を元に戻す
-            isFollowing = previousState
-        }
-        
-        isLoading = false
-    }
-    
-    private var currentUserId: String?
-    
-    private func updateFollowCounts() async {
-        guard let userId = currentUserId else { return }
-        
-        do {
-            followersCount = try await userRepository.fetchFollowersCount(userId: userId)
-            followingCount = try await userRepository.fetchFollowingCount(userId: userId)
-            print("✅ OtherUserProfileViewModel: Updated counts - followers: \(followersCount), following: \(followingCount)")
-        } catch {
-            print("❌ OtherUserProfileViewModel: Failed to update follow counts: \(error)")
-        }
-    }
-}

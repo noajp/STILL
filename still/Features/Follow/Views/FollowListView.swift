@@ -122,6 +122,7 @@ struct FollowListView: View {
 struct FollowUserRow: View {
     let user: UserProfile
     @State private var isFollowing = false
+    @State private var requestStatus: FollowRequestStatus?
     @State private var isLoading = false
     @State private var showProfile = false
     @State private var hasCheckedFollowStatus = false
@@ -129,6 +130,19 @@ struct FollowUserRow: View {
     
     private var isCurrentUser: Bool {
         user.id == authManager.currentUser?.id
+    }
+    
+    private var buttonText: String {
+        switch requestStatus {
+        case .pending:
+            return "Requested"
+        case .accepted:
+            return "Following"
+        case .declined:
+            return "Follow"
+        case .none:
+            return "Follow"
+        }
     }
     
     var body: some View {
@@ -206,7 +220,7 @@ struct FollowUserRow: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: isFollowing ? .primary : .white))
                                 .scaleEffect(0.8)
                         } else {
-                            Text(isFollowing ? "Following" : "Follow")
+                            Text(buttonText)
                                 .font(.system(size: 14, weight: .medium))
                         }
                     }
@@ -242,6 +256,7 @@ struct FollowUserRow: View {
             do {
                 let followStatus = try await FollowService.shared.checkFollowStatus(userId: user.id)
                 isFollowing = followStatus.isFollowing
+                requestStatus = followStatus.requestStatus
                 hasCheckedFollowStatus = true
             } catch {
                 print("Error checking follow status: \(error)")
@@ -251,20 +266,33 @@ struct FollowUserRow: View {
     }
     
     private func toggleFollow() {
-        // UIをすぐに更新してレスポンシブに
-        let previousState = isFollowing
-        isFollowing.toggle()
         isLoading = true
         
         Task { @MainActor in
             do {
-                if previousState {
+                if requestStatus == .accepted {
+                    // Unfollow
                     try await FollowService.shared.unfollowUser(userId: user.id)
+                    requestStatus = nil
+                    isFollowing = false
                 } else {
-                    try await FollowService.shared.followUser(userId: user.id)
+                    // Follow or cancel request
+                    if requestStatus == .pending {
+                        // Cancel request (unfollow)
+                        try await FollowService.shared.unfollowUser(userId: user.id)
+                        requestStatus = nil
+                        isFollowing = false
+                    } else {
+                        // Send new follow request
+                        try await FollowService.shared.followUser(userId: user.id)
+                        // Refresh status to get correct state
+                        let followStatus = try await FollowService.shared.checkFollowStatus(userId: user.id)
+                        requestStatus = followStatus.requestStatus
+                        isFollowing = followStatus.isFollowing
+                    }
                 }
                 
-                // フォロー状態変更を親ビューに通知（ユーザーIDを含む）
+                // フォロー状態変更を親ビューに通知
                 NotificationCenter.default.post(
                     name: .followStatusChanged, 
                     object: nil,
@@ -272,8 +300,6 @@ struct FollowUserRow: View {
                 )
             } catch {
                 print("Error toggling follow: \(error)")
-                // エラーの場合は状態を元に戻す
-                isFollowing = previousState
             }
             isLoading = false
         }

@@ -112,9 +112,6 @@ class MessageService: ObservableObject {
         print("🔍 DEBUG - Using currentUserId: \(currentUserId)")
         print("🔍 DEBUG - About to call RPC 'get_user_conversations' with params: [\"user_id_param\": \"\(currentUserId)\"]")
         
-        // Force clear any cached RPC function definitions by creating a fresh client instance
-        let freshClient = SupabaseManager.shared.createFreshClient()
-        
         // Use RPC function to bypass RLS recursion issues
         struct ConversationData: Codable {
             let conversationId: String
@@ -148,11 +145,10 @@ class MessageService: ObservableObject {
             }
         }
         
-        // Use restored view query
-        print("🔍 DEBUG - Using restored view for user conversations")
-        let conversationData: [ConversationData] = try await freshClient
-            .from("user_conversations_view")
-            .select("*")
+        // Use RPC function instead of view to avoid auth.uid() issues
+        print("🔍 DEBUG - Using RPC function for user conversations")
+        let conversationData: [ConversationData] = try await supabase
+            .rpc("get_user_conversations", params: ["user_id_param": AnyJSON.string(currentUserId)])
             .execute()
             .value
         

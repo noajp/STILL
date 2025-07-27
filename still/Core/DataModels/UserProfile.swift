@@ -13,6 +13,7 @@ struct UserProfile: Identifiable, Codable {
     var bio: String?
     var followersCount: Int?    // フォロワー数
     var followingCount: Int?    // フォロー数
+    var isPrivate: Bool?        // プライベートアカウント設定
     let createdAt: Date?
     
     enum CodingKeys: String, CodingKey {
@@ -21,6 +22,7 @@ struct UserProfile: Identifiable, Codable {
         case avatarUrl = "avatar_url"
         case followersCount = "followers_count"
         case followingCount = "following_count"
+        case isPrivate = "is_private"
         case createdAt = "created_at"
     }
     

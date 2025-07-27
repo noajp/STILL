@@ -165,13 +165,14 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
         }
     }
     
-    /// Fetches followers count
+    /// Fetches followers count (only accepted follows)
     func fetchFollowersCount(userId: String) async throws -> Int {
         do {
             let response = try await supabaseClient
                 .from("follows")
                 .select("*", head: true, count: .exact)
                 .eq("following_id", value: userId)
+                .eq("status", value: "accepted")
                 .execute()
             
             return response.count ?? 0
@@ -181,13 +182,14 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
         }
     }
     
-    /// Fetches following count
+    /// Fetches following count (only accepted follows)
     func fetchFollowingCount(userId: String) async throws -> Int {
         do {
             let response = try await supabaseClient
                 .from("follows")
                 .select("*", head: true, count: .exact)
                 .eq("follower_id", value: userId)
+                .eq("status", value: "accepted")
                 .execute()
             
             return response.count ?? 0

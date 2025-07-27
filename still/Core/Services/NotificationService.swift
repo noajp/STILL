@@ -25,7 +25,6 @@ class NotificationService: ObservableObject {
                 .from("notifications")
                 .select("*")
                 .eq("user_id", value: userId)
-                .order("created_at", ascending: false)
                 .limit(50)
                 .execute()
                 .value
@@ -55,7 +54,6 @@ class NotificationService: ObservableObject {
                     title: notifications[index].title,
                     message: notifications[index].message,
                     isRead: true,
-                    createdAt: notifications[index].createdAt,
                     relatedUserId: notifications[index].relatedUserId,
                     relatedPostId: notifications[index].relatedPostId,
                     metadata: notifications[index].metadata
@@ -84,7 +82,6 @@ class NotificationService: ObservableObject {
                     title: notification.title,
                     message: notification.message,
                     isRead: true,
-                    createdAt: notification.createdAt,
                     relatedUserId: notification.relatedUserId,
                     relatedPostId: notification.relatedPostId,
                     metadata: notification.metadata
@@ -120,7 +117,6 @@ class NotificationService: ObservableObject {
             title: "New Like",
             message: "\(senderProfile.displayName ?? senderProfile.username) liked your post",
             isRead: false,
-            createdAt: Date(),
             relatedUserId: fromUserId,
             relatedPostId: postId,
             metadata: AppNotification.NotificationMetadata(
@@ -164,7 +160,6 @@ class NotificationService: ObservableObject {
             title: "New Follower",
             message: "@\(senderProfile.username) started following you",
             isRead: false,
-            createdAt: Date(),
             relatedUserId: fromUserId,
             relatedPostId: nil,
             metadata: AppNotification.NotificationMetadata(
@@ -176,6 +171,49 @@ class NotificationService: ObservableObject {
         )
         
         print("🔔 Follow notification object created, calling saveNotification...")
+        await saveNotification(notification)
+    }
+    
+    func createFollowRequestNotification(
+        fromUserId: String,
+        toUserId: String,
+        senderProfile: UserProfile
+    ) async {
+        print("🔔 NotificationService.createFollowRequestNotification called:")
+        print("  - fromUserId: \(fromUserId)")
+        print("  - toUserId: \(toUserId)")
+        print("  - senderProfile: \(senderProfile.username)")
+        
+        guard fromUserId != toUserId else { 
+            print("⚠️ Skipping notification creation: same user")
+            return 
+        }
+        
+        // Check if follow request notification already exists
+        let exists = await checkFollowRequestNotificationExists(fromUserId: fromUserId, toUserId: toUserId)
+        if exists {
+            print("ℹ️ Follow request notification already exists, skipping creation")
+            return
+        }
+        
+        let notification = AppNotification(
+            id: UUID().uuidString,
+            userId: toUserId,
+            type: .followRequest,
+            title: "Follow Request",
+            message: "@\(senderProfile.username) sent you a follow request",
+            isRead: false,
+            relatedUserId: fromUserId,
+            relatedPostId: nil,
+            metadata: AppNotification.NotificationMetadata(
+                postImageUrl: nil,
+                senderAvatarUrl: senderProfile.avatarUrl,
+                senderDisplayName: senderProfile.displayName,
+                senderUsername: senderProfile.username
+            )
+        )
+        
+        print("🔔 Follow request notification object created, calling saveNotification...")
         await saveNotification(notification)
     }
     
@@ -195,7 +233,6 @@ class NotificationService: ObservableObject {
                 let title: String
                 let message: String
                 let is_read: Bool
-                let created_at: Date
                 let related_user_id: UUID?
                 let related_post_id: UUID?
                 let metadata: AppNotification.NotificationMetadata?
@@ -208,7 +245,6 @@ class NotificationService: ObservableObject {
                 title: notification.title,
                 message: notification.message,
                 is_read: notification.isRead,
-                created_at: notification.createdAt,
                 related_user_id: notification.relatedUserId != nil ? UUID(uuidString: notification.relatedUserId!) : nil,
                 related_post_id: notification.relatedPostId != nil ? UUID(uuidString: notification.relatedPostId!) : nil,
                 metadata: notification.metadata
@@ -217,7 +253,6 @@ class NotificationService: ObservableObject {
             print("🔔 Insert data prepared:")
             print("  - user_id: \(insertData.user_id)")
             print("  - type: \(insertData.type)")
-            print("  - created_at: \(insertData.created_at)")
             
             let response = try await SupabaseManager.shared.client
                 .from("notifications")
@@ -257,7 +292,6 @@ class NotificationService: ObservableObject {
                 let title: String
                 let message: String
                 let is_read: Bool
-                let created_at: Date
                 let related_user_id: UUID?
                 let related_post_id: UUID?
                 let metadata: AppNotification.NotificationMetadata?
@@ -269,7 +303,6 @@ class NotificationService: ObservableObject {
                 title: notification.title,
                 message: notification.message,
                 is_read: false,
-                created_at: Date(),
                 related_user_id: notification.relatedUserId != nil ? UUID(uuidString: notification.relatedUserId!) : nil,
                 related_post_id: notification.relatedPostId != nil ? UUID(uuidString: notification.relatedPostId!) : nil,
                 metadata: notification.metadata
@@ -319,6 +352,31 @@ class NotificationService: ObservableObject {
         }
     }
     
+    private func checkFollowRequestNotificationExists(fromUserId: String, toUserId: String) async -> Bool {
+        print("🔔 Checking if follow request notification exists:")
+        print("  - fromUserId: \(fromUserId)")
+        print("  - toUserId: \(toUserId)")
+        
+        do {
+            let response: PostgrestResponse<[AppNotification]> = try await SupabaseManager.shared.client
+                .from("notifications")
+                .select()
+                .eq("user_id", value: toUserId)
+                .eq("type", value: "follow_request")
+                .eq("related_user_id", value: fromUserId)
+                .limit(1)
+                .execute()
+            
+            let exists = !response.value.isEmpty
+            print(exists ? "ℹ️ Follow request notification exists" : "ℹ️ No existing follow request notification found")
+            return exists
+            
+        } catch {
+            print("⚠️ Error checking existing follow request notification: \(error)")
+            return false
+        }
+    }
+    
     private func deleteExistingFollowNotification(fromUserId: String, toUserId: String) async {
         print("🔔 Attempting to delete existing follow notification:")
         print("  - fromUserId: \(fromUserId)")
@@ -353,7 +411,6 @@ class NotificationService: ObservableObject {
             title: "Test Notification",
             message: "This is a test notification to verify the system is working",
             isRead: false,
-            createdAt: Date(),
             relatedUserId: nil,
             relatedPostId: nil,
             metadata: AppNotification.NotificationMetadata(

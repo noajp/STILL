@@ -7,7 +7,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authManager: AuthManager
-    @AppStorage("enableNotifications") private var enableNotifications = true
     @State private var showSignOutAlert = false
     
     var body: some View {
@@ -27,39 +26,23 @@ struct SettingsView: View {
                     .foregroundColor(.primary)
                 
                 Spacer()
-                
-                Button("Done") {
-                    dismiss()
-                }
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(MinimalDesign.Colors.accentRed)
             }
             .padding()
             .background(Color(UIColor.systemBackground))
             
             Form {
                 Section(header: Text("Account")) {
+                    NavigationLink(destination: PrivacySettingsView()) {
+                        Label("Privacy Settings", systemImage: "lock.shield")
+                            .foregroundColor(.primary)
+                    }
+                    
                     NavigationLink(destination: EmptyView()) {
                         Label("Change Password", systemImage: "lock")
                     }
                     
                     NavigationLink(destination: EmptyView()) {
                         Label("Change Email", systemImage: "envelope")
-                    }
-                }
-                
-                Section(header: Text("Notifications")) {
-                    Toggle("Push Notifications", isOn: $enableNotifications)
-                        .toggleStyle(SwitchToggleStyle(tint: MinimalDesign.Colors.accentRed))
-                    
-                    if enableNotifications {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ToggleRow(title: "New Followers", isOn: .constant(true))
-                            ToggleRow(title: "Likes", isOn: .constant(true))
-                            ToggleRow(title: "Comments", isOn: .constant(true))
-                            ToggleRow(title: "Messages", isOn: .constant(true))
-                        }
-                        .padding(.leading, 16)
                     }
                 }
                 
@@ -114,19 +97,9 @@ struct SettingsView: View {
             } message: {
                 Text("Are you sure you want to sign out?")
             }
-            .accentColor(MinimalDesign.Colors.accentRed)
+            .accentColor(.primary)
         }
         .navigationBarHidden(true)
     }
 }
 
-struct ToggleRow: View {
-    let title: String
-    @Binding var isOn: Bool
-    
-    var body: some View {
-        Toggle(title, isOn: $isOn)
-            .font(.system(size: 14))
-            .toggleStyle(SwitchToggleStyle(tint: MinimalDesign.Colors.accentRed))
-    }
-}

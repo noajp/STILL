@@ -144,6 +144,9 @@ struct GroupConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 16) {
+                        // Add space for custom header
+                        Spacer()
+                            .frame(height: 60) // Height for custom navigation bar
                         if viewModel.isLoading {
                             ProgressView()
                                 .padding()
