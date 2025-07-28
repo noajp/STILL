@@ -1,20 +1,56 @@
 //======================================================================
 // MARK: - HomeGridView.swift
-// Purpose: Home feed grid layout with masonry-style post display, landscape/square aspect handling, and infinite scroll (メインフィードグリッドレイアウト：メイソンリースタイル投稿表示、横長/正方形アスペクト処理、無限スクロール)
+// Purpose: Home feed grid layout with masonry-style post display, landscape/square aspect handling, and infinite scroll
 // Path: still/Features/HomeFeed/Views/HomeGridView.swift
 //======================================================================
 import SwiftUI
 import Combine
 
+/**
+ * HomeGridView provides an intelligent masonry-style grid layout for displaying posts.
+ * 
+ * This view features:
+ * - Adaptive grid layout with alternating row patterns (1+1 landscape/square, then 3x2 grid)
+ * - Intelligent image aspect ratio detection for optimal display
+ * - Progressive loading with animation for smooth user experience
+ * - Post upload status tracking with visual progress indicators
+ * - Navigation to single post view with state management
+ * - Pull-to-refresh and infinite scroll capabilities
+ * - Memory-efficient image loading and caching
+ * 
+ * Layout Pattern:
+ * - Odd rows: 1 landscape/large image + 1 square image
+ * - Even rows: 6 square images in 3x2 grid
+ * 
+ * The view automatically categorizes posts by aspect ratio and distributes them
+ * optimally across the alternating layout pattern for visual balance.
+ */
 @MainActor
 struct HomeGridView: View {
+    // MARK: - Properties
+    
+    /// View model managing post data and feed operations
     @StateObject private var viewModel = HomeFeedViewModel()
+    
+    /// Singleton manager for tracking post upload status
     @StateObject private var postStatusManager = PostStatusManager.shared
+    
+    /// Controls whether to show grid mode vs following feed mode
     @Binding var showGridMode: Bool
+    
+    /// Controls display of create post interface
     @Binding var showingCreatePost: Bool
+    
+    /// Tracks if user is currently viewing a single post
     @Binding var isInSingleView: Bool
+    
+    /// Currently selected post for navigation
     @State private var selectedPost: Post?
+    
+    /// Controls navigation to single post view
     @State private var navigateToSingleView: Bool = false
+    
+    /// Environment dismiss handler
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -83,12 +119,12 @@ struct HomeGridView: View {
                         // Custom Grid View with alternating layout
                         CustomGridView(posts: viewModel.posts, showGridMode: $showGridMode, selectedPost: $selectedPost, navigateToSingleView: $navigateToSingleView)
                     } else {
-                        // Following Post View mode - フォローしている人と自分の投稿のみ表示
+                        // Following Post View mode - Shows posts from followed users and own posts
                         FollowingPostView(viewModel: viewModel)
                     }
                 }
                 
-                // タブバー用の下部余白
+                // Bottom padding for tab bar clearance
                 Color.clear
                     .frame(height: 110)
             }
@@ -120,14 +156,14 @@ struct HomeGridView: View {
         }
         .onChange(of: isInSingleView) { _, newValue in
             if !newValue && navigateToSingleView {
-                // シングルビューから戻る時
+                // When returning from single view
                 navigateToSingleView = false
                 selectedPost = nil
             }
         }
         .onChange(of: showGridMode) { _, newValue in
             if newValue && isInSingleView {
-                // グリッドモードに戻る時にシングルビューからも戻る
+                // When switching to grid mode, also exit single view
                 navigateToSingleView = false
                 selectedPost = nil
             }
@@ -220,7 +256,7 @@ struct PostCardView: View {
                                 .foregroundColor(.secondary)
                         )
                 case .empty:
-                    // 読み込み中のスケルトン表示
+                    // Loading skeleton display
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
                 @unknown default:
@@ -653,7 +689,7 @@ struct GridImageView: View {
                                 .foregroundColor(.secondary)
                         )
                 case .empty:
-                    // 読み込み中のスケルトン表示
+                    // Loading skeleton display
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
                 @unknown default:

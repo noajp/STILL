@@ -159,41 +159,45 @@ struct OtherUserProfileView: View {
                             
                             Spacer(minLength: 8)
                             
-                            // Follow/Unfollow/Accept button with request status
-                            Button(action: {
-                                Task {
-                                    if viewModel.hasIncomingFollowRequest {
-                                        await viewModel.acceptFollowRequest()
-                                    } else if viewModel.followStatus == .accepted {
-                                        await viewModel.unfollowUser()
-                                    } else {
-                                        await viewModel.followUser()
+                            // Follow/Unfollow/Accept button with request status (only for other users)
+                            if !viewModel.isCurrentUser {
+                                Button(action: {
+                                    Task {
+                                        if viewModel.hasIncomingFollowRequest {
+                                            await viewModel.acceptFollowRequest()
+                                        } else if viewModel.followStatus == .accepted {
+                                            await viewModel.unfollowUser()
+                                        } else if viewModel.followStatus == .pending {
+                                            await viewModel.cancelFollowRequest()
+                                        } else {
+                                            await viewModel.followUser()
+                                        }
                                     }
-                                }
-                            }) {
-                                HStack(spacing: 4) {
-                                    if viewModel.hasIncomingFollowRequest {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 12))
-                                    } else if viewModel.followStatus == .pending {
-                                        Image(systemName: "clock")
-                                            .font(.system(size: 12))
+                                }) {
+                                    HStack(spacing: 4) {
+                                        if viewModel.hasIncomingFollowRequest {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 12))
+                                        } else if viewModel.followStatus == .pending {
+                                            Image(systemName: "clock")
+                                                .font(.system(size: 12))
+                                        }
+                                        
+                                        Text(followButtonText)
+                                            .font(.system(size: 14, weight: .medium))
                                     }
-                                    
-                                    Text(followButtonText)
-                                        .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(buttonTextColor)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 8)
+                                    .background(buttonBackgroundColor)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(buttonBorderColor, lineWidth: 1)
+                                    )
+                                    .cornerRadius(6)
                                 }
-                                .foregroundColor(buttonTextColor)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 8)
-                                .background(buttonBackgroundColor)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(buttonBorderColor, lineWidth: 1)
-                                )
-                                .cornerRadius(6)
+                                .disabled(viewModel.isLoading)
                             }
-                            .disabled(viewModel.isLoading)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }

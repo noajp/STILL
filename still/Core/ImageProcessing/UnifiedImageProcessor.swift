@@ -1,7 +1,8 @@
 //======================================================================
-// MARK: - UnifiedImageProcessor
-// Purpose: 統合画像処理エンジン（CoreImageManager + AdvancedFilterManager統合版）
-// Features: 最適化されたメモリ使用、単一CIContext、効率的なフィルターパイプライン
+// MARK: - UnifiedImageProcessor.swift
+// Purpose: Unified image processing engine with CoreImage and Metal integration
+// Features: Optimized memory usage, single CIContext, efficient filter pipeline
+// Path: still/Core/ImageProcessing/UnifiedImageProcessor.swift
 //======================================================================
 
 import UIKit
@@ -11,67 +12,142 @@ import Metal
 import MetalPerformanceShaders
 
 // MARK: - Filter Operation Protocol
+
+/**
+ * Protocol defining a filter operation that can be applied to images.
+ * 
+ * Conforming types must implement the apply method to transform a CIImage
+ * using the provided CIContext for optimal performance.
+ */
 protocol FilterOperation: Sendable {
+    /// Applies the filter operation to the given image
+    /// - Parameters:
+    ///   - image: The source image to transform
+    ///   - context: The CIContext for rendering operations
+    /// - Returns: The transformed image
     func apply(to image: CIImage, context: CIContext) -> CIImage
 }
 
-// MARK: - Unified Image Processor
+/**
+ * UnifiedImageProcessor provides high-performance image processing capabilities.
+ * 
+ * This unified engine combines CoreImage and Metal for optimal performance:
+ * - Single shared CIContext for memory efficiency
+ * - Filter and kernel caching for speed optimization
+ * - LUT (Look-Up Table) processing for color grading
+ * - Performance monitoring and analytics
+ * - Thread-safe operations with concurrent processing
+ * - Memory-optimized pipeline for large images
+ * 
+ * Features:
+ * - Real-time filter application
+ * - Batch processing capabilities
+ * - Advanced color correction and grading
+ * - Custom kernel support
+ * - Performance profiling
+ */
 final class UnifiedImageProcessor: ObservableObject, @unchecked Sendable {
     
     // MARK: - Singleton
+    
+    /// Shared instance for global access
     static let shared = UnifiedImageProcessor()
     
     // MARK: - Core Properties
+    
+    /// Metal device for GPU-accelerated processing
     private let metalDevice: MTLDevice
+    
+    /// CoreImage context optimized for performance
     private let ciContext: CIContext
+    
+    /// Metal shader library for custom kernels
     private let metalLibrary: MTLLibrary?
+    
+    /// Dedicated queue for filter operations
     private let filterQueue = DispatchQueue(label: "com.tete.unifiedFilter", qos: .userInitiated)
     
     // MARK: - Cache Systems
+    
+    /// Cache for frequently used CIFilters
     private var filterCache: [String: CIFilter] = [:]
+    
+    /// Cache for compiled CIKernels
     private var kernelCache: [String: CIKernel] = [:]
+    
+    /// Specialized LUT processor for color grading
     private let lutProcessor = LUTProcessor()
     
     // MARK: - Performance Monitoring
+    
+    /// Last processing operation time in seconds
     @Published var processingTime: TimeInterval = 0
+    
+    /// Cache hit rate as percentage (0.0 - 1.0)
     @Published var cacheHitRate: Float = 0
+    
+    /// Total number of operations performed
     private var totalOperations: Int = 0
+    
+    /// Number of cache hits
     private var cacheHits: Int = 0
     
     // MARK: - Initialization
+    
+    /**
+     * Private initializer sets up the processing environment.
+     * 
+     * Initialization includes:
+     * - Metal device configuration for GPU acceleration
+     * - Optimized CIContext with P3 color space support
+     * - Essential filter and kernel preloading
+     * - Performance monitoring setup
+     */
     private init() {
-        // Metal device setup
+        // Setup Metal device for GPU-accelerated processing
         guard let device = MTLCreateSystemDefaultDevice() else {
             fatalError("Metal is not supported on this device")
         }
         self.metalDevice = device
         self.metalLibrary = device.makeDefaultLibrary()
         
-        // Optimized CIContext setup
+        // Configure CIContext with optimal settings
         let contextOptions: [CIContextOption: Any] = [
-            .useSoftwareRenderer: false,
-            .highQualityDownsample: true,
+            .useSoftwareRenderer: false,                    // Force GPU rendering
+            .highQualityDownsample: true,                  // Better quality for thumbnails
             .outputColorSpace: CGColorSpace(name: CGColorSpace.displayP3) ?? CGColorSpace(name: CGColorSpace.sRGB)!,
             .workingColorSpace: CGColorSpace(name: CGColorSpace.displayP3) ?? CGColorSpace(name: CGColorSpace.sRGB)!,
-            .cacheIntermediates: false // Memory optimization
+            .cacheIntermediates: false                     // Memory optimization for mobile
         ]
         
         self.ciContext = CIContext(mtlDevice: device, options: contextOptions)
         
-        // Preload essential kernels and filters
+        // Pre-cache commonly used components
         preloadEssentialComponents()
         
         print("🚀 UnifiedImageProcessor initialized with Metal device: \(device.name)")
     }
     
     // MARK: - Preloading
+    
+    /**
+     * Preloads essential filters and kernels for optimal performance.
+     * 
+     * This method caches frequently used components to avoid repeated
+     * initialization overhead during real-time processing.
+     */
     private func preloadEssentialComponents() {
-        // Preload commonly used filters
+        // List of commonly used filters for photo editing
         let essentialFilters: [String] = [
-            "CISepiaTone", "CIColorMonochrome", "CIVibrancy",
-            "CIGaussianBlur", "CIColorControls", "CIToneCurve"
+            "CISepiaTone",       // Vintage sepia effect
+            "CIColorMonochrome", // Black and white conversion
+            "CIVibrancy",        // Saturation enhancement
+            "CIGaussianBlur",    // Blur effects
+            "CIColorControls",   // Brightness/contrast/saturation
+            "CIToneCurve"        // Advanced tone mapping
         ]
         
+        // Pre-instantiate and cache filters
         for filterName in essentialFilters {
             if let filter = CIFilter(name: filterName) {
                 filterCache[filterName] = filter
@@ -83,7 +159,17 @@ final class UnifiedImageProcessor: ObservableObject, @unchecked Sendable {
     
     // MARK: - Public Interface
     
-    /// 統合フィルターパイプライン適用
+    /**
+     * Applies a pipeline of filter operations to an image.
+     * 
+     * This method processes filters sequentially while maintaining optimal
+     * performance through caching and efficient memory management.
+     * 
+     * - Parameters:
+     *   - filters: Array of filter operations to apply in sequence
+     *   - image: Source image to process
+     * - Returns: Processed image with all filters applied
+     */
     func applyFilterPipeline(filters: [FilterOperation], to image: CIImage) async -> CIImage {
         let startTime = CFAbsoluteTimeGetCurrent()
         

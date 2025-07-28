@@ -1,10 +1,25 @@
 //======================================================================
 // MARK: - MessagesView.swift
-// Purpose: Messages interface with conversation list and real-time messaging (会話リストとリアルタイムメッセージングのメッセージインターフェース)
+// Purpose: Messages interface with conversation list and real-time messaging functionality
 // Path: still/Features/Messages/Views/MessagesView.swift
 //======================================================================
+
 import SwiftUI
 
+/**
+ * MessagesView provides the main messaging interface for the STILL app.
+ * 
+ * This view displays a list of conversations and supports:
+ * - Dual mode switching between direct messages and group chats
+ * - Real-time conversation updates and message previews
+ * - Context menu actions for conversation management
+ * - Navigation to individual conversations and message composition
+ * - Empty state handling for new users
+ * - Pull-to-refresh and automatic data synchronization
+ * 
+ * The interface adapts based on the current mode (direct or group chat)
+ * and provides appropriate UI elements and navigation flows.
+ */
 struct MessagesView: View {
     @StateObject private var viewModel = MessagesViewModel()
     @State private var showNewMessage = false

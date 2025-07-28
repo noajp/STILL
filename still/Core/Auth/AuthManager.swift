@@ -7,17 +7,31 @@ import Foundation
 import Supabase
 import AuthenticationServices
 
+// MARK: - Notification Extensions
+
+/// Notification names for auth state changes
 extension Notification.Name {
+    /// Posted when authentication state changes (login/logout)
     static let authStateChanged = Notification.Name("authStateChanged")
 }
 
 // MARK: - Auth Errors
+
+/// Comprehensive authentication error types with localized descriptions
 enum AuthError: LocalizedError {
+    /// Invalid input data (email format, empty fields, etc.)
     case invalidInput(String)
+    
+    /// Rate limiting applied due to too many attempts
     case rateLimitExceeded(TimeInterval)
+    
+    /// Account locked due to security concerns
     case accountLocked
+    
+    /// Password doesn't meet security requirements
     case weakPassword([String])
     
+    /// Localized error description for user display
     var errorDescription: String? {
         switch self {
         case .invalidInput(let message):
@@ -32,12 +46,21 @@ enum AuthError: LocalizedError {
     }
 }
 
-// アプリ内で使用するUser構造体
+// MARK: - User Model
+
+/// Application-specific user structure that wraps Supabase user data
+/// Contains essential user information needed throughout the app
 struct AppUser: Codable {
+    /// Unique user identifier from Supabase Auth
     let id: String
+    
+    /// User's email address (optional as some auth methods don't require email)
     let email: String?
+    
+    /// Account creation timestamp
     let createdAt: String?
     
+    /// Coding keys for JSON serialization/deserialization
     enum CodingKeys: String, CodingKey {
         case id
         case email
@@ -45,21 +68,51 @@ struct AppUser: Codable {
     }
 }
 
+// MARK: - AuthManager Class
+
+/// Comprehensive authentication manager that handles user sessions, security, and state management
+/// Integrates with Supabase Auth and provides secure authentication with rate limiting and session management
+/// Supports sign in, sign up, password reset, and automatic session restoration
 @MainActor
 class AuthManager: ObservableObject, AuthManagerProtocol {
+    // MARK: - Type Aliases
+    
+    /// User type used throughout the authentication system
     typealias User = AppUser
+    
+    // MARK: - Singleton
+    
+    /// Shared instance of the authentication manager
     static let shared = AuthManager()
     
+    // MARK: - Published Properties
+    
+    /// Currently authenticated user (nil if not authenticated)
     @Published var currentUser: AppUser?
+    
+    /// Boolean indicating if user is currently authenticated
     @Published var isAuthenticated = false
+    
+    /// Loading state for authentication operations
     @Published var isLoading = false
     
+    // MARK: - Private Properties
+    
+    /// Supabase client for authentication operations
     private let client = SupabaseManager.shared.client
+    
+    /// Secure logger for authentication events
     private let secureLogger = SecureLogger.shared
     
-    // セキュリティ設定
+    // MARK: - Security Configuration
+    
+    /// Maximum number of login attempts before account lockout
     private let maxLoginAttempts = 5
-    private let lockoutDuration: TimeInterval = 900 // 15分
+    
+    /// Duration of account lockout after max attempts (15 minutes)
+    private let lockoutDuration: TimeInterval = 900
+    
+    /// Dictionary tracking login attempts per user (email -> (count, lastAttempt))
     private var loginAttempts: [String: (count: Int, lastAttempt: Date)] = [:]
     
     private init() {

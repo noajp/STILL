@@ -8,36 +8,83 @@ import PhotosUI
 @preconcurrency import AVFoundation
 import Supabase
 
+/// Extension for post upload-related notification names
 extension Notification.Name {
+    /// Notification sent when post upload begins
     static let postUploadStarted = Notification.Name("postUploadStarted")
+    /// Notification sent with upload progress updates
     static let postUploadProgress = Notification.Name("postUploadProgress")
+    /// Notification sent when post upload completes successfully
     static let postUploadCompleted = Notification.Name("postUploadCompleted")
+    /// Notification sent when post upload fails
     static let postUploadFailed = Notification.Name("postUploadFailed")
 }
 
+/// ViewModel for managing post creation workflow including media upload and post submission
+/// Handles image/video processing, location data, and background upload with progress tracking
 @MainActor
 class CreatePostViewModel: ObservableObject {
+    
+    // MARK: - Published Properties
+    
+    /// Selected image for the post
     @Published var selectedImage: UIImage?
+    
+    /// Selected video URL for the post
     @Published var selectedVideoURL: URL?
+    
+    /// Type of media being posted (photo or video)
     @Published var mediaType: Post.MediaType = .photo
+    
+    /// Post caption text
     @Published var caption = ""
+    
+    /// Location name for the post
     @Published var locationName = ""
+    
+    /// Loading state indicator
     @Published var isLoading = false
+    
+    /// Whether to show error alert
     @Published var showError = false
+    
+    /// Error message to display
     @Published var errorMessage: String?
+    
+    /// Whether post creation was successful
     @Published var isPostCreated = false
+    
+    /// Upload progress percentage (0.0 to 1.0)
     @Published var uploadProgress: Double = 0
+    
+    /// Latitude coordinate for location
     @Published var latitude: Double?
+    
+    /// Longitude coordinate for location
     @Published var longitude: Double?
+    
+    /// Whether the post should be publicly visible
     @Published var isPublic = true
     
+    // MARK: - Dependencies
+    
+    /// Service for post operations
     private let postService = PostService()
+    
+    /// Supabase client for database and storage operations
     private let supabase = SupabaseManager.shared.client
     
+    // MARK: - Computed Properties
+    
+    /// Whether the user can create a post (has selected media)
     var canPost: Bool {
         selectedImage != nil || selectedVideoURL != nil
     }
     
+    // MARK: - Public Methods
+    
+    /// Creates a post synchronously with UI feedback
+    /// Uploads media and creates post record in sequence with progress updates
     func createPost() async {
         guard canPost else { return }
         guard let userId = AuthManager.shared.currentUser?.id else {
@@ -52,7 +99,7 @@ class CreatePostViewModel: ObservableObject {
         uploadProgress = 0
         
         do {
-            // 1. メディアをアップロード
+            // 1. Upload media to storage
             uploadProgress = 0.3
             let mediaUrl: String
             if let image = selectedImage {
@@ -63,7 +110,7 @@ class CreatePostViewModel: ObservableObject {
                 throw PostError.noMediaSelected
             }
             
-            // 2. 投稿を作成
+            // 2. Create post record in database
             uploadProgress = 0.8
             try await createPostRecord(
                 userId: userId,
@@ -76,14 +123,17 @@ class CreatePostViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             showError = true
-            print("❌ 投稿エラー: \(error)")
-            print("❌ エラー詳細: \(error)")
-            print("❌ エラータイプ: \(type(of: error))")
+            print("❌ Post creation error: \(error)")
+            print("❌ Error details: \(error)")
+            print("❌ Error type: \(type(of: error))")
         }
         
         isLoading = false
     }
     
+    /// Creates a post in the background without blocking the UI
+    /// Uses detached task and notifications to communicate progress and completion
+    /// Validates user authentication and profile before proceeding with upload
     func createPostInBackground() {
         guard canPost else { 
             print("🔴 Cannot post: canPost = false")
@@ -427,16 +477,20 @@ class CreatePostViewModel: ObservableObject {
             .execute()
     }
     
-    // 動画のサムネイル生成
-    // generateThumbnail関数を更新（iOS 18対応）
+    // MARK: - Video Processing
+    
+    /// Generates a thumbnail image from a video URL
+    /// Updated for iOS 18 compatibility using async/await patterns
+    /// - Parameter videoURL: Local URL of the video
+    /// - Returns: Thumbnail UIImage or nil if generation fails
     func generateThumbnail(from videoURL: URL) async -> UIImage? {
-        let asset = AVURLAsset(url: videoURL) // 修正: AVAsset → AVURLAsset
+        let asset = AVURLAsset(url: videoURL)
         let imageGenerator = AVAssetImageGenerator(asset: asset)
         imageGenerator.appliesPreferredTrackTransform = true
         
         let time = CMTime(seconds: 1, preferredTimescale: 1)
         
-        // iOS 18対応の非同期メソッドを使用
+        // Use iOS 18 compatible async method
         return await withCheckedContinuation { continuation in
             imageGenerator.generateCGImageAsynchronously(for: time) { cgImage, actualTime, error in
                 if let cgImage = cgImage {
@@ -448,22 +502,24 @@ class CreatePostViewModel: ObservableObject {
         }
     }
     
-    // ビデオの寸法を取得するヘルパーメソッド
+    /// Helper method to extract video dimensions accounting for transformations
+    /// - Parameter videoURL: Local URL of the video
+    /// - Returns: Tuple of (width, height) or nil if extraction fails
     private func getVideoDimensions(from videoURL: URL) async -> (width: Double, height: Double)? {
         let asset = AVURLAsset(url: videoURL)
         
         do {
-            // ビデオトラックを取得
+            // Load video tracks from the asset
             let tracks = try await asset.loadTracks(withMediaType: .video)
             guard let videoTrack = tracks.first else {
                 print("❌ No video track found")
                 return nil
             }
             
-            // ナチュラルサイズを取得
+            // Get natural size of the video
             let naturalSize = try await videoTrack.load(.naturalSize)
             
-            // トランスフォームを考慮（回転など）
+            // Apply transform to account for rotation
             let transform = try await videoTrack.load(.preferredTransform)
             let size = naturalSize.applying(transform)
             
@@ -482,11 +538,18 @@ class CreatePostViewModel: ObservableObject {
     }
 }
 
+// MARK: - Error Types
+
+/// Errors that can occur during post creation process
 enum PostError: LocalizedError {
+    /// Failed to process or compress image data
     case imageProcessingFailed
+    /// Failed to upload media or create post record
     case uploadFailed
+    /// User attempted to create post without selecting media
     case noMediaSelected
     
+    /// Human-readable error descriptions
     var errorDescription: String? {
         switch self {
         case .imageProcessingFailed:

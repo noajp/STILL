@@ -6,25 +6,46 @@
 
 import SwiftUI
 
+/// A comprehensive notification list view that displays all user notifications
+/// Supports different notification types including likes, follows, and follow requests
+/// Features read/unread states, follow request management, and real-time updates
 struct NotificationListView: View {
+    // MARK: - Properties
+    
+    /// Shared notification service that manages all notification operations
     @StateObject private var notificationService = NotificationService.shared
+    
+    /// Authentication manager to access current user information
     @EnvironmentObject var authManager: AuthManager
+    
+    /// Environment value for dismissing this view
     @Environment(\.dismiss) private var dismiss
+    
+    /// Controls the presentation of follow request management screen
+    @State private var showFollowRequestManagement = false
+    
+    /// Number of pending follow requests for the current user
+    @State private var pendingRequestsCount = 0
+    
+    // MARK: - Body
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Header
+                // MARK: - Header Section
+                // Unified header with title, close button, and optional mark-all-read button
                 UnifiedHeader(
                     title: "Notifications",
                     rightButton: HeaderButton(
                         icon: "xmark",
                         action: { dismiss() }
                     ),
+                    // Show mark-all-read button only when there are unread notifications
                     extraRightButton: notificationService.unreadCount > 0 ? HeaderButton(
                         icon: "checkmark.circle",
                         action: {
                             Task {
+                                // Mark all notifications as read for the current user
                                 if let userId = authManager.currentUser?.id {
                                     await notificationService.markAllAsRead(for: userId)
                                 }
@@ -33,8 +54,55 @@ struct NotificationListView: View {
                     ) : nil
                 )
                 
+                // MARK: - Follow Requests Section
+                // Special section for follow requests (only shown when there are pending requests)
+                if pendingRequestsCount > 0 {
+                    Button(action: {
+                        // Navigate to follow request management screen
+                        showFollowRequestManagement = true
+                    }) {
+                        HStack {
+                            // Follow request icon
+                            Image(systemName: "person.badge.plus")
+                                .foregroundColor(MinimalDesign.Colors.accentRed)
+                                .font(.system(size: 20))
+                            
+                            // Section title
+                            Text("Follow Requests")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            // Badge showing the number of pending requests
+                            Text("\(pendingRequestsCount)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(MinimalDesign.Colors.accentRed)
+                                .cornerRadius(12)
+                            
+                            // Navigation indicator
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.system(size: 14))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color.gray.opacity(0.05))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                }
+                
+                // MARK: - Content Area
+                // Main content area that displays different states: loading, empty, or notification list
                 if notificationService.isLoading {
-                    // Loading State
+                    // MARK: Loading State
+                    // Show loading indicator while fetching notifications
                     VStack(spacing: 16) {
                         ProgressView()
                         Text("Loading notifications...")
@@ -88,19 +156,67 @@ struct NotificationListView: View {
             .task {
                 if let userId = authManager.currentUser?.id {
                     await notificationService.fetchNotifications(for: userId)
+                    await loadPendingRequestsCount(for: userId)
                 }
             }
         }
         .navigationBarHidden(true)
+        // Present follow request management screen as full screen cover
+        .fullScreenCover(isPresented: $showFollowRequestManagement) {
+            FollowRequestManagementView()
+                .environmentObject(authManager)
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Loads the count of pending follow requests for the specified user
+    /// This count is displayed in the follow requests section badge
+    /// - Parameter userId: The ID of the user to load pending requests for
+    private func loadPendingRequestsCount(for userId: String) async {
+        do {
+            // Query the follows table for pending requests where this user is being followed
+            let count: Int = try await SupabaseManager.shared.client
+                .from("follows")
+                .select("id", count: .exact)
+                .eq("following_id", value: userId)
+                .eq("status", value: "pending")
+                .execute()
+                .count ?? 0
+            
+            // Update the UI on the main actor
+            await MainActor.run {
+                pendingRequestsCount = count
+            }
+            
+        } catch {
+            print("❌ Error loading pending requests count: \(error)")
+        }
     }
 }
 
+/// Individual notification row view that displays a single notification
+/// Handles different notification types with appropriate actions and UI elements
+/// Supports follow request acceptance, profile navigation, and follow actions
 struct NotificationRowView: View {
+    // MARK: - Properties
+    
+    /// The notification data to display
     let notification: AppNotification
+    
+    /// Controls navigation to the sender's profile
     @State private var navigateToProfile = false
+    
+    /// Tracks if currently accepting a follow request
     @State private var isAccepting = false
+    
+    /// Tracks if the follow request has been accepted
     @State private var hasAccepted = false
+    
+    /// Tracks the current follow status of the notification sender
     @State private var isFollowing = false
+    
+    /// Tracks if currently performing a follow/unfollow action
     @State private var isFollowingUser = false
     
     var body: some View {
@@ -201,26 +317,20 @@ struct NotificationRowView: View {
                                             .font(.system(size: 14, weight: .medium))
                                     }
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(isFollowing ? .primary : .white)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 6)
-                                .background(isFollowing ? .gray : MinimalDesign.Colors.accentRed)
-                                .cornerRadius(6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(isFollowing ? Color.clear : MinimalDesign.Colors.accentRed)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(isFollowing ? Color.primary : Color.clear, lineWidth: 1)
+                                        )
+                                )
                                 .disabled(isFollowingUser)
                             }
                             
-                            // View profile button (always show)
-                            Button(action: {
-                                navigateToProfile = true
-                            }) {
-                                Text("View")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(.blue)
-                                    .cornerRadius(6)
-                            }
                         }
                     } else {
                         // Type Icon for other notifications
@@ -285,6 +395,9 @@ struct NotificationRowView: View {
                     hasAccepted = true
                     isAccepting = false
                 }
+                
+                // Send notification to update follower counts across the app
+                NotificationCenter.default.post(name: .followStatusChanged, object: nil)
                 
                 // Refresh notifications to update any counts or states
                 if let currentUserId = AuthManager.shared.currentUser?.id {

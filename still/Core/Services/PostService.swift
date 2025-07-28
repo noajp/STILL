@@ -6,10 +6,20 @@
 import Foundation
 import Supabase
 
+/// Comprehensive post management service that handles all post-related operations
+/// Manages post creation, fetching, uploading, media handling, and Supabase integration
+/// Supports both real data and mock data modes for testing and development
 class PostService: @unchecked Sendable {
+    // MARK: - Properties
+    
+    /// Supabase client for database operations
     private let client = SupabaseManager.shared.client
+    
+    /// Like service for handling post likes
     private let likeService = LikeService()
-    static let useMockData = false // 写真共有アプリ用モックデータ - グリッドビューテスト用
+    
+    /// Flag to enable mock data mode for testing (set to false for production)
+    static let useMockData = false
     
     // モックデータ用のいいね状態を保存（actor-based thread safety）
     private actor MockLikedPostsManager {

@@ -65,38 +65,6 @@ struct PrivacySettingsView: View {
                         .background(Color.gray.opacity(0.05))
                         .cornerRadius(12)
                         
-                        // Follow Requests Section (only show if private)
-                        if viewModel.isPrivateAccount && viewModel.pendingRequestsCount > 0 {
-                            VStack(alignment: .leading, spacing: 16) {
-                                HStack {
-                                    Image(systemName: "person.badge.plus")
-                                        .foregroundColor(MinimalDesign.Colors.accentRed)
-                                        .font(.system(size: 20))
-                                    
-                                    Text("Follow Requests")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.primary)
-                                    
-                                    Spacer()
-                                    
-                                    Text("\(viewModel.pendingRequestsCount)")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(MinimalDesign.Colors.accentRed)
-                                        .cornerRadius(12)
-                                }
-                                
-                                // Show pending requests list
-                                ForEach(viewModel.pendingRequests) { request in
-                                    FollowRequestRow(request: request, viewModel: viewModel)
-                                }
-                            }
-                            .padding(16)
-                            .background(Color.gray.opacity(0.05))
-                            .cornerRadius(12)
-                        }
                         
                         Spacer(minLength: 100)
                     }
@@ -142,78 +110,6 @@ struct CustomToggleStyle: ToggleStyle {
     }
 }
 
-// Follow Request Row Component
-struct FollowRequestRow: View {
-    let request: FollowRequest
-    let viewModel: PrivacySettingsViewModel
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Profile Picture
-            if let avatarUrl = request.followerProfile?.avatarUrl {
-                RemoteImageView(imageURL: avatarUrl)
-                    .frame(width: 44, height: 44)
-                    .clipShape(Circle())
-            } else {
-                Circle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Text(String(request.followerProfile?.username.prefix(1) ?? "?").uppercased())
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white)
-                    )
-            }
-            
-            // User Info
-            VStack(alignment: .leading, spacing: 2) {
-                Text(request.followerProfile?.profileDisplayName ?? "Unknown")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.primary)
-                
-                Text("@\(request.followerProfile?.username ?? "unknown")")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Action Buttons
-            HStack(spacing: 8) {
-                // Reject Button
-                Button(action: {
-                    Task {
-                        await viewModel.rejectFollowRequest(request)
-                    }
-                }) {
-                    Text("Decline")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(20)
-                }
-                
-                // Accept Button
-                Button(action: {
-                    Task {
-                        await viewModel.acceptFollowRequest(request)
-                    }
-                }) {
-                    Text("Accept")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(MinimalDesign.Colors.accentRed)
-                        .cornerRadius(20)
-                }
-            }
-        }
-        .padding(.vertical, 8)
-    }
-}
 
 #if DEBUG
 struct PrivacySettingsView_Previews: PreviewProvider {

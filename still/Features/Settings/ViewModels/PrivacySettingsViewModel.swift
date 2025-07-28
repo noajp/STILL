@@ -7,33 +7,55 @@
 import Foundation
 import Supabase
 
+/// Represents a follow request between users
+/// Contains the relationship data and optional profile information for the follower
 struct FollowRequest: Identifiable, Codable {
+    /// Unique identifier for the follow request
     let id: String
+    /// ID of the user who sent the follow request
     let follower_id: String
+    /// ID of the user who received the follow request
     let following_id: String
+    /// Status of the request (pending, accepted, rejected)
     let status: String
+    /// When the follow request was created
     let created_at: Date
     
-    // フォロワーのプロフィール情報
+    /// Profile information of the user who sent the follow request
     var followerProfile: UserProfile?
 }
 
+/// ViewModel for managing privacy settings and follow request handling
+/// Handles private account toggle and automatic follow request management
 @MainActor
 class PrivacySettingsViewModel: ObservableObject {
+    
+    // MARK: - Published Properties
+    
+    /// Whether the current user's account is private
     @Published var isPrivateAccount: Bool = false
-    @Published var pendingRequestsCount: Int = 0
-    @Published var pendingRequests: [FollowRequest] = []
+    
+    /// Loading state indicator
     @Published var isLoading: Bool = false
+    
+    /// Error message to display to user
     @Published var errorMessage: String?
     
+    // MARK: - Private Properties
+    
+    /// ID of the current user whose privacy settings are being managed
     private var currentUserId: String?
     
+    // MARK: - Public Methods
+    
+    /// Loads the current privacy settings for the specified user
+    /// - Parameter userId: ID of the user whose privacy settings to load
     func loadPrivacySettings(for userId: String) async {
         currentUserId = userId
         isLoading = true
         
         do {
-            // Load current privacy setting using direct JSON query
+            // Structure for decoding privacy setting from database
             struct PrivacyResult: Codable {
                 let isPrivate: Bool?
                 
@@ -42,6 +64,7 @@ class PrivacySettingsViewModel: ObservableObject {
                 }
             }
             
+            // Fetch current privacy setting from database
             let result: PrivacyResult = try await SupabaseManager.shared.client
                 .from("profiles")
                 .select("is_private")
@@ -53,12 +76,6 @@ class PrivacySettingsViewModel: ObservableObject {
             isPrivateAccount = result.isPrivate ?? false
             print("✅ Privacy setting loaded: \(isPrivateAccount)")
             
-            // Load pending requests count if private
-            if isPrivateAccount {
-                await loadPendingRequestsCount()
-                await loadPendingRequests()
-            }
-            
         } catch {
             print("❌ Error loading privacy settings: \(error)")
             errorMessage = "Failed to load privacy settings"
@@ -67,11 +84,14 @@ class PrivacySettingsViewModel: ObservableObject {
         isLoading = false
     }
     
+    /// Updates the privacy setting for the current user
+    /// If changing from private to public, automatically accepts all pending follow requests
     func updatePrivacySetting() {
         guard let userId = currentUserId else { return }
         
         Task {
             do {
+                // Update privacy setting in database
                 try await SupabaseManager.shared.client
                     .from("profiles")
                     .update(["is_private": isPrivateAccount])
@@ -80,140 +100,30 @@ class PrivacySettingsViewModel: ObservableObject {
                 
                 print("✅ Privacy setting updated: \(isPrivateAccount ? "Private" : "Public")")
                 
-                // Load pending requests if now private
-                if isPrivateAccount {
-                    await loadPendingRequestsCount()
-                    await loadPendingRequests()
-                } else {
-                    // If going public, automatically accept all pending requests
+                // If switching to public account, automatically accept all pending requests
+                if !isPrivateAccount {
                     await acceptAllPendingRequests()
-                    pendingRequestsCount = 0
-                    pendingRequests = []
                 }
                 
             } catch {
                 print("❌ Error updating privacy setting: \(error)")
                 errorMessage = "Failed to update privacy setting"
-                // Revert the toggle
+                // Revert the UI state if database update failed
                 isPrivateAccount.toggle()
             }
         }
     }
     
-    private func loadPendingRequestsCount() async {
-        guard let userId = currentUserId else { return }
-        
-        do {
-            let count: Int = try await SupabaseManager.shared.client
-                .from("follows")
-                .select("id", count: .exact)
-                .eq("following_id", value: userId)
-                .eq("status", value: "pending")
-                .execute()
-                .count ?? 0
-            
-            pendingRequestsCount = count
-            
-        } catch {
-            print("❌ Error loading pending requests count: \(error)")
-        }
-    }
     
-    private func loadPendingRequests() async {
-        guard let userId = currentUserId else { return }
-        
-        do {
-            // まずpendingフォローリクエストを取得
-            let requests: [FollowRequest] = try await SupabaseManager.shared.client
-                .from("follows")
-                .select("*")
-                .eq("following_id", value: userId)
-                .eq("status", value: "pending")
-                .order("created_at", ascending: false)
-                .execute()
-                .value
-            
-            // 各リクエストに対してフォロワーのプロフィール情報を取得
-            var requestsWithProfiles: [FollowRequest] = []
-            for var request in requests {
-                do {
-                    let profile: UserProfile = try await SupabaseManager.shared.client
-                        .from("profiles")
-                        .select("*")
-                        .eq("id", value: request.follower_id)
-                        .single()
-                        .execute()
-                        .value
-                    
-                    request.followerProfile = profile
-                    requestsWithProfiles.append(request)
-                } catch {
-                    print("❌ Error loading profile for follower \(request.follower_id): \(error)")
-                    // プロフィール情報がなくてもリクエストは表示
-                    requestsWithProfiles.append(request)
-                }
-            }
-            
-            pendingRequests = requestsWithProfiles
-            
-        } catch {
-            print("❌ Error loading pending requests: \(error)")
-        }
-    }
+    // MARK: - Private Methods
     
-    func acceptFollowRequest(_ request: FollowRequest) async {
-        do {
-            try await SupabaseManager.shared.client
-                .from("follows")
-                .update(["status": "accepted"])
-                .eq("id", value: request.id)
-                .execute()
-            
-            // リストから削除
-            pendingRequests.removeAll { $0.id == request.id }
-            pendingRequestsCount = pendingRequests.count
-            
-            // フォロー承認通知を作成
-            if let followerProfile = request.followerProfile {
-                await NotificationService.shared.createFollowNotification(
-                    fromUserId: request.follower_id,
-                    toUserId: request.following_id,
-                    senderProfile: followerProfile
-                )
-            }
-            
-            print("✅ Follow request accepted")
-            
-        } catch {
-            print("❌ Error accepting follow request: \(error)")
-            errorMessage = "Failed to accept follow request"
-        }
-    }
-    
-    func rejectFollowRequest(_ request: FollowRequest) async {
-        do {
-            try await SupabaseManager.shared.client
-                .from("follows")
-                .delete()
-                .eq("id", value: request.id)
-                .execute()
-            
-            // リストから削除
-            pendingRequests.removeAll { $0.id == request.id }
-            pendingRequestsCount = pendingRequests.count
-            
-            print("✅ Follow request rejected")
-            
-        } catch {
-            print("❌ Error rejecting follow request: \(error)")
-            errorMessage = "Failed to reject follow request"
-        }
-    }
-    
+    /// Accepts all pending follow requests for the current user
+    /// Called automatically when user switches from private to public account
     private func acceptAllPendingRequests() async {
         guard let userId = currentUserId else { return }
         
         do {
+            // Update all pending follow requests to accepted status
             try await SupabaseManager.shared.client
                 .from("follows")
                 .update(["status": "accepted"])

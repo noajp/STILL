@@ -5,17 +5,42 @@
 //======================================================================
 import Foundation
 
+/// Comprehensive user profile data model with validation and display helpers
+/// Supports username validation, display name handling, follower/following tracking, and private account settings
+/// Provides computed properties for consistent user identification across the app
 struct UserProfile: Identifiable, Codable {
-    let id: String              // 内部UUID（データベース用）
-    var username: String        // ユーザーID: 一意識別子、英小文字・数字・ハイフン・アンダーバーのみ
-    var displayName: String?    // 表示名: プロフィール詳細でのみ表示
+    // MARK: - Core Properties
+    
+    /// Unique user identifier (UUID from database)
+    let id: String
+    
+    /// Unique username for user identification (lowercase letters, numbers, hyphens, underscores only)
+    var username: String
+    
+    /// Optional display name shown in profile details (falls back to username if empty)
+    var displayName: String?
+    
+    /// URL of the user's profile avatar image
     var avatarUrl: String?
+    
+    /// User's biography text
     var bio: String?
-    var followersCount: Int?    // フォロワー数
-    var followingCount: Int?    // フォロー数
-    var isPrivate: Bool?        // プライベートアカウント設定
+    
+    /// Number of users following this user
+    var followersCount: Int?
+    
+    /// Number of users this user is following
+    var followingCount: Int?
+    
+    /// Whether this account is private (requires follow approval)
+    var isPrivate: Bool?
+    
+    /// Account creation timestamp
     let createdAt: Date?
     
+    // MARK: - JSON Coding Keys
+    
+    /// Coding keys for JSON serialization/deserialization with database column names
     enum CodingKeys: String, CodingKey {
         case id, username, bio
         case displayName = "display_name"
@@ -26,7 +51,7 @@ struct UserProfile: Identifiable, Codable {
         case createdAt = "created_at"
     }
     
-    // MARK: - 新仕様に基づく表示用ヘルパーメソッド
+    // MARK: - Display Helper Methods
     
     /// メッセージ機能で表示するユーザーID
     var userIdForDisplay: String {

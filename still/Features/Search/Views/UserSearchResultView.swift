@@ -8,6 +8,7 @@ import Supabase
 struct UserSearchResultView: View {
     let user: UserProfile
     @State private var isFollowing = false
+    @State private var requestStatus: FollowRequestStatus?
     @State private var isLoading = false
     @State private var showProfile = false
     @State private var hasCheckedFollowStatus = false
@@ -31,41 +32,42 @@ struct UserSearchResultView: View {
             .frame(width: 50, height: 50)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
-            // ユーザー情報
-            VStack(alignment: .leading, spacing: 4) {
-                Text(user.displayName ?? user.username)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                
-                Text("@\(user.username)")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                
-                if let bio = user.bio, !bio.isEmpty {
-                    Text(bio)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
+            // ユーザー情報 (タップでプロフィール表示)
+            Button(action: {
+                if !isCurrentUser {
+                    showProfile = true
                 }
+            }) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(user.displayName ?? user.username)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    Text("@\(user.username)")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    
+                    if let bio = user.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .buttonStyle(PlainButtonStyle())
             
             Spacer()
             
-            // フォロー/ビューボタン
+            // フォローボタン (自分以外のユーザーのみ)
             if !isCurrentUser {
                 Button(action: {
-                    print("🔵 UserSearchResultView - Button clicked for user: \(user.username)")
+                    print("🔵 UserSearchResultView - Follow button clicked for user: \(user.username)")
                     print("🔵 UserSearchResultView - Current isFollowing state: \(isFollowing)")
-                    print("🔵 UserSearchResultView - hasCheckedFollowStatus: \(hasCheckedFollowStatus)")
-                    if isFollowing {
-                        print("🔵 UserSearchResultView - Navigating to profile")
-                        navigateToProfile()
-                    } else {
-                        print("🔵 UserSearchResultView - Toggling follow")
-                        toggleFollow()
-                    }
+                    toggleFollow()
                 }) {
                     HStack {
                         if isLoading {
@@ -73,17 +75,17 @@ struct UserSearchResultView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: isFollowing ? MinimalDesign.Colors.primary : .white))
                                 .scaleEffect(0.8)
                         } else {
-                            Text(isFollowing ? "Following" : "Follow")
+                            Text(requestStatus == .pending ? "Requested" : (isFollowing ? "Following" : "Follow"))
                                 .font(.system(size: 14, weight: .medium))
                         }
                     }
                     .foregroundColor(isFollowing ? MinimalDesign.Colors.primary : .white)
                     .frame(width: 90, height: 32)
                     .background(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: 20)
                             .fill(isFollowing ? Color.clear : MinimalDesign.Colors.accentRed)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 16)
+                                RoundedRectangle(cornerRadius: 20)
                                     .stroke(isFollowing ? MinimalDesign.Colors.primary : Color.clear, lineWidth: 1)
                             )
                     )
@@ -96,12 +98,25 @@ struct UserSearchResultView: View {
         .background(Color(.systemBackground))
         .contentShape(Rectangle())
         .fullScreenCover(isPresented: $showProfile) {
-            OtherUserProfileView(userId: user.id)
+            if isCurrentUser {
+                // 自分のプロフィールの場合はMyPageViewを表示
+                MyPageView(isInProfileSingleView: .constant(false), isUserSearchMode: .constant(false))
+                    .environmentObject(AuthManager.shared)
+            } else {
+                // 他人のプロフィールの場合はOtherUserProfileViewを表示
+                OtherUserProfileView(userId: user.id)
+            }
         }
         .onAppear {
             print("🔵 UserSearchResultView - onAppear called for user: \(user.username)")
             print("🔵 UserSearchResultView - hasCheckedFollowStatus: \(hasCheckedFollowStatus)")
-            if !hasCheckedFollowStatus {
+            
+            // Reset state for current user to prevent any UI inconsistencies
+            if isCurrentUser {
+                isFollowing = false
+                hasCheckedFollowStatus = true
+                print("🔵 UserSearchResultView - Reset state for current user")
+            } else if !hasCheckedFollowStatus {
                 print("🔵 UserSearchResultView - Calling checkFollowStatus()")
                 checkFollowStatus()
             } else {
@@ -114,7 +129,7 @@ struct UserSearchResultView: View {
         guard let currentUser = AuthManager.shared.currentUser else {
             return false
         }
-        return user.id == currentUser.id
+        return user.id.lowercased() == currentUser.id.lowercased()
     }
     
     private func checkFollowStatus() {
@@ -124,6 +139,7 @@ struct UserSearchResultView: View {
                 
                 let followStatus = try await FollowService.shared.checkFollowStatus(userId: user.id)
                 isFollowing = followStatus.isFollowing
+                requestStatus = followStatus.requestStatus
                 hasCheckedFollowStatus = true
                 
                 print("🔵 UserSearch - Updated UI: isFollowing = \(isFollowing)")
@@ -136,25 +152,40 @@ struct UserSearchResultView: View {
     }
     
     private func toggleFollow() {
+        // Extra safety check - never allow self-follow attempts
+        guard !isCurrentUser else {
+            print("⚠️ UserSearch - Attempted self-follow prevented")
+            return
+        }
+        
         print("🔵 UserSearch - toggleFollow called, current isFollowing: \(isFollowing)")
         isLoading = true
         
         Task { @MainActor in
             do {
-                print("🔵 UserSearch - About to \(isFollowing ? "unfollow" : "follow") user \(user.username)")
-                
-                if isFollowing {
+                if requestStatus == .accepted {
+                    // Unfollow
                     try await FollowService.shared.unfollowUser(userId: user.id)
+                    requestStatus = nil
+                    isFollowing = false
                     print("✅ UserSearch - Successfully unfollowed user \(user.username)")
+                } else if requestStatus == .pending {
+                    // Cancel request
+                    try await FollowService.shared.unfollowUser(userId: user.id)
+                    requestStatus = nil
+                    isFollowing = false
+                    print("✅ UserSearch - Successfully cancelled follow request for \(user.username)")
                 } else {
+                    // Send follow request
                     try await FollowService.shared.followUser(userId: user.id)
-                    print("✅ UserSearch - Successfully followed user \(user.username)")
+                    // Refresh status to get correct state
+                    let followStatus = try await FollowService.shared.checkFollowStatus(userId: user.id)
+                    requestStatus = followStatus.requestStatus
+                    isFollowing = followStatus.isFollowing
+                    print("✅ UserSearch - Successfully sent follow request to \(user.username)")
                 }
                 
-                // Toggle the state and update UI
-                isFollowing.toggle()
                 isLoading = false
-                print("🔵 UserSearch - UI updated, new isFollowing: \(isFollowing)")
                 
             } catch {
                 print("❌ UserSearch - Error toggling follow: \(error)")

@@ -1,14 +1,38 @@
 //======================================================================
-// MARK: - 6. SearchView.swift の修正（検索結果の表示）
-// Path: foodai/Features/Search/Views/SearchView.swift
+// MARK: - SearchView.swift
+// Purpose: Main search interface with tabbed search for posts and users
+// Path: still/Features/Search/Views/SearchView.swift
 //======================================================================
 import SwiftUI
 
+/**
+ * SearchView provides the main search interface for the STILL app.
+ * 
+ * This view supports dual-mode searching with tabbed interface:
+ * - Posts search: Find posts by content, hashtags, or captions
+ * - Users search: Find users by username, display name, or bio
+ * 
+ * Features:
+ * - Real-time search with debouncing for performance
+ * - Animated tab switching with visual indicators
+ * - Empty state handling for no results
+ * - Popular posts and trending content discovery
+ * - Pull-to-refresh functionality
+ * - Responsive layout adaptation
+ */
 @MainActor
 struct SearchView: View {
+    // MARK: - Properties
+    
+    /// View model managing search operations and results
     @StateObject private var viewModel = SearchViewModel()
+    
+    /// Currently selected search tab (posts or users)
     @State private var selectedTab: SearchTab = .posts
     
+    // MARK: - Search Tab Definition
+    
+    /// Available search categories with localized display names
     enum SearchTab: String, CaseIterable {
         case posts = "Posts"
         case users = "Users"
@@ -20,7 +44,7 @@ struct SearchView: View {
                 // Unified Header
                 UnifiedHeader(title: "Search")
                 
-                // 検索バー
+                // Search input bar with real-time search functionality
                 SearchBarView(searchText: $viewModel.searchText) { searchQuery in
                     switch selectedTab {
                     case .posts:
@@ -32,12 +56,12 @@ struct SearchView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
                 
-                // タブスイッチャー
+                // Tab switcher with animated selection indicator
                 HStack(spacing: 0) {
                     ForEach(SearchTab.allCases, id: \.self) { tab in
                         Button(action: {
                             selectedTab = tab
-                            // タブ切り替え時に検索を実行
+                            // Execute search when switching tabs if query exists
                             if !viewModel.searchText.isEmpty {
                                 switch tab {
                                 case .posts:
@@ -57,6 +81,7 @@ struct SearchView: View {
                 }
                 .background(Color(.systemBackground))
                 .overlay(
+                    // Animated selection indicator that slides between tabs
                     Rectangle()
                         .fill(Color.blue)
                         .frame(height: 2)
@@ -66,21 +91,21 @@ struct SearchView: View {
                 )
                 .padding(.horizontal)
                 
-                // 検索結果表示
+                // Search results display based on selected tab
                 if selectedTab == .posts {
                     if viewModel.searchResults.isEmpty && !viewModel.searchText.isEmpty {
-                        // 検索結果なし
+                        // Empty state for posts search
                         VStack {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 50))
                                 .foregroundColor(.gray)
                                 .padding()
-                            Text("「\(viewModel.searchText)」の検索結果はありません")
+                            Text("No posts found for '\(viewModel.searchText)'")
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if !viewModel.searchResults.isEmpty {
-                        // 投稿検索結果を表示
+                        // Display post search results
                         ScrollView {
                             // TODO: Implement post search results display
                             Text("Post search coming soon")
@@ -89,7 +114,7 @@ struct SearchView: View {
                         }
                         .padding(.horizontal)
                     } else {
-                        // デフォルト表示
+                        // Default discovery content when no search is active
                         ScrollView {
                             VStack(alignment: .leading, spacing: 20) {
                                 PopularSearchSection()
@@ -102,20 +127,20 @@ struct SearchView: View {
                         }
                     }
                 } else {
-                    // ユーザー検索結果
+                    // User search results display
                     if viewModel.userSearchResults.isEmpty && !viewModel.searchText.isEmpty {
-                        // ユーザー検索結果なし
+                        // Empty state for user search
                         VStack {
                             Image(systemName: "person.crop.circle.badge.questionmark")
                                 .font(.system(size: 50))
                                 .foregroundColor(.gray)
                                 .padding()
-                            Text("「\(viewModel.searchText)」のユーザーが見つかりません")
+                            Text("No users found for '\(viewModel.searchText)'")
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if !viewModel.userSearchResults.isEmpty {
-                        // ユーザー検索結果を表示
+                        // Display user search results in scrollable list
                         ScrollView {
                             LazyVStack(spacing: 12) {
                                 ForEach(viewModel.userSearchResults) { user in
@@ -125,13 +150,13 @@ struct SearchView: View {
                             .padding(.horizontal)
                         }
                     } else {
-                        // ユーザー検索デフォルト表示
+                        // Default state encouraging user search
                         VStack {
                             Image(systemName: "person.2.circle")
                                 .font(.system(size: 50))
                                 .foregroundColor(.gray)
                                 .padding()
-                            Text("ユーザーを検索してみましょう")
+                            Text("Search for users to connect")
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

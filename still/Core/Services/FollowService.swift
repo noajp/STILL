@@ -6,16 +6,32 @@
 import Foundation
 import Supabase
 
+/// A comprehensive service for managing follow relationships between users
+/// Handles both public and private account follow logic, follow requests, and follow status tracking
+/// Supports instant follows for public accounts and request-based follows for private accounts
 @MainActor
 class FollowService: ObservableObject {
+    // MARK: - Singleton
+    
+    /// Shared instance of the follow service
     static let shared = FollowService()
+    
+    /// Supabase client for database operations
     private let supabase = SupabaseManager.shared.client
     
+    // MARK: - Initialization
+    
+    /// Private initializer to enforce singleton pattern
     private init() {}
     
-    // MARK: - Follow/Unfollow
+    // MARK: - Follow/Unfollow Operations
     
+    /// Initiates a follow action for the specified user
+    /// Handles both public accounts (instant follow) and private accounts (follow request)
+    /// - Parameter userId: The ID of the user to follow
+    /// - Throws: NSError if user is not authenticated, trying to self-follow, or database operation fails
     func followUser(userId: String) async throws {
+        // Ensure user is authenticated
         guard let currentUserId = AuthManager.shared.currentUser?.id else {
             throw NSError(domain: "FollowService", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
         }
@@ -24,7 +40,13 @@ class FollowService: ObservableObject {
         print("  - currentUserId: \(currentUserId)")
         print("  - targetUserId: \(userId)")
         
-        // Check if already following (any status) to prevent duplicates
+        // Prevent self-following - users cannot follow themselves
+        if currentUserId == userId {
+            print("⚠️ Cannot follow yourself, skipping")
+            throw NSError(domain: "FollowService", code: 400, userInfo: [NSLocalizedDescriptionKey: "Cannot follow yourself"])
+        }
+        
+        // Check if already following this user
         let existingFollow = try await supabase
             .from("follows")
             .select("*", head: true, count: .exact)
@@ -34,7 +56,7 @@ class FollowService: ObservableObject {
             .count ?? 0
         
         if existingFollow > 0 {
-            print("⚠️ Already have a follow relationship with user \(userId), skipping")
+            print("⚠️ Already following user \(userId), skipping")
             return
         }
         
@@ -55,29 +77,45 @@ class FollowService: ObservableObject {
             .execute()
             .value
         
-        // Determine status based on target user's privacy setting
-        let status = privacyResponse.isPrivate == true ? "pending" : "accepted"
+        let isPrivateAccount = privacyResponse.isPrivate == true
         
-        let follow = [
-            "follower_id": currentUserId,
-            "following_id": userId,
-            "status": status
-        ]
-        
-        try await supabase
-            .from("follows")
-            .insert(follow)
-            .execute()
-        
-        print("✅ Follow relationship created with status: \(status)")
-        
-        // Create appropriate notification based on status
-        if status == "accepted" {
-            print("🔔 Creating follow notification for public account...")
-            await createFollowNotification(fromUserId: currentUserId, toUserId: userId)
-        } else {
-            print("🔔 Creating follow request notification for private account...")
+        if isPrivateAccount {
+            // Private account: Create pending follow request
+            let follow = [
+                "follower_id": currentUserId,
+                "following_id": userId,
+                "status": "pending"
+            ]
+            
+            try await supabase
+                .from("follows")
+                .insert(follow)
+                .execute()
+            
+            print("✅ Follow request sent to private account")
+            
+            // Send follow request notification
             await createFollowRequestNotification(fromUserId: currentUserId, toUserId: userId)
+        } else {
+            // Public account: Create immediate follow relationship
+            let follow = [
+                "follower_id": currentUserId,
+                "following_id": userId,
+                "status": "accepted"
+            ]
+            
+            try await supabase
+                .from("follows")
+                .insert(follow)
+                .execute()
+            
+            print("✅ Follow relationship created immediately (public account)")
+            
+            // Send follow notification
+            await createFollowNotification(fromUserId: currentUserId, toUserId: userId)
+            
+            // Notify UI to update counts
+            NotificationCenter.default.post(name: .followStatusChanged, object: nil)
         }
     }
     
@@ -144,6 +182,11 @@ class FollowService: ObservableObject {
             .eq("follower_id", value: currentUserId)
             .eq("following_id", value: userId)
             .execute()
+        
+        print("✅ Unfollowed user \(userId)")
+        
+        // Notify UI to update counts
+        NotificationCenter.default.post(name: .followStatusChanged, object: nil)
     }
     
     // MARK: - Check Follow Status

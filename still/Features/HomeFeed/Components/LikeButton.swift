@@ -5,10 +5,22 @@
 //======================================================================
 import SwiftUI
 
+/// Interactive like button component with heart animation and like count display
+/// Provides visual feedback through scaling animation when tapped
+/// Supports both liked and unliked states with appropriate styling
 struct LikeButton: View {
+    // MARK: - Properties
+    
+    /// Whether the current user has liked this item
     let isLiked: Bool
+    
+    /// Total number of likes for this item
     let likeCount: Int
+    
+    /// Callback function executed when the button is tapped
     let action: () -> Void
+    
+    /// Controls the heart scaling animation state
     @State private var animateHeart = false
     
     var body: some View {

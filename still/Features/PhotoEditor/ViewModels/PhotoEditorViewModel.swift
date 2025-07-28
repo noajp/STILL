@@ -198,7 +198,13 @@ class PhotoEditorViewModel: ObservableObject {
     
     // MARK: - Private Methods
     
-    /// RAW画像を非同期で読み込み
+    /**
+     * Loads RAW image data asynchronously from photo library asset.
+     * 
+     * - Parameters:
+     *   - asset: Photo library asset containing RAW data
+     *   - rawInfo: RAW image metadata
+     */
     private func loadRAWImage(asset: PHAsset, rawInfo: RAWImageInfo) async {
         RAWImageProcessor.shared.loadRAWImage(from: asset) { [weak self] result in
             Task { @MainActor in
@@ -206,7 +212,7 @@ class PhotoEditorViewModel: ObservableObject {
                 
                 switch result {
                 case .success(let rawImage):
-                    // RAW画像をCore ImageからUIImageに変換
+                    // Convert RAW image from Core Image to UIImage
                     if let uiImage = RAWImageProcessor.shared.createPreviewImage(from: rawImage) {
                         self.originalImage = uiImage
                         self.currentImage = uiImage
@@ -220,22 +226,30 @@ class PhotoEditorViewModel: ObservableObject {
         }
     }
     
-    /// トーンカーブを適用
+    /**
+     * Applies tone curve adjustments to the image.
+     * 
+     * Uses multiple CIFilters to approximate tone curve effects for iOS 12+
+     * compatibility, combining filters to achieve the desired curve response.
+     * 
+     * - Parameters:
+     *   - image: Source image
+     *   - curve: Tone curve definition
+     * - Returns: Image with tone curve applied
+     */
     private func applyToneCurve(to image: CIImage, curve: ToneCurve) -> CIImage {
-        // iOS 12以降の新しいアプローチ: CIFilter でトーンカーブを近似
-        // 複数のフィルターを組み合わせてトーンカーブ効果を実現
         
         let points = curve.points.sorted { $0.input < $1.input }
         guard points.count >= 2 else { return image }
         
         var processedImage = image
         
-        // シャドウ、ミッドトーン、ハイライトの調整を計算
+        // Calculate shadow, midtone, and highlight adjustments
         let shadowPoint = points.first!
         let highlightPoint = points.last!
         let midPoint = points.count > 2 ? points[points.count / 2] : ToneCurvePoint(input: 0.5, output: 0.5)
         
-        // ガンマ調整でトーンカーブを近似
+        // Approximate tone curve with gamma adjustment
         let gamma = calculateGamma(from: midPoint)
         if gamma != 1.0 {
             if let gammaFilter = CIFilter(name: "CIGammaAdjust") {
@@ -245,7 +259,7 @@ class PhotoEditorViewModel: ObservableObject {
             }
         }
         
-        // ハイライト・シャドウ調整
+        // Calculate highlight and shadow adjustments
         let shadowAdjust = (shadowPoint.output - shadowPoint.input) * 2
         let highlightAdjust = (highlightPoint.output - highlightPoint.input) * 2
         
@@ -261,25 +275,36 @@ class PhotoEditorViewModel: ObservableObject {
         return processedImage
     }
     
-    /// ミッドポイントからガンマ値を計算
+    /**
+     * Calculates gamma value from tone curve midpoint.
+     * 
+     * Uses the gamma correction formula: output = input^gamma
+     * where gamma = log(output) / log(input)
+     * 
+     * - Parameter point: Tone curve point for calculation
+     * - Returns: Calculated gamma value
+     */
     private func calculateGamma(from point: ToneCurvePoint) -> Float {
-        // ガンマ補正の式: output = input^gamma
-        // gamma = log(output) / log(input)
         if point.input > 0 && point.output > 0 {
             return log(point.output) / log(point.input)
         }
         return 1.0
     }
     
-    /// フィルターサムネイル生成
+    /**
+     * Generates filter thumbnails for UI preview.
+     * 
+     * Creates small thumbnail images for each filter type to display in the
+     * filter selection interface, improving user experience and performance.
+     */
     private func generateFilterThumbnails() async {
-        // サムネイル用の小さい画像を作成
+        // Create small thumbnail image for processing
         guard let thumbnailImage = imageProcessor.createThumbnail(from: originalImage),
               let thumbnailCIImage = coreImageManager.createCIImage(from: thumbnailImage) else {
             return
         }
         
-        // 各フィルターのサムネイルを非同期で生成
+        // Generate thumbnails for each filter asynchronously
         await withTaskGroup(of: (FilterType, UIImage?).self) { group in
             for filterType in FilterType.allCases {
                 group.addTask { @Sendable [weak self] in
@@ -289,14 +314,14 @@ class PhotoEditorViewModel: ObservableObject {
                         return (filterType, thumbnailImage)
                     }
                     
-                    // フィルター適用
+                    // Apply filter to thumbnail
                     let filtered = self.coreImageManager.applyFilterSync(
                         filterType,
                         to: thumbnailCIImage,
                         intensity: filterType.previewIntensity
                     )
                     
-                    // UIImageに変換
+                    // Convert to UIImage
                     if let filtered = filtered,
                        let cgImage = CIContext().createCGImage(filtered, from: filtered.extent) {
                         return (filterType, UIImage(cgImage: cgImage))
@@ -306,7 +331,7 @@ class PhotoEditorViewModel: ObservableObject {
                 }
             }
             
-            // 結果を収集
+            // Collect results
             for await (filterType, thumbnail) in group {
                 await MainActor.run {
                     self.filterThumbnails[filterType] = thumbnail
@@ -317,7 +342,14 @@ class PhotoEditorViewModel: ObservableObject {
     
     // MARK: - Memory Management
     
-    /// メモリ使用量の推定
+    /**
+     * Provides an estimate of current memory usage for the editing session.
+     * 
+     * Calculates memory usage based on the original image size and processing
+     * requirements, formatted as a human-readable string.
+     * 
+     * - Returns: Formatted memory usage string
+     */
     var estimatedMemoryUsage: String {
         let bytes = imageProcessor.estimateMemoryUsage(for: originalImage)
         let formatter = ByteCountFormatter()

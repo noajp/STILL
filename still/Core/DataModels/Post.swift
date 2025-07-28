@@ -6,28 +6,68 @@
 import Foundation
 import CoreTransferable
 
+/// Core data model representing a social media post with comprehensive metadata
+/// Supports photos and videos with location data, user interactions, and relationship handling
+/// Includes computed properties for UI display and aspect ratio calculations
 struct Post: Identifiable, Codable, Hashable, Transferable {
+    // MARK: - Core Properties
+    
+    /// Unique identifier for the post
     let id: String
+    
+    /// ID of the user who created this post
     let userId: String
+    
+    /// URL of the main media file (photo or video)
     let mediaUrl: String
+    
+    /// Type of media (photo or video)
     let mediaType: MediaType
+    
+    /// Optional URL for video thumbnail
     let thumbnailUrl: String?
+    
+    /// Original width of the media in pixels
     let mediaWidth: Double?
+    
+    /// Original height of the media in pixels
     let mediaHeight: Double?
+    
+    /// Optional caption text for the post
     let caption: String?
+    
+    /// Human-readable location name
     let locationName: String?
+    
+    /// GPS latitude coordinate
     let latitude: Double?
+    
+    /// GPS longitude coordinate
     let longitude: Double?
+    
+    /// Whether the post is publicly visible
     let isPublic: Bool
+    
+    /// Timestamp when the post was created
     let createdAt: Date
     
-    // 統計情報
+    // MARK: - Statistics
+    
+    /// Number of likes this post has received (mutable for real-time updates)
     var likeCount: Int
+    
+    /// Number of comments on this post
     let commentCount: Int
     
-    // リレーション（オプショナル）
+    // MARK: - User Interaction State
+    
+    /// Associated user profile (populated when needed)
     var user: UserProfile?
+    
+    /// Whether the current user has liked this post
     var isLikedByMe: Bool = false
+    
+    /// Whether the current user has saved this post
     var isSavedByMe: Bool = false
     
     enum MediaType: String, Codable {

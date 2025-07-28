@@ -1,38 +1,84 @@
 //======================================================================
 // MARK: - MessagesViewModel.swift
-// Purpose: View model for messages (メッセージのビューモデル)
+// Purpose: View model for managing conversations and messaging functionality
 // Path: still/Features/Messages/ViewModels/MessagesViewModel.swift
 //======================================================================
+
 import Foundation
 import SwiftUI
 import Combine
 
+// MARK: - Notification Extensions
+
+/**
+ * Notification names for messaging system communication.
+ */
 extension Notification.Name {
+    /// Posted when a conversation is marked as read
     static let conversationMarkedAsRead = Notification.Name("conversationMarkedAsRead")
+    
+    /// Posted when a new message is sent
     static let messageWasSent = Notification.Name("messageWasSent")
 }
 
+/**
+ * MessagesViewModel manages conversation lists and messaging operations.
+ * 
+ * This view model handles:
+ * - Loading and caching conversation lists (direct and group)
+ * - Real-time updates for message status and new messages
+ * - Conversation creation and management
+ * - Group chat functionality
+ * - Timestamp formatting for message display
+ * - Silent refresh operations to prevent UI flickering
+ * 
+ * The view model maintains separate lists for direct conversations and group chats,
+ * and provides efficient caching with real-time synchronization.
+ */
 @MainActor
 class MessagesViewModel: ObservableObject {
+    // MARK: - Published Properties
+    
+    /// List of direct conversations (one-on-one chats)
     @Published var conversations: [Conversation] = []
+    
+    /// List of group conversations (multi-participant chats)
     @Published var groupConversations: [GroupConversation] = []
+    
+    /// Loading state for conversation operations
     @Published var isLoading = false
+    
+    /// Current error message to display to user
     @Published var errorMessage: String?
     
+    // MARK: - Private Properties
+    
+    /// Service for message and conversation operations
     private let messageService = MessageService.shared
+    
+    /// Flag to prevent redundant initial loads
     private var hasLoadedInitially = false
+    
+    /// Combine subscriptions for memory management
     private var cancellables = Set<AnyCancellable>()
+    
+    /// Current conversation loading task for cancellation
     private var conversationLoadTask: Task<Void, Never>?
     
+    // MARK: - Initialization
+    
+    /**
+     * Initializes the messages view model with real-time listeners.
+     */
     init() {
         Task {
             await loadConversationsIfNeeded()
         }
         
-        // Listen for real-time updates
+        // Setup real-time message and status listeners
         setupRealtimeListeners()
         
-        // Listen for auth state changes to reset the loaded flag
+        // Reset state when authentication changes
         NotificationCenter.default.publisher(for: .authStateChanged)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -45,6 +91,11 @@ class MessagesViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    // MARK: - Real-time Listeners
+    
+    /**
+     * Sets up notification listeners for real-time conversation updates.
+     */
     private func setupRealtimeListeners() {
         // Listen for conversation read status changes
         NotificationCenter.default.publisher(for: .conversationMarkedAsRead)
@@ -75,21 +126,31 @@ class MessagesViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    /**
+     * Updates a conversation in the local list and re-sorts by recency.
+     * 
+     * - Parameter updatedConversation: The updated conversation to replace
+     */
     private func updateConversationInList(_ updatedConversation: Conversation) {
         if let index = conversations.firstIndex(where: { $0.id == updatedConversation.id }) {
             conversations[index] = updatedConversation
-            // Re-sort by last message time
+            // Re-sort by last message time (most recent first)
             conversations.sort { ($0.lastMessageAt ?? Date.distantPast) > ($1.lastMessageAt ?? Date.distantPast) }
         }
     }
     
+    /**
+     * Updates conversation with new message and moves it to top of list.
+     * 
+     * - Parameter message: The new message to incorporate
+     */
     private func updateConversationWithNewMessage(_ message: Message) {
         if let index = conversations.firstIndex(where: { $0.id == message.conversationId }) {
             // Update last message preview and timestamp
-            conversations[index].lastMessagePreview = message.content  // This is encrypted content
+            conversations[index].lastMessagePreview = message.content  // Note: This is encrypted content
             conversations[index].lastMessageAt = message.createdAt
             
-            // Move conversation to top
+            // Move conversation to top of list for recency
             let updatedConversation = conversations.remove(at: index)
             conversations.insert(updatedConversation, at: 0)
             
@@ -98,16 +159,29 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Conversation Loading
+    
+    /**
+     * Loads conversations only if they haven't been loaded initially.
+     * 
+     * This method prevents redundant API calls by checking the load status.
+     */
     func loadConversationsIfNeeded() async {
-        // 既に読み込み済みの場合はスキップ
+        // Skip if already loaded to avoid redundant API calls
         guard !hasLoadedInitially else { 
             return 
         }
         await loadConversations()
     }
     
+    /**
+     * Loads conversations from the server with cancellation support.
+     * 
+     * This method fetches both direct and group conversations concurrently
+     * and handles cancellation gracefully for better user experience.
+     */
     func loadConversations() async {
-        // Cancel previous task if exists
+        // Cancel any existing load operation
         conversationLoadTask?.cancel()
         
         conversationLoadTask = Task {
@@ -118,10 +192,11 @@ class MessagesViewModel: ObservableObject {
                 // Check if task was cancelled
                 try Task.checkCancellation()
                 
+                // Fetch both conversation types concurrently
                 async let directConversations = messageService.fetchConversations()
                 async let groupChats = messageService.fetchGroupConversations()
                 
-                // Check if task was cancelled before updating
+                // Check if task was cancelled before updating UI
                 try Task.checkCancellation()
                 
                 conversations = try await directConversations
@@ -143,14 +218,24 @@ class MessagesViewModel: ObservableObject {
         await conversationLoadTask?.value
     }
     
-    // 会話リストを強制的に更新（チャットルームから戻った時など）
+    /**
+     * Forces a refresh of the conversation list.
+     * 
+     * Used when returning from chat rooms or when explicit refresh is needed.
+     * Shows loading indicators during the refresh process.
+     */
     func refreshConversations() async {
         await loadConversations()
     }
     
-    // サイレント更新（ローディング表示なし、チラつき防止）
+    /**
+     * Silently refreshes conversations without loading indicators.
+     * 
+     * This method updates conversations in the background with smooth animations
+     * to prevent UI flickering. Errors are handled silently to maintain existing data.
+     */
     func silentRefreshConversations() async {
-        // ローディング表示をせずにバックグラウンドで更新
+        // Update in background without loading indicators
         do {
             async let newDirectConversations = messageService.fetchConversations()
             async let newGroupConversations = messageService.fetchGroupConversations()
@@ -158,30 +243,38 @@ class MessagesViewModel: ObservableObject {
             let directChats = try await newDirectConversations
             let groupChats = try await newGroupConversations
             
-            // UIの更新はメインスレッドで、アニメーション付きで行う
+            // Update UI on main thread with smooth animation
             withAnimation(.easeInOut(duration: 0.2)) {
                 conversations = directChats
                 groupConversations = groupChats
             }
         } catch {
-            // エラーの場合はサイレントに失敗（UIは既存データを保持）
+            // Fail silently to maintain existing data on error
         }
     }
     
+    // MARK: - Conversation Management
+    
+    /**
+     * Creates a new direct conversation with the specified user.
+     * 
+     * - Parameter userId: ID of the user to start conversation with
+     * - Returns: Conversation ID if successful, nil otherwise
+     */
     func createNewConversation(with userId: String) async -> String? {
         do {
             let conversationId = try await messageService.getOrCreateDirectConversation(with: userId)
             
-            // 強制的にフレッシュデータを取得
+            // Force fresh data retrieval
             hasLoadedInitially = false
             await refreshConversations()
             
-            // 少し待って再度確認
-            try await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
+            // Wait briefly and verify conversation was added
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
             
-            // 新しい会話がリストに追加されたことを確認
+            // Check if new conversation appears in list
             if !conversations.contains(where: { $0.id == conversationId }) {
-                // まだリストにない場合、もう一度更新を試す
+                // Retry refresh if conversation not yet visible
                 await refreshConversations()
             }
             
@@ -194,32 +287,47 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Utility Methods
+    
+    /**
+     * Formats a timestamp for display in conversation list.
+     * 
+     * Provides human-readable relative time formatting:
+     * - Under 1 minute: "Now"
+     * - Under 1 hour: "X min ago"
+     * - Under 24 hours: "X hours ago"
+     * - Under 7 days: "X days ago"
+     * - Older: "M/d" format
+     * 
+     * - Parameter date: The date to format
+     * - Returns: Formatted time string
+     */
     func formatTimestamp(_ date: Date?) -> String {
         guard let date = date else { return "" }
         
         let now = Date()
         let timeInterval = now.timeIntervalSince(date)
         
-        // 1分未満
+        // Less than 1 minute
         if timeInterval < 60 {
-            return "今"
+            return "Now"
         }
-        // 1時間未満（分単位）
+        // Less than 1 hour (show minutes)
         else if timeInterval < 3600 {
             let minutes = Int(timeInterval / 60)
-            return "\(minutes)分前"
+            return "\(minutes) min ago"
         }
-        // 24時間未満（時間単位）
+        // Less than 24 hours (show hours)
         else if timeInterval < 86400 {
             let hours = Int(timeInterval / 3600)
-            return "\(hours)時間前"
+            return "\(hours) hours ago"
         }
-        // 7日未満（日単位）
+        // Less than 7 days (show days)
         else if timeInterval < 604800 {
             let days = Int(timeInterval / 86400)
-            return "\(days)日前"
+            return "\(days) days ago"
         }
-        // それ以上は日付表示
+        // Older messages show date
         else {
             let formatter = DateFormatter()
             formatter.dateFormat = "M/d"
@@ -227,16 +335,24 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    /**
+     * Creates a group chat with specified members.
+     * 
+     * - Parameters:
+     *   - name: Name of the group chat
+     *   - memberIds: Array of user IDs to include in the group
+     * - Returns: Conversation ID if successful, nil otherwise
+     */
     func createGroupChat(name: String, with memberIds: [String]) async -> String? {
         do {
-            // グループチャットを作成
+            // Create the group chat
             let conversationId = try await messageService.createGroupChat(
                 name: name,
                 description: nil,
                 memberIds: memberIds
             )
             
-            // 会話リストを更新
+            // Refresh conversation list to include new group
             await refreshConversations()
             
             return conversationId
@@ -247,10 +363,15 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    /**
+     * Deletes a conversation from both server and local cache.
+     * 
+     * - Parameter conversationId: ID of conversation to delete
+     */
     func deleteConversation(_ conversationId: String) async {
         do {
             try await messageService.deleteConversation(conversationId)
-            // Remove from local list
+            // Remove from local lists immediately
             conversations.removeAll { $0.id == conversationId }
             groupConversations.removeAll { $0.id == conversationId }
         } catch {
@@ -260,6 +381,17 @@ class MessagesViewModel: ObservableObject {
     
     // MARK: - Group Chat Functions
     
+    /**
+     * Creates a group chat with optional description and members.
+     * 
+     * This is an overloaded version that supports description parameter.
+     * 
+     * - Parameters:
+     *   - name: Name of the group chat
+     *   - description: Optional description for the group
+     *   - memberIds: Array of user IDs to include (defaults to empty)
+     * - Returns: Conversation ID if successful, nil otherwise
+     */
     func createGroupChat(name: String, description: String? = nil, memberIds: [String] = []) async -> String? {
         do {
             let conversationId = try await messageService.createGroupChat(
@@ -279,6 +411,14 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    /**
+     * Adds a member to an existing group chat.
+     * 
+     * - Parameters:
+     *   - conversationId: ID of the group conversation
+     *   - userId: ID of the user to add
+     * - Returns: True if successful, false otherwise
+     */
     func addGroupMember(conversationId: String, userId: String) async -> Bool {
         do {
             let success = try await messageService.addGroupMember(conversationId: conversationId, userId: userId)
@@ -292,6 +432,14 @@ class MessagesViewModel: ObservableObject {
         }
     }
     
+    /**
+     * Removes a member from an existing group chat.
+     * 
+     * - Parameters:
+     *   - conversationId: ID of the group conversation
+     *   - userId: ID of the user to remove
+     * - Returns: True if successful, false otherwise
+     */
     func removeGroupMember(conversationId: String, userId: String) async -> Bool {
         do {
             let success = try await messageService.removeGroupMember(conversationId: conversationId, userId: userId)

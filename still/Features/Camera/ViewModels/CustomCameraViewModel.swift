@@ -1,55 +1,106 @@
 //======================================================================
 // MARK: - CustomCameraViewModel.swift
-// Purpose: View model for data and business logic (CustomCameraViewModelのデータとビジネスロジック)
+// Purpose: View model for camera functionality with manual controls and image processing
 // Path: still/Features/Camera/ViewModels/CustomCameraViewModel.swift
 //======================================================================
-//
-//  CustomCameraViewModel.swift
-//  tete
-//
-//  カスタムカメラのViewModel
-//
 
 import SwiftUI
 import AVFoundation
 import CoreImage
 import Photos
 
+/**
+ * CustomCameraViewModel manages camera functionality for the STILL app.
+ * 
+ * This view model provides comprehensive camera control including:
+ * - Basic camera operations (capture, zoom, focus, flash)
+ * - Manual camera controls (ISO, shutter speed, white balance, focus)
+ * - Real-time filter application
+ * - Camera switching (front/back)
+ * - Error handling and permission management
+ * 
+ * The view model uses AVFoundation for camera operations and integrates
+ * with the app's image processing pipeline for filter application.
+ */
 @MainActor
 class CustomCameraViewModel: NSObject, ObservableObject {
     
     // MARK: - Published Properties
+    
+    /// Indicates if a photo capture is currently in progress
     @Published var isCapturing = false
+    
+    /// Controls display of error alert
     @Published var showError = false
+    
+    /// Current error message to display to user
     @Published var errorMessage: String?
+    
+    /// Current flash mode setting (off, on, auto)
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
+    
+    /// Current focus point for tap-to-focus indicator
     @Published var focusPoint: CGPoint?
+    
+    /// Currently selected filter for real-time preview
     @Published var currentFilter: FilterType = .none
+    
+    /// Whether manual camera controls are enabled
     @Published var isManualMode = false
+    
+    /// Manual ISO value (camera sensitivity)
     @Published var manualISO: Float = 400
+    
+    /// Manual shutter speed in fractions of a second
     @Published var manualShutterSpeed: Float = 60
+    
+    /// Manual white balance in Kelvin temperature
     @Published var manualWhiteBalance: Float = 5600
+    
+    /// Manual focus position (0.0 = near, 1.0 = far)
     @Published var manualFocus: Float = 0.5
+    
+    /// Exposure compensation adjustment (-2.0 to +2.0)
     @Published var exposureCompensation: Float = 0.0
     
     // MARK: - Camera Properties
+    
+    /// Main capture session for coordinating camera input and output
     let session = AVCaptureSession()
+    
+    /// Current video input device (camera)
     private var videoInput: AVCaptureDeviceInput?
+    
+    /// Photo capture output for taking pictures
     private var photoOutput = AVCapturePhotoOutput()
+    
+    /// Front-facing camera device
     private var frontCamera: AVCaptureDevice?
+    
+    /// Back-facing camera device
     private var backCamera: AVCaptureDevice?
     
-    // Expose currentCamera for manual controls
+    /// Currently active camera device for manual controls access
     var currentCamera: AVCaptureDevice? {
         return videoInput?.device
     }
     
     // MARK: - Image Processing
+    
+    /// Image processor for optimization and resizing
     private let imageProcessor = ImageProcessor()
+    
+    /// Advanced filter manager for real-time filter application
     private let filterManager = AdvancedFilterManager()
+    
+    /// Completion handler called when photo capture and processing is complete
     private var photoCompletionHandler: ((UIImage) -> Void)?
     
     // MARK: - Initialization
+    
+    /**
+     * Initializes the camera view model and begins camera setup.
+     */
     override init() {
         super.init()
         setupCamera()
@@ -57,12 +108,18 @@ class CustomCameraViewModel: NSObject, ObservableObject {
     
     // MARK: - Camera Setup
     
+    /**
+     * Initiates camera setup by requesting permissions.
+     */
     private func setupCamera() {
         Task {
             await requestCameraPermission()
         }
     }
     
+    /**
+     * Requests camera access permission and configures session if granted.
+     */
     private func requestCameraPermission() async {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         
@@ -74,23 +131,26 @@ class CustomCameraViewModel: NSObject, ObservableObject {
             if granted {
                 configureSession()
             } else {
-                showCameraError("カメラへのアクセスが拒否されました")
+                showCameraError("Camera access was denied")
             }
         case .denied, .restricted:
-            showCameraError("カメラへのアクセスが拒否されています。設定で許可してください。")
+            showCameraError("Camera access is denied. Please enable camera access in Settings.")
         @unknown default:
-            showCameraError("カメラの状態を確認できません")
+            showCameraError("Camera status could not be determined")
         }
     }
     
+    /**
+     * Configures the camera session with devices, inputs, and outputs.
+     */
     private func configureSession() {
         session.beginConfiguration()
         session.sessionPreset = .photo
         
-        // カメラデバイスの設定
+        // Setup camera devices
         setupCameraDevices()
         
-        // バックカメラを初期設定
+        // Initialize with back camera as default
         if let backCamera = backCamera {
             do {
                 videoInput = try AVCaptureDeviceInput(device: backCamera)
@@ -98,16 +158,16 @@ class CustomCameraViewModel: NSObject, ObservableObject {
                     session.addInput(videoInput!)
                 }
             } catch {
-                showCameraError("カメラの初期化に失敗しました: \(error.localizedDescription)")
+                showCameraError("Failed to initialize camera: \(error.localizedDescription)")
                 return
             }
         }
         
-        // 写真出力の設定
+        // Configure photo output settings
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
             
-            // 写真設定
+            // Setup photo quality settings
             if #available(iOS 16.0, *) {
                 photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
             } else {
@@ -121,6 +181,9 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         session.commitConfiguration()
     }
     
+    /**
+     * Discovers and configures available camera devices (front and back).
+     */
     private func setupCameraDevices() {
         let discoverySession = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInTripleCamera, .builtInDualCamera, .builtInWideAngleCamera],
@@ -300,6 +363,11 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         manualFocus = device.lensPosition
     }
     
+    /**
+     * Sets manual ISO value for camera exposure.
+     * 
+     * - Parameter iso: ISO value within device supported range
+     */
     func setManualISO(_ iso: Float) {
         guard let device = currentCamera, isManualMode else { return }
         
@@ -320,6 +388,11 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         }
     }
     
+    /**
+     * Sets manual shutter speed for camera exposure.
+     * 
+     * - Parameter shutterSpeed: Shutter speed in fractions of a second (e.g., 60 = 1/60s)
+     */
     func setManualShutterSpeed(_ shutterSpeed: Float) {
         guard let device = currentCamera, isManualMode else { return }
         
@@ -343,6 +416,11 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         }
     }
     
+    /**
+     * Sets manual white balance using Kelvin temperature.
+     * 
+     * - Parameter kelvin: Color temperature in Kelvin (2000-8000K typical range)
+     */
     func setManualWhiteBalance(_ kelvin: Float) {
         guard let device = currentCamera, isManualMode else { return }
         
@@ -363,6 +441,11 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         }
     }
     
+    /**
+     * Sets manual focus position.
+     * 
+     * - Parameter focus: Focus position from 0.0 (near) to 1.0 (far)
+     */
     func setManualFocus(_ focus: Float) {
         guard let device = currentCamera, isManualMode else { return }
         
@@ -382,6 +465,11 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         }
     }
     
+    /**
+     * Sets exposure compensation adjustment.
+     * 
+     * - Parameter compensation: Exposure adjustment typically from -2.0 to +2.0
+     */
     func setExposureCompensation(_ compensation: Float) {
         guard let device = currentCamera else { return }
         
@@ -397,6 +485,12 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         }
     }
     
+    /**
+     * Resets camera to automatic modes for all controls.
+     * 
+     * This method switches the camera back to continuous auto exposure,
+     * auto focus, and auto white balance, and resets exposure compensation.
+     */
     func resetToAutoMode() {
         guard let device = currentCamera else { return }
         
@@ -428,6 +522,12 @@ class CustomCameraViewModel: NSObject, ObservableObject {
     
     // MARK: - Camera Settings Utility
     
+    /**
+     * Calculates approximate Kelvin temperature from white balance gains.
+     * 
+     * - Parameter gains: Current white balance gains from camera
+     * - Returns: Approximate color temperature in Kelvin
+     */
     private func calculateKelvinFromGains(_ gains: AVCaptureDevice.WhiteBalanceGains) -> Float {
         // Simplified color temperature calculation
         let ratio = gains.blueGain / gains.redGain
@@ -435,6 +535,12 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         return max(2000, min(8000, kelvin))
     }
     
+    /**
+     * Calculates white balance gains from Kelvin temperature.
+     * 
+     * - Parameter kelvin: Color temperature in Kelvin
+     * - Returns: RGB gain values for white balance adjustment
+     */
     private func calculateGainsFromKelvin(_ kelvin: Float) -> AVCaptureDevice.WhiteBalanceGains {
         // Simplified conversion from Kelvin to RGB gains
         let normalized = (kelvin - 2000) / 6000 // 0.0 to 1.0
@@ -445,6 +551,14 @@ class CustomCameraViewModel: NSObject, ObservableObject {
         return AVCaptureDevice.WhiteBalanceGains(redGain: redGain, greenGain: greenGain, blueGain: blueGain)
     }
     
+    /**
+     * Normalizes white balance gains to device-supported range.
+     * 
+     * - Parameters:
+     *   - gains: Raw calculated gains
+     *   - device: Camera device with gain limits
+     * - Returns: Normalized gains within device limits
+     */
     private func normalizeGains(_ gains: AVCaptureDevice.WhiteBalanceGains, for device: AVCaptureDevice) -> AVCaptureDevice.WhiteBalanceGains {
         let maxGain = device.maxWhiteBalanceGain
         
@@ -457,24 +571,29 @@ class CustomCameraViewModel: NSObject, ObservableObject {
     
     // MARK: - Photo Capture
     
+    /**
+     * Captures a photo with current camera settings and applies filters.
+     * 
+     * - Parameter completion: Callback with the processed image
+     */
     func capturePhoto(completion: @escaping (UIImage) -> Void) {
         photoCompletionHandler = completion
         
         var settings = AVCapturePhotoSettings()
         
-        // フラッシュ設定
+        // Configure flash settings
         if let device = currentCamera, device.hasFlash {
             settings.flashMode = flashMode
         }
         
-        // 高解像度設定
+        // Configure high resolution settings
         if #available(iOS 16.0, *) {
             settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
         } else {
             settings.isHighResolutionPhotoEnabled = true
         }
         
-        // フォーマット設定
+        // Configure format settings
         if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
             settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
         }
@@ -485,6 +604,11 @@ class CustomCameraViewModel: NSObject, ObservableObject {
     
     // MARK: - Error Handling
     
+    /**
+     * Displays an error message to the user.
+     * 
+     * - Parameter message: Error message to display
+     */
     private func showCameraError(_ message: String) {
         errorMessage = message
         showError = true
@@ -492,8 +616,17 @@ class CustomCameraViewModel: NSObject, ObservableObject {
 }
 
 // MARK: - AVCapturePhotoCaptureDelegate
+
+/**
+ * Extension implementing photo capture delegate methods.
+ */
 extension CustomCameraViewModel: AVCapturePhotoCaptureDelegate {
     
+    /**
+     * Called when photo capture processing is completed.
+     * 
+     * Handles the captured photo data, applies filters, and calls completion handler.
+     */
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         
         // Extract data immediately in nonisolated context to avoid sending non-Sendable photo
@@ -503,27 +636,33 @@ extension CustomCameraViewModel: AVCapturePhotoCaptureDelegate {
             defer { isCapturing = false }
             
             if let error = error {
-                showCameraError("写真の撮影に失敗しました: \(error.localizedDescription)")
+                showCameraError("Photo capture failed: \(error.localizedDescription)")
                 return
             }
             
             guard let data = imageData,
                   let uiImage = UIImage(data: data) else {
-                showCameraError("画像データの処理に失敗しました")
+                showCameraError("Failed to process image data")
                 return
             }
             
-            // フィルター適用
+            // Apply filters and processing
             let processedImage = await processImage(uiImage)
             photoCompletionHandler?(processedImage)
         }
     }
     
+    /**
+     * Processes captured image with optimization and filter application.
+     * 
+     * - Parameter image: Raw captured image
+     * - Returns: Processed image with filters and optimizations applied
+     */
     private func processImage(_ image: UIImage) async -> UIImage {
-        // 画像を最適化
+        // Optimize image size and quality
         let optimizedImage = imageProcessor.resizeImageIfNeeded(image)
         
-        // フィルター適用
+        // Apply selected filter
         if currentFilter != .none,
            let ciImage = CIImage(image: optimizedImage) {
             let filteredCIImage = filterManager.applyFilterRealtime(currentFilter, to: ciImage, intensity: 1.0)

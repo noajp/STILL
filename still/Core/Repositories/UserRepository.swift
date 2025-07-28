@@ -210,6 +210,7 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
                 .execute()
                 .value
             
+            print("🔍 Search returned \(profiles.count) profiles")
             return profiles
         } catch {
             Logger.shared.error("Failed to search users: \(error)")
