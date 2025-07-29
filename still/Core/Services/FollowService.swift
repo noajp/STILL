@@ -94,8 +94,8 @@ class FollowService: ObservableObject {
             
             print("✅ Follow request sent to private account")
             
-            // Send follow request notification
-            await createFollowRequestNotification(fromUserId: currentUserId, toUserId: userId)
+            // Removed: Send follow request notification
+            // await createFollowRequestNotification(fromUserId: currentUserId, toUserId: userId)
         } else {
             // Public account: Create immediate follow relationship
             let follow = [
@@ -111,65 +111,16 @@ class FollowService: ObservableObject {
             
             print("✅ Follow relationship created immediately (public account)")
             
-            // Send follow notification
-            await createFollowNotification(fromUserId: currentUserId, toUserId: userId)
-            
-            // Notify UI to update counts
-            NotificationCenter.default.post(name: .followStatusChanged, object: nil)
+            // Removed: Send follow notification
+            // await createFollowNotification(fromUserId: currentUserId, toUserId: userId)
         }
+        
+        // Notify UI to update counts
+        NotificationCenter.default.post(name: .followStatusChanged, object: nil)
     }
     
-    private func createFollowNotification(fromUserId: String, toUserId: String) async {
-        print("🔔 createFollowNotification called:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        
-        do {
-            // Get sender's profile
-            print("🔔 Fetching sender profile...")
-            let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: fromUserId)
-            print("🔔 Sender profile fetched: \(senderProfile.username)")
-            
-            // Create notification using NotificationService
-            print("🔔 Calling NotificationService.createFollowNotification...")
-            await NotificationService.shared.createFollowNotification(
-                fromUserId: fromUserId,
-                toUserId: toUserId,
-                senderProfile: senderProfile
-            )
-            
-            print("✅ Follow notification created for user \(toUserId)")
-        } catch {
-            print("❌ Failed to create follow notification: \(error)")
-            print("❌ Error details: \(error.localizedDescription)")
-        }
-    }
-    
-    private func createFollowRequestNotification(fromUserId: String, toUserId: String) async {
-        print("🔔 createFollowRequestNotification called:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        
-        do {
-            // Get sender's profile
-            print("🔔 Fetching sender profile...")
-            let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: fromUserId)
-            print("🔔 Sender profile fetched: \(senderProfile.username)")
-            
-            // Create follow request notification using NotificationService
-            print("🔔 Calling NotificationService.createFollowRequestNotification...")
-            await NotificationService.shared.createFollowRequestNotification(
-                fromUserId: fromUserId,
-                toUserId: toUserId,
-                senderProfile: senderProfile
-            )
-            
-            print("✅ Follow request notification created for user \(toUserId)")
-        } catch {
-            print("❌ Failed to create follow request notification: \(error)")
-            print("❌ Error details: \(error.localizedDescription)")
-        }
-    }
+    // Removed: createFollowNotification method
+    // Removed: createFollowRequestNotification method
     
     func unfollowUser(userId: String) async throws {
         guard let currentUserId = AuthManager.shared.currentUser?.id else {
@@ -355,7 +306,9 @@ class FollowService: ObservableObject {
     }
     
     func markFollowersAsChecked() {
-        guard let currentUserId = AuthManager.shared.currentUser?.id else { return }
+        guard let currentUserId = AuthManager.shared.currentUser?.id else {
+            return
+        }
         
         let lastCheckedKey = "lastFollowerCheck_\(currentUserId)"
         UserDefaults.standard.set(Date(), forKey: lastCheckedKey)

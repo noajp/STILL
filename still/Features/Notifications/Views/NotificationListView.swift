@@ -40,18 +40,8 @@ struct NotificationListView: View {
                         icon: "xmark",
                         action: { dismiss() }
                     ),
-                    // Show mark-all-read button only when there are unread notifications
-                    extraRightButton: notificationService.unreadCount > 0 ? HeaderButton(
-                        icon: "checkmark.circle",
-                        action: {
-                            Task {
-                                // Mark all notifications as read for the current user
-                                if let userId = authManager.currentUser?.id {
-                                    await notificationService.markAllAsRead(for: userId)
-                                }
-                            }
-                        }
-                    ) : nil
+                    // Removed: extraRightButton for mark-all-read
+                    extraRightButton: nil
                 )
                 
                 // MARK: - Follow Requests Section
@@ -134,13 +124,7 @@ struct NotificationListView: View {
                         LazyVStack(spacing: 0) {
                             ForEach(notificationService.notifications) { notification in
                                 NotificationRowView(notification: notification)
-                                    .onTapGesture {
-                                        Task {
-                                            if !notification.isRead {
-                                                await notificationService.markAsRead(notification.id)
-                                            }
-                                        }
-                                    }
+                                    // Removed: onTapGesture for markAsRead
                                 
                                 if notification.id != notificationService.notifications.last?.id {
                                     Divider()
@@ -157,6 +141,8 @@ struct NotificationListView: View {
                 if let userId = authManager.currentUser?.id {
                     await notificationService.fetchNotifications(for: userId)
                     await loadPendingRequestsCount(for: userId)
+                    // Mark all notifications as read when the view appears
+                    await notificationService.markAllAsRead(for: userId)
                 }
             }
         }
@@ -281,56 +267,8 @@ struct NotificationRowView: View {
                     // Action buttons for follow notifications
                     if notification.type == .follow || notification.type == .followRequest {
                         HStack(spacing: 8) {
-                            // Accept button for follow requests (only show if not yet accepted)
-                            if notification.type == .followRequest && !hasAccepted {
-                                Button(action: {
-                                    acceptFollowRequest()
-                                }) {
-                                    if isAccepting {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                            .scaleEffect(0.8)
-                                    } else {
-                                        Text("Accept")
-                                            .font(.system(size: 14, weight: .medium))
-                                    }
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
-                                .background(.green)
-                                .cornerRadius(6)
-                                .disabled(isAccepting)
-                            }
-                            
-                            // Follow button (appears after accepting follow request or for regular follow notifications)
-                            if hasAccepted || notification.type == .follow {
-                                Button(action: {
-                                    followUser()
-                                }) {
-                                    if isFollowingUser {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                            .scaleEffect(0.8)
-                                    } else {
-                                        Text(isFollowing ? "Following" : "Follow")
-                                            .font(.system(size: 14, weight: .medium))
-                                    }
-                                }
-                                .foregroundColor(isFollowing ? .primary : .white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(isFollowing ? Color.clear : MinimalDesign.Colors.accentRed)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .stroke(isFollowing ? Color.primary : Color.clear, lineWidth: 1)
-                                        )
-                                )
-                                .disabled(isFollowingUser)
-                            }
-                            
+                            // Removed: Accept button for follow requests
+                            // Removed: Follow button (appears after accepting follow request or for regular follow notifications)
                         }
                     } else {
                         // Type Icon for other notifications
@@ -365,118 +303,13 @@ struct NotificationRowView: View {
             }
         }
         .onAppear {
-            // Check follow status when view appears
-            checkFollowStatus()
+            // Removed: checkFollowStatus
         }
     }
     
-    private func acceptFollowRequest() {
-        guard let fromUserId = notification.relatedUserId,
-              let currentUserId = AuthManager.shared.currentUser?.id else { return }
-        
-        isAccepting = true
-        
-        Task {
-            do {
-                // Update the follow status from pending to accepted
-                let _ = try await SupabaseManager.shared.client
-                    .from("follows")
-                    .update(["status": "accepted"])
-                    .eq("follower_id", value: fromUserId)
-                    .eq("following_id", value: currentUserId)
-                    .eq("status", value: "pending")
-                    .execute()
-                
-                // Create follow notification now that the request is accepted
-                await createAcceptedFollowNotification(fromUserId: fromUserId, toUserId: currentUserId)
-                
-                // Update UI state
-                await MainActor.run {
-                    hasAccepted = true
-                    isAccepting = false
-                }
-                
-                // Send notification to update follower counts across the app
-                NotificationCenter.default.post(name: .followStatusChanged, object: nil)
-                
-                // Refresh notifications to update any counts or states
-                if let currentUserId = AuthManager.shared.currentUser?.id {
-                    await NotificationService.shared.fetchNotifications(for: currentUserId)
-                }
-                
-                print("✅ Follow request accepted from notification")
-                
-            } catch {
-                await MainActor.run {
-                    isAccepting = false
-                }
-                print("❌ Error accepting follow request from notification: \(error)")
-            }
-        }
-    }
-    
-    private func createAcceptedFollowNotification(fromUserId: String, toUserId: String) async {
-        do {
-            let senderProfile = try await UserRepository.shared.fetchUserProfile(userId: toUserId)
-            await NotificationService.shared.createFollowNotification(
-                fromUserId: fromUserId,
-                toUserId: toUserId,
-                senderProfile: senderProfile
-            )
-        } catch {
-            print("❌ Failed to create accepted follow notification: \(error)")
-        }
-    }
-    
-    private func checkFollowStatus() {
-        guard let targetUserId = notification.relatedUserId else { return }
-        
-        Task {
-            do {
-                let followStatus = try await FollowService.shared.checkFollowStatus(userId: targetUserId)
-                await MainActor.run {
-                    isFollowing = followStatus.isFollowing
-                }
-            } catch {
-                print("❌ Error checking follow status in notification: \(error)")
-            }
-        }
-    }
-    
-    private func followUser() {
-        guard let targetUserId = notification.relatedUserId else { return }
-        
-        isFollowingUser = true
-        
-        Task {
-            do {
-                if isFollowing {
-                    // Unfollow
-                    try await FollowService.shared.unfollowUser(userId: targetUserId)
-                    await MainActor.run {
-                        isFollowing = false
-                        isFollowingUser = false
-                    }
-                } else {
-                    // Follow
-                    try await FollowService.shared.followUser(userId: targetUserId)
-                    let followStatus = try await FollowService.shared.checkFollowStatus(userId: targetUserId)
-                    await MainActor.run {
-                        isFollowing = followStatus.isFollowing
-                        isFollowingUser = false
-                    }
-                }
-                
-                print("✅ Follow action completed from notification")
-                
-            } catch {
-                await MainActor.run {
-                    isFollowingUser = false
-                }
-                print("❌ Error in follow action from notification: \(error)")
-            }
-        }
-    }
+    // Removed: acceptFollowRequest method
+    // Removed: checkFollowStatus method
+    // Removed: followUser method
 }
 
 #if DEBUG

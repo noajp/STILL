@@ -5,6 +5,7 @@
 //======================================================================
 
 import SwiftUI
+import Supabase
 
 struct FollowRequestManagementView: View {
     @StateObject private var viewModel = FollowRequestManagementViewModel()
@@ -49,7 +50,7 @@ struct FollowRequestManagementView: View {
                         .padding(.top, 8)
                     Spacer()
                 }
-            } else if viewModel.pendingRequests.isEmpty {
+            } else if viewModel.requests.isEmpty {
                 VStack(spacing: 16) {
                     Spacer()
                     Image(systemName: "person.badge.plus")
@@ -59,7 +60,7 @@ struct FollowRequestManagementView: View {
                         .font(.title3)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
-                    Text("When people request to follow you, they'll appear here.")
+                    Text("When people request to follow you, they\'ll appear here.")
                         .font(.body)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
@@ -69,14 +70,14 @@ struct FollowRequestManagementView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(viewModel.pendingRequests) { request in
+                        ForEach($viewModel.requests) { $request in // Use $request for Binding
                             FollowRequestManagementRow(
-                                request: request,
+                                request: $request,
                                 onAccept: { await viewModel.acceptFollowRequest(request) },
                                 onDecline: { await viewModel.rejectFollowRequest(request) }
                             )
                             
-                            if request.id != viewModel.pendingRequests.last?.id {
+                            if request.id != viewModel.requests.last?.id {
                                 Divider()
                                     .padding(.leading, 70)
                             }
@@ -90,83 +91,75 @@ struct FollowRequestManagementView: View {
         .navigationBarHidden(true)
         .task {
             if let currentUser = authManager.currentUser {
-                await viewModel.loadPendingRequests(for: currentUser.id)
+                await viewModel.loadRequests(for: currentUser.id)
+                await markFollowRequestNotificationsAsRead(for: currentUser.id)
             }
         }
         .refreshable {
             if let currentUser = authManager.currentUser {
-                await viewModel.loadPendingRequests(for: currentUser.id)
+                await viewModel.loadRequests(for: currentUser.id)
             }
+        }
+    }
+    
+    private func markFollowRequestNotificationsAsRead(for userId: String) async {
+        do {
+            try await SupabaseManager.shared.client
+                .from("notifications")
+                .update(["is_read": true])
+                .eq("user_id", value: userId)
+                .eq("type", value: "follow_request")
+                .eq("is_read", value: false)
+                .execute()
+        } catch {
+            print("❌ Error marking follow request notifications as read: \(error)")
         }
     }
 }
 
 // Follow Request Row for Management View
 struct FollowRequestManagementRow: View {
-    let request: FollowRequest
+    @Binding var request: Follow // Use Binding to allow status update
     let onAccept: () async -> Void
     let onDecline: () async -> Void
     
-    @State private var isAccepting = false
-    @State private var isDeclining = false
+    @State private var isProcessing = false
     @State private var showProfile = false
-    @State private var hasAccepted = false
-    @State private var isFollowing = false
-    @State private var isFollowingUser = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
-            // Profile Image
-            Button(action: {
-                showProfile = true
-            }) {
-                if let avatarUrl = request.followerProfile?.avatarUrl {
-                    AsyncImage(url: URL(string: avatarUrl)) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
+            // Profile Image and Info
+            Button(action: { showProfile = true }) {
+                HStack(spacing: 12) {
+                    if let avatarUrl = request.follower?.avatarUrl, let url = URL(string: avatarUrl) {
+                        AsyncImage(url: url) { image in
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            ProgressView()
+                        }
+                        .frame(width: 50, height: 50)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.gray.opacity(0.3))
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Text(String(request.follower?.username.prefix(1) ?? "?").uppercased())
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                            )
                     }
-                    .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Text(String(request.followerProfile?.username.prefix(1) ?? "?").uppercased())
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                        )
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-            
-            // User Info
-            Button(action: {
-                showProfile = true
-            }) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(request.followerProfile?.profileDisplayName ?? "Unknown")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Text("@\(request.followerProfile?.username ?? "unknown")")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if let bio = request.followerProfile?.bio, !bio.isEmpty {
-                        Text(bio)
-                            .font(.system(size: 12))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(request.follower?.profileDisplayName ?? "Unknown")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        
+                        Text("@\(request.follower?.username ?? "unknown")")
+                            .font(.system(size: 14))
                             .foregroundColor(.secondary)
-                            .lineLimit(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .lineLimit(1)
                     }
                 }
             }
@@ -174,266 +167,151 @@ struct FollowRequestManagementRow: View {
             
             Spacer()
             
-            // Action Buttons
-            HStack(spacing: 8) {
-                if !hasAccepted {
-                    // Decline Button (only show if not accepted)
-                    Button(action: {
-                        Task {
-                            isDeclining = true
-                            await onDecline()
-                            isDeclining = false
-                        }
-                    }) {
-                        HStack {
-                            if isDeclining {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .secondary))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Text("Decline")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                        }
-                        .foregroundColor(.secondary)
-                        .frame(width: 70, height: 32)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(16)
+            // Action Buttons or Status
+            if request.status == .pending {
+                HStack(spacing: 8) {
+                    // Decline Button
+                    Button(action: { Task { @MainActor in isProcessing = true; await onDecline() } }) {
+                        Text("Decline")
                     }
-                    .disabled(isDeclining || isAccepting)
+                    .buttonStyle(FollowActionButtonStyle(isPrimary: false))
+                    .disabled(isProcessing)
                     
-                    // Accept Button (only show if not accepted)
-                    Button(action: {
-                        Task {
-                            isAccepting = true
-                            await onAccept()
-                            hasAccepted = true
-                            isAccepting = false
-                        }
-                    }) {
-                        HStack {
-                            if isAccepting {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Text("Accept")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                        }
-                        .foregroundColor(.white)
-                        .frame(width: 70, height: 32)
-                        .background(MinimalDesign.Colors.accentRed)
-                        .cornerRadius(16)
+                    // Accept Button
+                    Button(action: { Task { @MainActor in isProcessing = true; await onAccept() } }) {
+                        Text("Accept")
                     }
-                    .disabled(isAccepting || isDeclining)
-                } else {
-                    // Follow Button (show after accepting)
-                    Button(action: {
-                        followUser()
-                    }) {
-                        HStack {
-                            if isFollowingUser {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                            } else {
-                                Text(isFollowing ? "Following" : "Follow")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                        }
-                        .foregroundColor(isFollowing ? .primary : .white)
-                        .frame(width: 80, height: 32)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(isFollowing ? Color.clear : MinimalDesign.Colors.accentRed)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .stroke(isFollowing ? Color.primary : Color.clear, lineWidth: 1)
-                                )
-                        )
-                    }
-                    .disabled(isFollowingUser)
+                    .buttonStyle(FollowActionButtonStyle(isPrimary: true))
+                    .disabled(isProcessing)
                 }
+            } else if request.status == .accepted {
+                // Removed: Follow/Following button for accepted requests
+                // Now, accepted requests will simply disappear from the list
+                EmptyView()
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(Color(.systemBackground))
         .fullScreenCover(isPresented: $showProfile) {
-            if let followerProfile = request.followerProfile {
-                OtherUserProfileView(userId: followerProfile.id)
-            }
-        }
-        .onAppear {
-            // Check if already accepted and follow status
-            checkAcceptedStatus()
-        }
-    }
-    
-    private func checkAcceptedStatus() {
-        guard let followerProfile = request.followerProfile else { return }
-        
-        Task {
-            do {
-                // Check if this follow request has been accepted
-                let followStatus = try await FollowService.shared.checkFollowStatus(userId: followerProfile.id)
-                await MainActor.run {
-                    if followStatus.isFollowedBy {
-                        // This user is following us (request was accepted)
-                        hasAccepted = true
-                        isFollowing = followStatus.isFollowing
-                    }
-                }
-            } catch {
-                print("❌ Error checking accepted status: \(error)")
+            if let follower = request.follower {
+                OtherUserProfileView(userId: follower.id)
             }
         }
     }
+}
+
+struct FollowActionButtonStyle: ButtonStyle {
+    let isPrimary: Bool
     
-    private func followUser() {
-        guard let followerProfile = request.followerProfile else { return }
-        
-        isFollowingUser = true
-        
-        Task {
-            do {
-                if isFollowing {
-                    // Unfollow
-                    try await FollowService.shared.unfollowUser(userId: followerProfile.id)
-                    await MainActor.run {
-                        isFollowing = false
-                        isFollowingUser = false
-                    }
-                } else {
-                    // Follow
-                    try await FollowService.shared.followUser(userId: followerProfile.id)
-                    let followStatus = try await FollowService.shared.checkFollowStatus(userId: followerProfile.id)
-                    await MainActor.run {
-                        isFollowing = followStatus.isFollowing
-                        isFollowingUser = false
-                    }
-                }
-                
-                print("✅ Follow action completed from notification management")
-                
-            } catch {
-                await MainActor.run {
-                    isFollowingUser = false
-                }
-                print("❌ Error in follow action from notification management: \(error)")
-            }
-        }
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(isPrimary ? .white : .secondary)
+            .frame(width: 70, height: 32)
+            .background(isPrimary ? MinimalDesign.Colors.accentRed : Color.gray.opacity(0.1))
+            .cornerRadius(16)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
     }
 }
 
 // ViewModel for Follow Request Management
 @MainActor
 class FollowRequestManagementViewModel: ObservableObject {
-    @Published var pendingRequests: [FollowRequest] = []
+    @Published var requests: [Follow] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     
-    private var currentUserId: String?
-    
-    func loadPendingRequests(for userId: String) async {
-        currentUserId = userId
+    func loadRequests(for userId: String) async {
         isLoading = true
         errorMessage = nil
         
         do {
-            // Get pending follow requests
-            let requests: [FollowRequest] = try await SupabaseManager.shared.client
+            let fetchedRequests: [Follow] = try await SupabaseManager.shared.client
                 .from("follows")
-                .select("*")
+                .select("*, follower:follower_id(*)")
                 .eq("following_id", value: userId)
-                .eq("status", value: "pending")
+                .in("status", values: ["pending", "accepted"])
                 .order("created_at", ascending: false)
                 .execute()
                 .value
             
-            // Load follower profiles for each request
-            var requestsWithProfiles: [FollowRequest] = []
-            for var request in requests {
-                do {
-                    let profile: UserProfile = try await SupabaseManager.shared.client
-                        .from("profiles")
-                        .select("*")
-                        .eq("id", value: request.follower_id)
-                        .single()
-                        .execute()
-                        .value
-                    
-                    request.followerProfile = profile
-                    requestsWithProfiles.append(request)
-                } catch {
-                    print("❌ Error loading profile for follower \(request.follower_id): \(error)")
-                    // Include request even without profile
-                    requestsWithProfiles.append(request)
-                }
-            }
-            
-            pendingRequests = requestsWithProfiles
-            print("✅ Loaded \(pendingRequests.count) pending follow requests")
-            
+            self.requests = fetchedRequests
         } catch {
-            print("❌ Error loading pending requests: \(error)")
-            errorMessage = "Failed to load follow requests"
+            print("❌ Error loading follow requests: \(error)")
+            errorMessage = "Failed to load requests"
         }
         
         isLoading = false
     }
     
-    func acceptFollowRequest(_ request: FollowRequest) async {
+    func acceptFollowRequest(_ request: Follow) async {
+        _ = request.followingId // Use _ to ignore the value
         do {
-            // Update follow status to accepted
             try await SupabaseManager.shared.client
                 .from("follows")
                 .update(["status": "accepted"])
                 .eq("id", value: request.id)
                 .execute()
             
-            // Create follow request approved notification to the requester
-            if let currentUser = AuthManager.shared.currentUser {
-                let approverProfile = try await UserRepository.shared.fetchUserProfile(userId: currentUser.id)
-                await NotificationService.shared.createFollowRequestApprovedNotification(
-                    fromUserId: currentUser.id,
-                    toUserId: request.follower_id,
-                    approverProfile: approverProfile
-                )
-            }
+            // Remove the request from the list immediately after acceptance
+            requests.removeAll { $0.id == request.id }
+
+            // Mark the related follow request notification as read
+            await markFollowRequestNotificationAsRead(for: request.followerId, to: request.followingId)
             
-            // Remove from pending list since it's now accepted
-            pendingRequests.removeAll { $0.id == request.id }
-            
-            // Send notification to update follower counts across the app
             NotificationCenter.default.post(name: .followStatusChanged, object: nil)
             
-            print("✅ Follow request accepted - new follower added")
-            
+            if let currentUser = AuthManager.shared.currentUser {
+                Task {
+                    if let approverProfile = try? await UserRepository.shared.fetchUserProfile(userId: currentUser.id) {
+                        await NotificationService.shared.createFollowRequestApprovedNotification(
+                            fromUserId: currentUser.id,
+                            toUserId: request.followerId,
+                            approverProfile: approverProfile
+                        )
+                    }
+                }
+            }
         } catch {
             print("❌ Error accepting follow request: \(error)")
-            errorMessage = "Failed to accept follow request"
+            errorMessage = "Failed to accept request"
+            // Reload even on error to reset state
+            await loadRequests(for: request.followingId)
         }
     }
     
-    func rejectFollowRequest(_ request: FollowRequest) async {
+    func rejectFollowRequest(_ request: Follow) async {
+        _ = request.followingId // Use _ to ignore the value
         do {
-            // Delete the follow request
             try await SupabaseManager.shared.client
                 .from("follows")
                 .delete()
                 .eq("id", value: request.id)
                 .execute()
             
-            // Remove from pending list
-            pendingRequests.removeAll { $0.id == request.id }
-            
-            print("✅ Follow request declined")
-            
+            // Mark the related follow request notification as read
+            await markFollowRequestNotificationAsRead(for: request.followerId, to: request.followingId)
+
+            requests.removeAll { $0.id == request.id }
         } catch {
             print("❌ Error declining follow request: \(error)")
-            errorMessage = "Failed to decline follow request"
+            errorMessage = "Failed to decline request"
+        }
+    }
+
+    private func markFollowRequestNotificationAsRead(for fromUserId: String, to toUserId: String) async {
+        do {
+            try await SupabaseManager.shared.client
+                .from("notifications")
+                .update(["is_read": true])
+                .eq("user_id", value: toUserId)
+                .eq("type", value: "follow_request")
+                .eq("related_user_id", value: fromUserId)
+                .execute()
+            print("✅ Marked related follow request notification as read.")
+        } catch {
+            print("❌ Error marking related follow request notification as read: \(error)")
         }
     }
 }

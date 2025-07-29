@@ -8,7 +8,7 @@ struct Follow: Identifiable, Codable {
     let id: String
     let followerId: String      // フォローする人
     let followingId: String     // フォローされる人
-    let status: FollowRequestStatus // フォローリクエストの状態
+    var status: FollowRequestStatus // フォローリクエストの状態
     let createdAt: Date
     
     // Relationships

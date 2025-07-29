@@ -176,14 +176,8 @@ class OtherUserProfileViewModel: ObservableObject {
         justAcceptedRequest = false // Reset flag when loading fresh
         
         do {
-            // Load user profile from database
-            let profile: UserProfile = try await SupabaseManager.shared.client
-                .from("profiles")
-                .select("*")
-                .eq("id", value: userId)
-                .single()
-                .execute()
-                .value
+            // Load user profile from database - force fresh data by bypassing cache
+            let profile = try await UserRepository.shared.fetchUserProfile(userId: userId)
             
             userProfile = profile
             

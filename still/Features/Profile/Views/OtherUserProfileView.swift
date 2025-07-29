@@ -13,10 +13,6 @@ struct OtherUserProfileView: View {
     
     // Computed properties for follow button
     private var followButtonText: String {
-        if viewModel.hasIncomingFollowRequest {
-            return "Accept"
-        }
-        
         switch viewModel.followStatus {
         case .accepted:
             return "Following"
@@ -28,10 +24,6 @@ struct OtherUserProfileView: View {
     }
     
     private var buttonTextColor: Color {
-        if viewModel.hasIncomingFollowRequest {
-            return .white
-        }
-        
         switch viewModel.followStatus {
         case .accepted:
             return colorScheme == .dark ? .white : .black
@@ -43,10 +35,6 @@ struct OtherUserProfileView: View {
     }
     
     private var buttonBackgroundColor: Color {
-        if viewModel.hasIncomingFollowRequest {
-            return .green
-        }
-        
         switch viewModel.followStatus {
         case .accepted:
             return Color.clear
@@ -58,10 +46,6 @@ struct OtherUserProfileView: View {
     }
     
     private var buttonBorderColor: Color {
-        if viewModel.hasIncomingFollowRequest {
-            return Color.clear
-        }
-        
         switch viewModel.followStatus {
         case .accepted:
             return colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.3)
@@ -163,9 +147,7 @@ struct OtherUserProfileView: View {
                             if !viewModel.isCurrentUser {
                                 Button(action: {
                                     Task {
-                                        if viewModel.hasIncomingFollowRequest {
-                                            await viewModel.acceptFollowRequest()
-                                        } else if viewModel.followStatus == .accepted {
+                                        if viewModel.followStatus == .accepted {
                                             await viewModel.unfollowUser()
                                         } else if viewModel.followStatus == .pending {
                                             await viewModel.cancelFollowRequest()
@@ -175,10 +157,7 @@ struct OtherUserProfileView: View {
                                     }
                                 }) {
                                     HStack(spacing: 4) {
-                                        if viewModel.hasIncomingFollowRequest {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 12))
-                                        } else if viewModel.followStatus == .pending {
+                                        if viewModel.followStatus == .pending {
                                             Image(systemName: "clock")
                                                 .font(.system(size: 12))
                                         }

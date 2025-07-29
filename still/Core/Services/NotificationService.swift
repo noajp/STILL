@@ -7,42 +7,19 @@
 import Foundation
 import Supabase
 
-/// A comprehensive notification service that manages all notification operations
-/// This service handles fetching, creating, updating, and managing notifications
-/// Supports real-time updates and maintains global notification state
 @MainActor
 class NotificationService: ObservableObject {
-    // MARK: - Singleton
-    
-    /// Shared instance of the notification service
     static let shared = NotificationService()
     
-    // MARK: - Published Properties
-    
-    /// Array of all notifications for the current user
     @Published var notifications: [AppNotification] = []
-    
-    /// Count of unread notifications
     @Published var unreadCount: Int = 0
-    
-    /// Loading state indicator
     @Published var isLoading: Bool = false
     
-    // MARK: - Initialization
-    
-    /// Private initializer to enforce singleton pattern
     private init() {}
     
-    // MARK: - Public Methods
-    
-    /// Fetches all notifications for a specific user from the database
-    /// Updates the local notifications array and unread count
-    /// - Parameter userId: The ID of the user to fetch notifications for
     func fetchNotifications(for userId: String) async {
         isLoading = true
-        
         do {
-            // Query notifications from Supabase, ordered by creation date (newest first)
             let response: [AppNotification] = try await SupabaseManager.shared.client
                 .from("notifications")
                 .select("*")
@@ -52,42 +29,15 @@ class NotificationService: ObservableObject {
                 .execute()
                 .value
             
-            // Update local state
             self.notifications = response
             self.unreadCount = response.filter { !$0.isRead }.count
         } catch {
             print("❌ Error fetching notifications: \(error)")
         }
-        
         isLoading = false
     }
     
-    func markAsRead(_ notificationId: String) async {
-        do {
-            try await SupabaseManager.shared.client
-                .from("notifications")
-                .update(["is_read": true])
-                .eq("id", value: notificationId)
-                .execute()
-            
-            if let index = notifications.firstIndex(where: { $0.id == notificationId }) {
-                notifications[index] = AppNotification(
-                    id: notifications[index].id,
-                    userId: notifications[index].userId,
-                    type: notifications[index].type,
-                    title: notifications[index].title,
-                    message: notifications[index].message,
-                    isRead: true,
-                    relatedUserId: notifications[index].relatedUserId,
-                    relatedPostId: notifications[index].relatedPostId,
-                    metadata: notifications[index].metadata
-                )
-                unreadCount = notifications.filter { !$0.isRead }.count
-            }
-        } catch {
-            print("❌ Error marking notification as read: \(error)")
-        }
-    }
+    // Removed: func markAsRead(_ notificationId: String) async
     
     func markAllAsRead(for userId: String) async {
         do {
@@ -98,18 +48,11 @@ class NotificationService: ObservableObject {
                 .eq("is_read", value: false)
                 .execute()
             
+            // Update local state to reflect all notifications as read
             notifications = notifications.map { notification in
-                AppNotification(
-                    id: notification.id,
-                    userId: notification.userId,
-                    type: notification.type,
-                    title: notification.title,
-                    message: notification.message,
-                    isRead: true,
-                    relatedUserId: notification.relatedUserId,
-                    relatedPostId: notification.relatedPostId,
-                    metadata: notification.metadata
-                )
+                var updatedNotification = notification
+                updatedNotification.isRead = true
+                return updatedNotification
             }
             unreadCount = 0
         } catch {
@@ -117,436 +60,173 @@ class NotificationService: ObservableObject {
         }
     }
     
-    func createLikeNotification(
-        fromUserId: String,
-        toUserId: String,
-        postId: String,
-        senderProfile: UserProfile
-    ) async {
-        print("🔔 NotificationService.createLikeNotification called:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        print("  - postId: \(postId)")
-        print("  - senderProfile: \(senderProfile.username)")
+    // MARK: - Notification Creation
+    
+    func createLikeNotification(fromUserId: String, toUserId: String, postId: String, senderProfile: UserProfile) async {
+        guard fromUserId != toUserId else { return }
         
-        guard fromUserId != toUserId else { 
-            print("⚠️ Skipping notification creation: same user")
-            return 
-        }
-        
-        // Check if like notification already exists for this user and post
-        let exists = await checkLikeNotificationExists(fromUserId: fromUserId, toUserId: toUserId, postId: postId)
+        // Check if notification already exists
+        let exists = await checkNotificationExists(userId: toUserId, type: .like, relatedUserId: fromUserId, relatedPostId: postId)
         if exists {
             print("ℹ️ Like notification already exists, skipping creation")
             return
         }
         
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            userId: toUserId,
-            type: .like,
-            title: "New Like",
-            message: "\(senderProfile.displayName ?? senderProfile.username) liked your post",
-            isRead: false,
-            relatedUserId: fromUserId,
-            relatedPostId: postId,
-            metadata: AppNotification.NotificationMetadata(
-                postImageUrl: nil,
-                senderAvatarUrl: senderProfile.avatarUrl,
-                senderDisplayName: senderProfile.displayName,
-                senderUsername: senderProfile.username
-            )
-        )
+        let title = "New Like"
+        let message = "\(senderProfile.displayName ?? senderProfile.username) liked your post"
         
-        print("🔔 Like notification object created, calling saveNotification...")
-        await saveNotification(notification)
+        await createNotification(
+            targetUserId: toUserId,
+            relatedUserId: fromUserId,
+            notificationType: AppNotification.NotificationType.like,
+            title: title,
+            message: message
+        )
     }
     
-    func createFollowNotification(
-        fromUserId: String,
-        toUserId: String,
-        senderProfile: UserProfile
-    ) async {
-        print("🔔 NotificationService.createFollowNotification called:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        print("  - senderProfile: \(senderProfile.username)")
-        
-        guard fromUserId != toUserId else { 
-            print("⚠️ Skipping notification creation: same user")
-            return 
-        }
-        
-        // Check if notification already exists - if so, just ignore (don't create duplicate)
-        let exists = await checkFollowNotificationExists(fromUserId: fromUserId, toUserId: toUserId)
+    func createFollowNotification(fromUserId: String, toUserId: String, senderProfile: UserProfile) async {
+        guard fromUserId != toUserId else { return }
+
+        // Check if notification already exists
+        let exists = await checkNotificationExists(userId: toUserId, type: .follow, relatedUserId: fromUserId)
         if exists {
             print("ℹ️ Follow notification already exists, skipping creation")
             return
         }
-        
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            userId: toUserId,
-            type: .follow,
-            title: "New Follower",
-            message: "@\(senderProfile.username) started following you",
-            isRead: false,
+
+        let title = "New Follower"
+        let message = "@\(senderProfile.username) started following you"
+
+        await createNotification(
+            targetUserId: toUserId,
             relatedUserId: fromUserId,
-            relatedPostId: nil,
-            metadata: AppNotification.NotificationMetadata(
-                postImageUrl: nil,
-                senderAvatarUrl: senderProfile.avatarUrl,
-                senderDisplayName: senderProfile.displayName,
-                senderUsername: senderProfile.username
-            )
+            notificationType: AppNotification.NotificationType.follow,
+            title: title,
+            message: message
         )
-        
-        print("🔔 Follow notification object created, calling saveNotification...")
-        await saveNotification(notification)
     }
-    
-    func createFollowRequestNotification(
-        fromUserId: String,
-        toUserId: String,
-        senderProfile: UserProfile
-    ) async {
-        print("🔔 NotificationService.createFollowRequestNotification called:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        print("  - senderProfile: \(senderProfile.username)")
-        
-        guard fromUserId != toUserId else { 
-            print("⚠️ Skipping notification creation: same user")
-            return 
-        }
-        
-        // Check if follow request notification already exists
-        let exists = await checkFollowRequestNotificationExists(fromUserId: fromUserId, toUserId: toUserId)
+
+    func createFollowRequestNotification(fromUserId: String, toUserId: String, senderProfile: UserProfile) async {
+        guard fromUserId != toUserId else { return }
+
+        // Check if notification already exists
+        let exists = await checkNotificationExists(userId: toUserId, type: .followRequest, relatedUserId: fromUserId)
         if exists {
             print("ℹ️ Follow request notification already exists, skipping creation")
             return
         }
-        
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            userId: toUserId,
-            type: .followRequest,
-            title: "Follow Request",
-            message: "@\(senderProfile.username) sent you a follow request",
-            isRead: false,
+
+        let title = "Follow Request"
+        let message = "@\(senderProfile.username) sent you a follow request"
+
+        await createNotification(
+            targetUserId: toUserId,
             relatedUserId: fromUserId,
-            relatedPostId: nil,
-            metadata: AppNotification.NotificationMetadata(
-                postImageUrl: nil,
-                senderAvatarUrl: senderProfile.avatarUrl,
-                senderDisplayName: senderProfile.displayName,
-                senderUsername: senderProfile.username
-            )
+            notificationType: AppNotification.NotificationType.followRequest,
+            title: title,
+            message: message
         )
-        
-        print("🔔 Follow request notification object created, calling saveNotification...")
-        await saveNotification(notification)
     }
-    
-    func createFollowRequestApprovedNotification(
-        fromUserId: String,
-        toUserId: String,
-        approverProfile: UserProfile
-    ) async {
-        print("🔔 NotificationService.createFollowRequestApprovedNotification called:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        print("  - approverProfile: \(approverProfile.username)")
-        
-        guard fromUserId != toUserId else { 
-            print("⚠️ Skipping notification creation: same user")
-            return 
-        }
-        
-        // Check if follow request approved notification already exists
-        let exists = await checkFollowRequestApprovedNotificationExists(fromUserId: fromUserId, toUserId: toUserId)
+
+    func createFollowRequestApprovedNotification(fromUserId: String, toUserId: String, approverProfile: UserProfile) async {
+        guard fromUserId != toUserId else { return }
+
+        // Check if notification already exists
+        let exists = await checkNotificationExists(userId: toUserId, type: .followRequestApproved, relatedUserId: fromUserId)
         if exists {
             print("ℹ️ Follow request approved notification already exists, skipping creation")
             return
         }
-        
-        let notification = AppNotification(
-            id: UUID().uuidString,
-            userId: toUserId,
-            type: .followRequestApproved,
-            title: "Follow Request Approved",
-            message: "\(approverProfile.displayName ?? approverProfile.username)があなたのフォローリクエストを承認しました",
-            isRead: false,
+
+        let title = "Follow Request Approved"
+        let message = "\(approverProfile.displayName ?? approverProfile.username) approved your follow request"
+
+        await createNotification(
+            targetUserId: toUserId,
             relatedUserId: fromUserId,
-            relatedPostId: nil,
-            metadata: AppNotification.NotificationMetadata(
-                postImageUrl: nil,
-                senderAvatarUrl: approverProfile.avatarUrl,
-                senderDisplayName: approverProfile.displayName,
-                senderUsername: approverProfile.username
-            )
+            notificationType: AppNotification.NotificationType.followRequestApproved,
+            title: title,
+            message: message
         )
-        
-        print("🔔 Follow request approved notification object created, calling saveNotification...")
-        await saveNotification(notification)
     }
-    
-    private func checkFollowRequestApprovedNotificationExists(fromUserId: String, toUserId: String) async -> Bool {
-        print("🔔 Checking if follow request approved notification exists:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        
-        do {
-            let response: PostgrestResponse<[AppNotification]> = try await SupabaseManager.shared.client
-                .from("notifications")
-                .select()
-                .eq("user_id", value: toUserId)
-                .eq("type", value: "follow_request_approved")
-                .eq("related_user_id", value: fromUserId)
-                .limit(1)
-                .execute()
-            
-            let exists = !response.value.isEmpty
-            print(exists ? "ℹ️ Follow request approved notification exists" : "ℹ️ No existing follow request approved notification found")
-            return exists
-            
-        } catch {
-            print("⚠️ Error checking existing follow request approved notification: \(error)")
-            return false
+
+    // MARK: - Private RPC Call
+
+    private func createNotification(
+        targetUserId: String,
+        relatedUserId: String,
+        notificationType: AppNotification.NotificationType,
+        title: String,
+        message: String
+    ) async {
+        struct RpcParams: Encodable {
+            let target_user_id: UUID
+            let related_user_id: UUID
+            let notification_type: String
+            let title: String
+            let message: String
         }
-    }
-    
-    private func saveNotification(_ notification: AppNotification) async {
-        print("🔔 Attempting to save notification:")
-        print("  - ID: \(notification.id)")
-        print("  - UserID: \(notification.userId)")
-        print("  - Type: \(notification.type)")
-        print("  - Title: \(notification.title)")
-        print("  - Message: \(notification.message)")
-        
-        do {
-            struct NotificationInsert: Encodable {
-                let id: UUID
-                let user_id: UUID
-                let type: String
-                let title: String
-                let message: String
-                let is_read: Bool
-                let related_user_id: UUID?
-                let related_post_id: UUID?
-                let metadata: AppNotification.NotificationMetadata?
-            }
-            
-            let insertData = NotificationInsert(
-                id: UUID(uuidString: notification.id) ?? UUID(),
-                user_id: UUID(uuidString: notification.userId) ?? UUID(),
-                type: notification.type.rawValue,
-                title: notification.title,
-                message: notification.message,
-                is_read: notification.isRead,
-                related_user_id: notification.relatedUserId != nil ? UUID(uuidString: notification.relatedUserId!) : nil,
-                related_post_id: notification.relatedPostId != nil ? UUID(uuidString: notification.relatedPostId!) : nil,
-                metadata: notification.metadata
-            )
-            
-            print("🔔 Insert data prepared:")
-            print("  - user_id: \(insertData.user_id)")
-            print("  - type: \(insertData.type)")
-            
-            let response = try await SupabaseManager.shared.client
-                .from("notifications")
-                .upsert(insertData)
-                .execute()
-            
-            print("✅ Notification saved successfully")
-            print("  - Response status: \(response.status)")
-            
-        } catch {
-            print("❌ Error saving notification: \(error)")
-            print("❌ Error type: \(type(of: error))")
-            if let nsError = error as NSError? {
-                print("❌ Error domain: \(nsError.domain)")
-                print("❌ Error code: \(nsError.code)")
-                print("❌ Error userInfo: \(nsError.userInfo)")
-            }
-        }
-    }
-    
-    private func upsertNotification(_ notification: AppNotification) async {
-        print("🔔 Attempting to upsert notification:")
-        print("  - UserID: \(notification.userId)")
-        print("  - Type: \(notification.type)")
-        print("  - RelatedUserID: \(notification.relatedUserId ?? "nil")")
-        
-        guard notification.relatedUserId != nil else {
-            print("⚠️ Cannot upsert notification without related_user_id, falling back to insert")
-            await saveNotification(notification)
+
+        guard let targetUUID = UUID(uuidString: targetUserId),
+              let relatedUUID = UUID(uuidString: relatedUserId) else {
+            print("❌ Error: Invalid UUID string")
             return
         }
-        
+
+        let params = RpcParams(
+            target_user_id: targetUUID,
+            related_user_id: relatedUUID,
+            notification_type: notificationType.rawValue,
+            title: title,
+            message: message
+        )
+
         do {
-            struct NotificationUpsert: Encodable {
-                let user_id: UUID
-                let type: String
-                let title: String
-                let message: String
-                let is_read: Bool
-                let related_user_id: UUID?
-                let related_post_id: UUID?
-                let metadata: AppNotification.NotificationMetadata?
+            try await SupabaseManager.shared.client
+                .rpc("create_notification", params: params)
+                .execute()
+            print("✅ Notification created successfully via RPC for user \(targetUserId)")
+        } catch {
+            print("❌ Error calling create_notification RPC: \(error)")
+        }
+    }
+    
+    private func checkNotificationExists(
+        userId: String,
+        type: AppNotification.NotificationType,
+        relatedUserId: String? = nil,
+        relatedPostId: String? = nil
+    ) async -> Bool {
+        do {
+            var query = SupabaseManager.shared.client
+                .from("notifications")
+                .select()
+                .eq("user_id", value: userId)
+                .eq("type", value: type.rawValue)
+            
+            // Only add related_user_id to query if it's provided
+            if let relatedUserId = relatedUserId {
+                query = query.eq("related_user_id", value: relatedUserId)
+            } else {
+                // If relatedUserId is nil, ensure we only match notifications where related_user_id is also nil
+                query = query.is("related_user_id", value: nil)
             }
             
-            let upsertData = NotificationUpsert(
-                user_id: UUID(uuidString: notification.userId) ?? UUID(),
-                type: notification.type.rawValue,
-                title: notification.title,
-                message: notification.message,
-                is_read: false,
-                related_user_id: notification.relatedUserId != nil ? UUID(uuidString: notification.relatedUserId!) : nil,
-                related_post_id: notification.relatedPostId != nil ? UUID(uuidString: notification.relatedPostId!) : nil,
-                metadata: notification.metadata
-            )
+            // related_post_id はユニーク制約に含まれていないため、ここでは考慮しない
+            // if let relatedPostId = relatedPostId {
+            //     query = query.eq("related_post_id", value: relatedPostId)
+            // } else {
+            //     query = query.is("related_post_id", value: nil)
+            // }
             
-            print("🔔 Upsert data prepared:")
-            print("  - user_id: \(upsertData.user_id)")
-            print("  - related_user_id: \(upsertData.related_user_id?.uuidString ?? "nil")")
-            
-            let response = try await SupabaseManager.shared.client
-                .from("notifications")
-                .upsert(upsertData)
-                .execute()
-            
-            print("✅ Notification upserted successfully")
-            print("  - Response status: \(response.status)")
-            
-        } catch {
-            print("❌ Error upserting notification: \(error)")
-            print("❌ Falling back to regular insert")
-            await saveNotification(notification)
-        }
-    }
-    
-    private func checkLikeNotificationExists(fromUserId: String, toUserId: String, postId: String) async -> Bool {
-        print("🔔 Checking if like notification exists:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        print("  - postId: \(postId)")
-        
-        do {
-            let response: PostgrestResponse<[AppNotification]> = try await SupabaseManager.shared.client
-                .from("notifications")
-                .select()
-                .eq("user_id", value: toUserId)
-                .eq("type", value: "like")
-                .eq("related_user_id", value: fromUserId)
-                .eq("related_post_id", value: postId)
+            let response: PostgrestResponse<[AppNotification]> = try await query
                 .limit(1)
                 .execute()
             
-            let exists = !response.value.isEmpty
-            print(exists ? "ℹ️ Like notification exists" : "ℹ️ No existing like notification found")
-            return exists
-            
-        } catch {
-            print("⚠️ Error checking existing like notification: \(error)")
-            return false
-        }
-    }
-    
-    private func checkFollowNotificationExists(fromUserId: String, toUserId: String) async -> Bool {
-        print("🔔 Checking if follow notification exists:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        
-        do {
-            let response: PostgrestResponse<[AppNotification]> = try await SupabaseManager.shared.client
-                .from("notifications")
-                .select()
-                .eq("user_id", value: toUserId)
-                .eq("type", value: "follow")
-                .eq("related_user_id", value: fromUserId)
-                .limit(1)
-                .execute()
-            
-            let exists = !response.value.isEmpty
-            print(exists ? "ℹ️ Follow notification exists" : "ℹ️ No existing follow notification found")
-            return exists
-            
+            return !response.value.isEmpty
         } catch {
             print("⚠️ Error checking existing notification: \(error)")
             return false
         }
-    }
-    
-    private func checkFollowRequestNotificationExists(fromUserId: String, toUserId: String) async -> Bool {
-        print("🔔 Checking if follow request notification exists:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        
-        do {
-            let response: PostgrestResponse<[AppNotification]> = try await SupabaseManager.shared.client
-                .from("notifications")
-                .select()
-                .eq("user_id", value: toUserId)
-                .eq("type", value: "follow_request")
-                .eq("related_user_id", value: fromUserId)
-                .limit(1)
-                .execute()
-            
-            let exists = !response.value.isEmpty
-            print(exists ? "ℹ️ Follow request notification exists" : "ℹ️ No existing follow request notification found")
-            return exists
-            
-        } catch {
-            print("⚠️ Error checking existing follow request notification: \(error)")
-            return false
-        }
-    }
-    
-    private func deleteExistingFollowNotification(fromUserId: String, toUserId: String) async {
-        print("🔔 Attempting to delete existing follow notification:")
-        print("  - fromUserId: \(fromUserId)")
-        print("  - toUserId: \(toUserId)")
-        
-        do {
-            let response = try await SupabaseManager.shared.client
-                .from("notifications")
-                .delete()
-                .eq("user_id", value: toUserId)
-                .eq("type", value: "follow")
-                .eq("related_user_id", value: fromUserId)
-                .execute()
-            
-            print("✅ Existing follow notification deleted (if any)")
-            print("  - Response status: \(response.status)")
-            
-        } catch {
-            print("⚠️ Error deleting existing notification (might not exist): \(error)")
-        }
-    }
-    
-    // MARK: - Debug Methods
-    
-    func createTestNotification(for userId: String) async {
-        print("🔔 Creating test notification for user: \(userId)")
-        
-        let testNotification = AppNotification(
-            id: UUID().uuidString,
-            userId: userId,
-            type: .follow,
-            title: "Test Notification",
-            message: "This is a test notification to verify the system is working",
-            isRead: false,
-            relatedUserId: nil,
-            relatedPostId: nil,
-            metadata: AppNotification.NotificationMetadata(
-                postImageUrl: nil,
-                senderAvatarUrl: nil,
-                senderDisplayName: "Test User",
-                senderUsername: "testuser"
-            )
-        )
-        
-        await saveNotification(testNotification)
     }
 }

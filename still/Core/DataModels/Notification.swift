@@ -25,7 +25,7 @@ struct AppNotification: Identifiable, Codable {
     let message: String
     
     /// Whether the user has read this notification
-    let isRead: Bool
+    var isRead: Bool
     
     /// ID of the user who triggered this notification (optional)
     let relatedUserId: String?
