@@ -20,9 +20,14 @@ struct SignUpView: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 0) {
-                // Header
+                // Header with title and close button on same line
                 HStack {
+                    Text("PERSONAL DETAILS")
+                        .font(.system(size: 24, weight: .regular))
+                        .foregroundColor(.primary)
+                    
                     Spacer()
+                    
                     Button("×") {
                         dismiss()
                     }
@@ -35,10 +40,6 @@ struct SignUpView: View {
                 Spacer()
                 
                 VStack(alignment: .leading, spacing: 40) {
-                    // Title
-                    Text("PERSONAL DETAILS")
-                        .font(.system(size: 24, weight: .regular))
-                        .foregroundColor(.primary)
                     
                     // Form
                     VStack(alignment: .leading, spacing: 25) {

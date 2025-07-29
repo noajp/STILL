@@ -35,7 +35,7 @@ struct UnifiedHeader: View {
             HStack(spacing: 0) {
                 // Title - 左端に配置
                 Text(title)
-                    .font(.system(size: 28, weight: .light))
+                    .font(.system(size: 24, weight: .regular))
                     .foregroundColor(isDarkMode ? .white : MinimalDesign.Colors.primary)
                     .padding(.leading, 8)
                 
