@@ -7,7 +7,7 @@
 import SwiftUI
 
 // Helper struct for navigation
-struct ConversationNavigation: Identifiable {
+struct ConversationNavigation: Identifiable, Hashable, Equatable {
     let id: String
 }
 
