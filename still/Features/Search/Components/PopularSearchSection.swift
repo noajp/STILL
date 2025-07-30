@@ -3,7 +3,7 @@
 // Path: foodai/Features/Search/Components/PopularSearchSection.swift
 //======================================================================
 
-import SwiftUICore
+import SwiftUI
 import SwiftUI
 struct PopularSearchSection: View {
     private let popularSearches = ["Italian", "Seafood", "Sushi", "Ramen", "Steak", "Pizza"]

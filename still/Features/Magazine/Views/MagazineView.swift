@@ -12,7 +12,7 @@ struct MagazineFeedView: View {
     
     var body: some View {
         ScrollableHeaderView(
-            title: "Article",
+            title: "ARTICLE",
             rightButton: HeaderButton(icon: "plus", action: {
                 showingCreatePost = true
             })

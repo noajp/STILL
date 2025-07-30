@@ -3,7 +3,7 @@
 // Path: foodai/Features/Search/Components/FilterChipView.swift
 //======================================================================
 
-import SwiftUICore
+import SwiftUI
 import SwiftUI
 struct FilterChipView: View {
     let title: String

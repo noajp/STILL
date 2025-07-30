@@ -6,6 +6,11 @@
 
 import SwiftUI
 
+// Helper struct for navigation
+struct ConversationNavigation: Identifiable {
+    let id: String
+}
+
 /**
  * MessagesView provides the main messaging interface for the STILL app.
  * 
@@ -23,14 +28,14 @@ import SwiftUI
 struct MessagesView: View {
     @StateObject private var viewModel = MessagesViewModel()
     @State private var showNewMessage = false
-    @State private var selectedConversationId: String?
+    @State private var selectedConversation: ConversationNavigation?
     @State private var isNavigatingToNewMessage = false
     @State private var isNavigatingToCreateGroup = false
     @EnvironmentObject var authManager: AuthManager
     @Binding var isGroupChatMode: Bool
     
     var body: some View {
-        let headerTitle = isGroupChatMode ? "Group Chats" : "Messages"
+        let headerTitle = isGroupChatMode ? "GROUP CHATS" : "MESSAGES"
         let headerIcon = isGroupChatMode ? "person.2.fill" : "square.and.pencil"
         let headerAction: () -> Void = {
             if isGroupChatMode {
@@ -139,8 +144,8 @@ struct MessagesView: View {
                             
                             // 会話作成が完了してから画面遷移
                             await MainActor.run {
-                                print("🎯 Setting selectedConversationId to: \(conversationId)")
-                                selectedConversationId = conversationId
+                                print("🎯 Setting selectedConversation to: \(conversationId)")
+                                selectedConversation = ConversationNavigation(id: conversationId)
                                 isNavigatingToNewMessage = false
                             }
                         } else {
@@ -152,24 +157,20 @@ struct MessagesView: View {
                     }
                 }
             }
-            .navigationDestination(item: Binding(
-                get: { selectedConversationId.map { ConversationDestination(id: $0) } },
-                set: { _ in selectedConversationId = nil }
-            )) { destination in
-                // 会話データがない場合でも適切なViewを表示
-                // View内で会話データを取得する
-                let conversation = viewModel.conversations.first(where: { $0.id == destination.id })
-                let groupConversation = viewModel.groupConversations.first(where: { $0.id == destination.id })
-                let _ = print("🎯 Navigating to conversation with ID: \(destination.id), hasConversation: \(conversation != nil), hasGroupConversation: \(groupConversation != nil)")
-                
-                if let groupConv = groupConversation {
-                    return AnyView(GroupConversationView(conversationId: destination.id, groupConversation: groupConv))
+            .navigationDestination(item: $selectedConversation) { navItem in
+                // Simplified navigation - determine view type based on conversation data
+                let conversationId = navItem.id
+                if let groupConv = viewModel.groupConversations.first(where: { $0.id == conversationId }) {
+                    GroupConversationView(conversationId: conversationId, groupConversation: groupConv)
+                } else if let conversation = viewModel.conversations.first(where: { $0.id == conversationId }) {
+                    ConversationView(conversationId: conversationId, conversation: conversation)
                 } else {
-                    return AnyView(ConversationView(conversationId: destination.id, conversation: conversation))
+                    // Fallback - let the view load its own data
+                    ConversationView(conversationId: conversationId, conversation: nil)
                 }
             }
-            .onChange(of: selectedConversationId) { oldValue, newValue in
-                // チャットルームから戻った時（selectedConversationIdがnilになった時）にサイレント更新
+            .onChange(of: selectedConversation) { oldValue, newValue in
+                // チャットルームから戻った時（selectedConversationがnilになった時）にサイレント更新
                 if oldValue != nil && newValue == nil {
                     Task {
                         await viewModel.silentRefreshConversations()
@@ -183,7 +184,7 @@ struct MessagesView: View {
                         if let conversationId = await viewModel.createGroupChat(name: "Group Chat", with: selectedUserIds) {
                             print("✅ Group chat created with ID: \(conversationId)")
                             await MainActor.run {
-                                selectedConversationId = conversationId
+                                selectedConversation = ConversationNavigation(id: conversationId)
                                 isNavigatingToCreateGroup = false
                             }
                         } else {
@@ -230,10 +231,6 @@ struct MessagesView: View {
             return viewModel.conversations
         }
     }
-}
-
-struct ConversationDestination: Identifiable, Hashable {
-    let id: String
 }
 
 struct ConversationRow: View {

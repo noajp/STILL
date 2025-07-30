@@ -31,7 +31,7 @@ struct MyPageView: View {
     var body: some View {
         NavigationStack {
             ScrollableHeaderView(
-            title: isUserSearchMode ? "User Search" : "Profile",
+            title: isUserSearchMode ? "USER SEARCH" : "PROFILE",
             rightButton: isUserSearchMode ? nil : HeaderButton(
                 icon: "custom.three.lines",
                 action: { 

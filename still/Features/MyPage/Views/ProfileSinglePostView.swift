@@ -41,7 +41,7 @@ struct ProfileSinglePostView: View {
             LazyVStack(spacing: 0) {
                 // 並び替えられた投稿を表示（選択された投稿が最初）
                 ForEach(Array(reorderedPosts.enumerated()), id: \.element.id) { index, post in
-                    SinglePostCard(post: post) { post in
+                    PostCardView(post: post) { post in
                         // プロフィールページなのでlike機能は無効
                     }
                     .onAppear {

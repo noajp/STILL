@@ -22,23 +22,13 @@ struct Message: Identifiable, Codable {
     var decryptedContent: String {
         // Base64エンコードされた暗号化データをデコード
         do {
-            print("🔐 DEBUG - Attempting to decrypt message: \(id)")
-            print("🔐 DEBUG - Content length: \(content.count)")
-            print("🔐 DEBUG - Content preview: \(String(content.prefix(50)))")
-            
             let keyData = try KeychainManager.shared.getUserKey()
-            print("🔐 DEBUG - Successfully retrieved key from keychain")
-            
             let key = CryptoManager.shared.dataToKey(keyData)
-            print("🔐 DEBUG - Successfully converted keyData to key")
-            
             let decrypted = try CryptoManager.shared.decryptFromBase64(base64String: content, using: key)
-            print("🔐 DEBUG - Successfully decrypted message: \(decrypted)")
             return decrypted
         } catch {
             // 復号化に失敗した場合（古いメッセージなど）はそのまま表示
-            print("❌ DEBUG - Failed to decrypt message \(id): \(error)")
-            print("❌ DEBUG - Returning raw content: \(content)")
+            print("❌ Failed to decrypt message \(id): \(error)")
             return content
         }
     }
@@ -93,67 +83,61 @@ struct Conversation: Identifiable, Codable {
     }
     
     func displayName(currentUserId: String?) -> String {
-        print("🔍 DEBUG - displayName called with currentUserId: \(currentUserId ?? "nil")")
-        
-        guard let participants = participants, let currentUserId = currentUserId else {
-            print("🔍 DEBUG - displayName: Missing participants or currentUserId")
+        // Handle missing data gracefully
+        guard let currentUserId = currentUserId else {
             return "Unknown"
         }
         
-        print("🔍 DEBUG - displayName: Conversation has \(participants.count) participants:")
-        participants.forEach { participant in
-            print("   - Participant: userId=\(participant.userId), username=\(participant.user?.username ?? "nil"), displayName=\(participant.user?.displayName ?? "nil")")
+        // If no participants data, return a default message
+        guard let participants = participants, !participants.isEmpty else {
+            return "Loading..."
         }
         
         // Filter out current user from participants (case-insensitive comparison)
         let otherParticipants = participants.filter { $0.userId.lowercased() != currentUserId.lowercased() }
-        print("🔍 DEBUG - displayName: After filtering out current user, \(otherParticipants.count) other participants remain")
         
         if otherParticipants.isEmpty {
-            print("🔍 DEBUG - displayName: No other participants found, returning 'Unknown'")
+            // This might be a conversation with yourself or missing data
             return "Unknown"
         }
         
         // For direct messages (1 other participant)
         if otherParticipants.count == 1 {
             if let otherUser = otherParticipants.first?.user {
-                let displayName = otherUser.profileDisplayName
-                print("🔍 DEBUG - displayName: Direct message with user \(otherUser.username), returning displayName: '\(displayName)'")
-                return displayName
+                return otherUser.profileDisplayName
             } else {
-                let fallbackName = "User-\(String(otherParticipants.first!.userId.prefix(8)))"
-                print("🔍 DEBUG - displayName: No user object for participant, returning fallback: '\(fallbackName)'")
-                return fallbackName
+                // Fallback if user data isn't loaded yet
+                return "User"
             }
         }
         
         // For group chats (multiple other participants)
-        print("🔍 DEBUG - displayName: Group chat with \(otherParticipants.count) other participants")
         let participantNames = otherParticipants.compactMap { participant in
-            let name = participant.user?.profileDisplayName ?? "User-\(String(participant.userId.prefix(8)))"
-            print("🔍 DEBUG - displayName: Group participant name: '\(name)'")
-            return name
+            participant.user?.profileDisplayName ?? "User"
         }
         
-        if participantNames.count <= 3 {
+        if participantNames.isEmpty {
+            return "Group Chat"
+        } else if participantNames.count <= 3 {
             // Show all names for small groups
-            let groupName = participantNames.joined(separator: ", ")
-            print("🔍 DEBUG - displayName: Small group, returning: '\(groupName)'")
-            return groupName
+            return participantNames.joined(separator: ", ")
         } else {
             // Show first few names + count for large groups
             let firstNames = participantNames.prefix(2).joined(separator: ", ")
             let remainingCount = participantNames.count - 2
-            let groupName = "\(firstNames) +\(remainingCount) others"
-            print("🔍 DEBUG - displayName: Large group, returning: '\(groupName)'")
-            return groupName
+            return "\(firstNames) +\(remainingCount) others"
         }
     }
     
     func displayAvatar(currentUserId: String?) -> String? {
         // For direct messages, show the other participant's avatar
         // For group chats, show the first other participant's avatar (or could be a group icon)
-        guard let participants = participants, let currentUserId = currentUserId else {
+        guard let currentUserId = currentUserId else {
+            return nil
+        }
+        
+        // Handle missing participants data gracefully
+        guard let participants = participants, !participants.isEmpty else {
             return nil
         }
         
@@ -169,11 +153,25 @@ struct Conversation: Identifiable, Codable {
             return "Start a conversation"
         }
         
-        // プレビューは既に平文で保存されているので、そのまま表示
-        if preview.count <= 15 {
-            return preview
+        // プレビューが暗号化されている可能性があるため、復号化を試みる
+        var displayText = preview
+        
+        // Base64エンコードされた暗号化データかどうかを簡単にチェック
+        if preview.count > 20 && preview.contains(where: { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=".contains($0) }) {
+            do {
+                let keyData = try KeychainManager.shared.getUserKey()
+                let key = CryptoManager.shared.dataToKey(keyData)
+                displayText = try CryptoManager.shared.decryptFromBase64(base64String: preview, using: key)
+            } catch {
+                // 復号化に失敗した場合はそのまま表示
+                displayText = preview
+            }
+        }
+        
+        if displayText.count <= 15 {
+            return displayText
         } else {
-            return String(preview.prefix(15)) + "..."
+            return String(displayText.prefix(15)) + "..."
         }
     }
 }

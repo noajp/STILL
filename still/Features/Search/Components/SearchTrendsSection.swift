@@ -3,7 +3,7 @@
 // Path: foodai/Features/Search/Components/SearchTrendsSection.swift
 //======================================================================
 
-import SwiftUICore
+import SwiftUI
 import SwiftUI
 struct SearchTrendsSection: View {
     private let trends = [

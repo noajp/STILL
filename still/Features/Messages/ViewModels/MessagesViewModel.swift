@@ -146,8 +146,8 @@ class MessagesViewModel: ObservableObject {
      */
     private func updateConversationWithNewMessage(_ message: Message) {
         if let index = conversations.firstIndex(where: { $0.id == message.conversationId }) {
-            // Update last message preview and timestamp
-            conversations[index].lastMessagePreview = message.content  // Note: This is encrypted content
+            // Update last message preview and timestamp with decrypted content
+            conversations[index].lastMessagePreview = message.decryptedContent
             conversations[index].lastMessageAt = message.createdAt
             
             // Move conversation to top of list for recency
@@ -264,24 +264,29 @@ class MessagesViewModel: ObservableObject {
     func createNewConversation(with userId: String) async -> String? {
         do {
             let conversationId = try await messageService.getOrCreateDirectConversation(with: userId)
+            print("🔄 Conversation created with ID: \(conversationId)")
             
-            // Force fresh data retrieval
+            // Force complete reload of conversations to ensure new conversation appears
             hasLoadedInitially = false
-            await refreshConversations()
+            await loadConversations()
             
-            // Wait briefly and verify conversation was added
-            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-            
-            // Check if new conversation appears in list
-            if !conversations.contains(where: { $0.id == conversationId }) {
-                // Retry refresh if conversation not yet visible
-                await refreshConversations()
+            // Verify conversation appears in list with multiple retries
+            for attempt in 1...3 {
+                if conversations.contains(where: { $0.id == conversationId }) {
+                    print("✅ New conversation confirmed in list after \(attempt) attempt(s)")
+                    break
+                }
+                
+                print("⏳ Attempt \(attempt): Conversation not found, retrying...")
+                try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                await loadConversations()
             }
             
-            print("✅ New conversation created: \(conversationId)")
             return conversationId
         } catch {
-            errorMessage = "Failed to create conversation: \(error.localizedDescription)"
+            await MainActor.run {
+                errorMessage = "Failed to create conversation: \(error.localizedDescription)"
+            }
             print("❌ Failed to create conversation: \(error)")
             return nil
         }

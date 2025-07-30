@@ -429,7 +429,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TETE;
+				INFOPLIST_KEY_CFBundleDisplayName = STILL;
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos for sharing with other users. Camera access is required to capture and share your moments.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "場所情報を共有するために、位置情報へのアクセスが必要です。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app may use the microphone for video recording features.";
@@ -439,6 +439,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -466,7 +467,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = still/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TETE;
+				INFOPLIST_KEY_CFBundleDisplayName = STILL;
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to take photos for sharing with other users. Camera access is required to capture and share your moments.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "場所情報を共有するために、位置情報へのアクセスが必要です。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app may use the microphone for video recording features.";
@@ -476,6 +477,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

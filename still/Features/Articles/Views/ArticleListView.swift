@@ -13,7 +13,7 @@ struct ArticleListView: View {
     
     var body: some View {
         ScrollableHeaderView(
-            title: "Articles"
+            title: "ARTICLES"
         ) {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.articles) { article in

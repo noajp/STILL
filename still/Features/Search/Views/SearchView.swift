@@ -42,7 +42,7 @@ struct SearchView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Unified Header
-                UnifiedHeader(title: "Search")
+                UnifiedHeader(title: "SEARCH")
                 
                 // Search input bar with real-time search functionality
                 SearchBarView(searchText: $viewModel.searchText) { searchQuery in
