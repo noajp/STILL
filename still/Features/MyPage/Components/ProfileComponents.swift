@@ -248,7 +248,7 @@ struct ModernPostsTabSection: View {
                             .padding(12)
                             .background(
                                 Circle()
-                                    .fill(MinimalDesign.Colors.surface)
+                                    .fill(MinimalDesign.Colors.secondaryBackground)
                                     .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
                             )
                     }
