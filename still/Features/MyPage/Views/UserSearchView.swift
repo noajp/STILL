@@ -192,20 +192,12 @@ struct UserSearchView: View {
                 print("🔍 UserSearch - Searching for: \(searchText)")
                 let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                let results = try await supabase
-                    .from("profiles")
-                    .select("*")
-                    .ilike("username", value: "%\(query)%")
-                    .limit(20)
-                    .execute()
-                
-                let decoder = JSONDecoder()
-                let profiles = try decoder.decode([UserProfile].self, from: results.data)
+                let users = try await UserRepository.shared.searchUsersByUsername(query)
                 
                 await MainActor.run {
-                    self.searchResults = profiles
+                    self.searchResults = users
                     self.isSearching = false
-                    print("✅ UserSearch - Found \(profiles.count) users")
+                    print("✅ UserSearch - Found \(users.count) users")
                 }
             } catch {
                 print("❌ UserSearch - Search error: \(error)")

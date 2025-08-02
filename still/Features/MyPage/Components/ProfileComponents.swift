@@ -209,7 +209,7 @@ struct ModernPostsTabSection: View {
                                 selectedPost = post
                                 navigateToSingleView = true
                             }, onDeletePost: onDeletePost, onReorderPosts: onReorderPosts)
-                                .transition(.opacity)
+                                .transition(AnyTransition.opacity)
                                 .onAppear {
                                     print("🔵 ModernPostsTabSection: Showing GridView with \(posts.count) posts")
                                 }
@@ -218,7 +218,7 @@ struct ModernPostsTabSection: View {
                                 selectedPost = post
                                 navigateToSingleView = true
                             }, onDeletePost: onDeletePost, onReorderPosts: onReorderPosts)
-                                .transition(.opacity)
+                                .transition(AnyTransition.opacity)
                                 .onAppear {
                                     print("🔵 ModernPostsTabSection: Showing SingleCardGridView with \(posts.count) posts")
                                 }
@@ -309,5 +309,41 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 48)
+    }
+}
+
+// MARK: - Profile Image Picker
+/**
+ * Profile image picker component with PhotosPicker integration
+ */
+@MainActor
+struct ProfileImagePicker: View {
+    let profile: UserProfile?
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    
+    var body: some View {
+        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+            if let avatarUrl = profile?.avatarUrl {
+                AsyncImage(url: URL(string: avatarUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.gray.opacity(0.3))
+                }
+                .frame(width: 100, height: 100)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 100, height: 100)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                    )
+            }
+        }
     }
 }
