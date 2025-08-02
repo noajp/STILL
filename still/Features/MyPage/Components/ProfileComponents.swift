@@ -236,26 +236,6 @@ struct ModernPostsTabSection: View {
                 }
             }
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedTab)
-            
-            // Toggle Grid Mode Button
-            if selectedTab == 0 && !posts.isEmpty {
-                HStack {
-                    Spacer()
-                    Button(action: { showGridMode.toggle() }) {
-                        Image(systemName: showGridMode ? "square.grid.3x3.fill" : "rectangle.grid.1x2.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(MinimalDesign.Colors.primary)
-                            .padding(12)
-                            .background(
-                                Circle()
-                                    .fill(MinimalDesign.Colors.secondaryBackground)
-                                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
-                            )
-                    }
-                    .padding(.trailing, MinimalDesign.Spacing.md)
-                    .padding(.bottom, MinimalDesign.Spacing.sm)
-                }
-            }
         }
     }
 }

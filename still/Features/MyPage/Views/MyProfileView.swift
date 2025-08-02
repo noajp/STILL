@@ -72,20 +72,17 @@ struct MyProfileView: View {
         }
         .navigationDestination(isPresented: $showFollowersList) {
             FollowListView(
-                isShowingFollowers: true,
                 userId: authManager.currentUser?.id ?? "",
-                hasNewFollowers: viewModel.hasNewFollowers
+                listType: .followers
             )
             .onDisappear {
-                Task {
-                    await viewModel.markFollowersAsSeen()
-                }
+                viewModel.markNewFollowersAsSeen()
             }
         }
         .navigationDestination(isPresented: $showFollowingList) {
             FollowListView(
-                isShowingFollowers: false,
-                userId: authManager.currentUser?.id ?? ""
+                userId: authManager.currentUser?.id ?? "",
+                listType: .following
             )
         }
         .task {
