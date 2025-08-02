@@ -6,12 +6,12 @@
 import AVFoundation
 import UIKit
 import Combine
+import Photos
 
 /**
  * Manager for handling multiple camera sessions simultaneously
  * Supports dual, triple, and picture-in-picture camera configurations
  */
-@MainActor
 class MultiCameraManager: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var isSetupComplete = false
@@ -44,7 +44,8 @@ class MultiCameraManager: NSObject, ObservableObject {
     
     // MARK: - Setup Methods
     private func checkMultiCamSupport() {
-        isSupported = AVCaptureMultiCamSession.isSupported
+        // Check if device supports multi-camera sessions
+        isSupported = AVCaptureMultiCamSession.isMultiCamSupported
         print("🎥 Multi-camera support: \(isSupported)")
     }
     
@@ -81,12 +82,16 @@ class MultiCameraManager: NSObject, ObservableObject {
         print("  - Back Telephoto: \(backTelephotoCamera?.localizedName ?? "None")")
     }
     
+    @MainActor
     func setupMultiCameraSession() {
-        guard isSupported else {
+        guard AVCaptureMultiCamSession.isMultiCamSupported else {
             print("❌ Multi-camera not supported on this device")
+            // Fallback to single camera setup if needed
+            isSupported = false
             return
         }
         
+        isSupported = true
         multiCamSession = AVCaptureMultiCamSession()
         
         guard let session = multiCamSession else { return }
@@ -199,6 +204,12 @@ class MultiCameraManager: NSObject, ObservableObject {
             if session.canAddInput(input) {
                 session.addInputWithNoConnections(input)
                 
+                // Get video port for this device
+                guard let videoPort = input.ports(for: .video, sourceDeviceType: device.deviceType, sourceDevicePosition: device.position).first else {
+                    print("❌ No video port found for \(identifier) camera")
+                    return
+                }
+                
                 // Create video data output
                 let videoOutput = AVCaptureVideoDataOutput()
                 videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera_\(identifier)"))
@@ -207,11 +218,9 @@ class MultiCameraManager: NSObject, ObservableObject {
                     session.addOutputWithNoConnections(videoOutput)
                     
                     // Connect input to output
-                    if let videoPort = input.ports(for: .video, sourceDeviceType: device.deviceType, sourceDevicePosition: device.position).first {
-                        let connection = AVCaptureConnection(inputPorts: [videoPort], output: videoOutput)
-                        if session.canAddConnection(connection) {
-                            session.addConnection(connection)
-                        }
+                    let connection = AVCaptureConnection(inputPorts: [videoPort], output: videoOutput)
+                    if session.canAddConnection(connection) {
+                        session.addConnection(connection)
                     }
                 }
                 
@@ -222,11 +231,9 @@ class MultiCameraManager: NSObject, ObservableObject {
                     photoOutputs[identifier] = photoOutput
                     
                     // Connect input to photo output
-                    if let videoPort = input.ports(for: .video, sourceDeviceType: device.deviceType, sourceDevicePosition: device.position).first {
-                        let photoConnection = AVCaptureConnection(inputPorts: [videoPort], output: photoOutput)
-                        if session.canAddConnection(photoConnection) {
-                            session.addConnection(photoConnection)
-                        }
+                    let photoConnection = AVCaptureConnection(inputPorts: [videoPort], output: photoOutput)
+                    if session.canAddConnection(photoConnection) {
+                        session.addConnection(photoConnection)
                     }
                 }
             }
@@ -264,6 +271,7 @@ class MultiCameraManager: NSObject, ObservableObject {
     }
     
     // MARK: - Public Methods
+    @MainActor
     func updateLayout(_ layout: CameraLayout) {
         guard let session = multiCamSession else { return }
         
@@ -274,6 +282,7 @@ class MultiCameraManager: NSObject, ObservableObject {
         session.commitConfiguration()
     }
     
+    @MainActor
     func switchCameraConfiguration() {
         // Implement camera switching logic
         let layouts: [CameraLayout] = [.dual, .triple, .pictureInPicture, .grid]
@@ -283,6 +292,7 @@ class MultiCameraManager: NSObject, ObservableObject {
         }
     }
     
+    @MainActor
     func captureMultiCameraPhoto(completion: @escaping ([String: Data]) -> Void) {
         var capturedPhotos: [String: Data] = [:]
         let group = DispatchGroup()
@@ -293,9 +303,17 @@ class MultiCameraManager: NSObject, ObservableObject {
             let settings = AVCapturePhotoSettings()
             settings.flashMode = .off
             
-            photoOutput.capturePhoto(with: settings, delegate: MultiCameraPhotoDelegate { photoData in
+            photoOutput.capturePhoto(with: settings, delegate: MultiCameraPhotoDelegate { [weak self] photoData in
                 if let data = photoData {
                     capturedPhotos[identifier] = data
+                    
+                    // Save each photo to camera roll
+                    if let image = UIImage(data: data) {
+                        Task.detached {
+                            await CameraManager.savePhotoToLibraryStatic(image: image)
+                            print("✅ Photo from \(identifier) camera saved to library")
+                        }
+                    }
                 }
                 group.leave()
             })
@@ -306,19 +324,22 @@ class MultiCameraManager: NSObject, ObservableObject {
         }
     }
     
+    @MainActor
     func stopSession() {
         multiCamSession?.stopRunning()
         isSetupComplete = false
     }
     
+    
     deinit {
-        stopSession()
+        // Stop session synchronously in deinit
+        multiCamSession?.stopRunning()
     }
 }
 
 // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
 extension MultiCameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
-    nonisolated func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         // Handle real-time video frames if needed
         // This can be used for real-time effects or analysis
     }

@@ -16,6 +16,9 @@ struct MultiCameraView: View {
     @State private var isRecording = false
     
     var body: some View {
+        if !AVCaptureMultiCamSession.isMultiCamSupported {
+            unsupportedDeviceView
+        } else {
         GeometryReader { geometry in
             ZStack {
                 // Background
@@ -33,11 +36,40 @@ struct MultiCameraView: View {
             }
         }
         .onAppear {
-            multiCameraManager.setupMultiCameraSession()
+            if AVCaptureMultiCamSession.isMultiCamSupported {
+                multiCameraManager.setupMultiCameraSession()
+            }
         }
         .onDisappear {
             multiCameraManager.stopSession()
         }
+        }
+    }
+    
+    // MARK: - Unsupported Device View
+    private var unsupportedDeviceView: some View {
+        VStack(spacing: 30) {
+            Spacer()
+            
+            VStack(spacing: 20) {
+                Image(systemName: "camera.badge.ellipsis")
+                    .font(.system(size: 80))
+                    .foregroundColor(.orange)
+                
+                Text("Multi-Camera Not Supported")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(MinimalDesign.Colors.primary)
+                
+                Text("Multi-camera functionality requires iPhone 11 or newer")
+                    .font(.system(size: 16))
+                    .foregroundColor(MinimalDesign.Colors.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            
+            Spacer()
+        }
+        .background(MinimalDesign.Colors.background)
     }
     
     // MARK: - Camera Frames View
@@ -207,6 +239,9 @@ struct MultiCameraView: View {
         multiCameraManager.captureMultiCameraPhoto { results in
             // Handle captured photos from multiple cameras
             print("📸 Captured \(results.count) photos from different cameras")
+            
+            // Photos are automatically saved to camera roll by MultiCameraManager
+            // Each camera's photo is saved individually with proper logging
         }
     }
     
@@ -241,7 +276,7 @@ struct CameraFrameView: View {
         ZStack {
             // Camera preview
             if let previewLayer = previewLayer {
-                CameraPreviewView(previewLayer: previewLayer)
+                CameraPreviewRepresentable(previewLayer: previewLayer)
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
@@ -280,20 +315,3 @@ struct CameraFrameView: View {
     }
 }
 
-// MARK: - Camera Preview UIView Wrapper
-struct CameraPreviewView: UIViewRepresentable {
-    let previewLayer: AVCaptureVideoPreviewLayer
-    
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.layer.addSublayer(previewLayer)
-        previewLayer.videoGravity = .resizeAspectFill
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async {
-            previewLayer.frame = uiView.bounds
-        }
-    }
-}

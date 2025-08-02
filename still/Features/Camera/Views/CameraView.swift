@@ -4,6 +4,7 @@
 //======================================================================
 import SwiftUI
 @preconcurrency import AVFoundation
+import Photos
 
 struct CameraView: View {
     @Namespace private var filmAnimationNamespace
@@ -11,6 +12,8 @@ struct CameraView: View {
     @State private var isFilmLoaded = false
     @State private var isShutterEnabled = false
     @StateObject private var cameraManager = CameraManager()
+    @State private var previewLayer: AVCaptureVideoPreviewLayer?
+    @State private var isSplitScreenMode = false
     
     let films: [Film] = [
         Film(id: "1", name: "Classic", color: Color.orange),
@@ -21,15 +24,53 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
+            if isSplitScreenMode {
+                // Split screen camera view
+                SplitScreenCameraView()
+            } else {
+                // Normal camera view
+                normalCameraView
+            }
+        }
+    }
+    
+    private var normalCameraView: some View {
+        ZStack {
             // カメラプレビュー
-            Rectangle()
-                .fill(Color.black)
-                .ignoresSafeArea()
+            if let previewLayer = previewLayer {
+                CameraPreviewRepresentable(previewLayer: previewLayer)
+                    .ignoresSafeArea()
+            } else {
+                Rectangle()
+                    .fill(Color.black)
+                    .ignoresSafeArea()
+                    .overlay(
+                        VStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            Text("Setting up camera...")
+                                .foregroundColor(.white)
+                                .padding(.top)
+                        }
+                    )
+            }
             
             // オーバーレイUI
             VStack {
-                // 上部のフィルム装填エリア
+                // 上部コントロール
                 HStack {
+                    // Split screen toggle button
+                    Button(action: { isSplitScreenMode.toggle() }) {
+                        Image(systemName: isSplitScreenMode ? "rectangle" : "rectangle.split.2x1")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(22)
+                    }
+                    .padding(.top, 50)
+                    .padding(.leading, 20)
+                    
                     Spacer()
                     
                     if let film = selectedFilm {
@@ -48,50 +89,57 @@ struct CameraView: View {
                 Spacer()
                 
                 // Camera shutter button
-                ShutterButton(isEnabled: isShutterEnabled) {
+                ShutterButton(isEnabled: cameraManager.isSessionRunning && previewLayer != nil) {
+                    print("📷 Shutter button pressed")
                     cameraManager.takePhoto()
                 }
                 .padding(.bottom, 30)
                 
-                // Bottom film selection interface
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 20) {
-                        ForEach(films) { film in
-                            if selectedFilm?.id != film.id {
-                                FilmCylinderView(film: film)
-                                    .matchedGeometryEffect(id: film.id, in: filmAnimationNamespace)
-                                    .onTapGesture {
-                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                            // Reset camera state for new film
-                                            isFilmLoaded = false
-                                            isShutterEnabled = false
-                                            selectedFilm = film
-                                        }
-                                    }
-                            } else {
-                                // Placeholder for selected film (shows loading position)
-                                FilmCylinderView(film: film)
-                                    .opacity(0.3)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 20)
-                }
-                .background(
-                    LinearGradient(
-                        colors: [Color.black.opacity(0), Color.black.opacity(0.5)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                // Film selection interface removed
             }
         }
         .onAppear {
-            cameraManager.checkPermissions()
+            setupCamera()
+        }
+        .onDisappear {
+            cameraManager.stopSession()
+        }
+        .onChange(of: cameraManager.isSessionRunning) { isRunning in
+            if !isRunning {
+                print("⚠️ Camera session stopped unexpectedly")
+            }
+        }
+    }
+    
+    // MARK: - Camera Setup
+    private func setupCamera() {
+        // Check current permission status
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        
+        switch status {
+        case .authorized:
+            // Permission already granted, setup camera immediately
+            cameraManager.setupCamera { layer in
+                self.previewLayer = layer
+            }
+        case .notDetermined:
+            // Request permission first
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.cameraManager.setupCamera { layer in
+                            self.previewLayer = layer
+                        }
+                    }
+                }
+            }
+        default:
+            // Permission denied or restricted
+            print("Camera access denied")
         }
     }
 }
+
 
 // MARK: - Film Model
 
@@ -112,57 +160,6 @@ struct Film: Identifiable {
     let color: Color
 }
 
-// MARK: - Film Cylinder View
-
-/**
- * FilmCylinderView displays a 3D-styled film canister.
- * 
- * This view creates a visual representation of a film cylinder with:
- * - Gradient shading to simulate 3D appearance
- * - Top cap with elliptical perspective
- * - Rotated text label on the cylinder body
- * - Drop shadow for depth
- */
-struct FilmCylinderView: View {
-    /// The film to represent visually
-    let film: Film
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            // Film canister body
-            ZStack {
-                // Cylinder side surface with gradient shading
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(
-                        LinearGradient(
-                            colors: [film.color.opacity(0.8), film.color],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: 50, height: 80)
-                
-                // Top cap with perspective
-                Ellipse()
-                    .fill(film.color.opacity(0.9))
-                    .frame(width: 50, height: 20)
-                    .offset(y: -30)
-                
-                // Film label rotated to match cylinder orientation
-                Text(film.name)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white)
-                    .rotationEffect(.degrees(-90))
-            }
-            .shadow(radius: 5)
-            
-            // Film name below the cylinder
-            Text(film.name)
-                .font(.caption)
-                .foregroundColor(.white)
-        }
-    }
-}
 
 // MARK: - Film Loaded View
 
@@ -197,10 +194,13 @@ struct FilmLoadedView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Loaded film canister (enlarged to show it's active)
-            FilmCylinderView(film: film)
-                .matchedGeometryEffect(id: film.id, in: namespace)
-                .scaleEffect(1.2)
+            // Film loaded indicator
+            Text(film.name + " Loaded")
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding()
+                .background(film.color.opacity(0.8))
+                .cornerRadius(10)
             
             // Hanging film tail for user interaction
             if isFilmLoaded {
@@ -326,8 +326,7 @@ struct ShutterButton: View {
  * Manages the AVFoundation camera session, permission handling,
  * and photo capture functionality for the film camera interface.
  */
-@MainActor
-class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
     /// Camera capture session
     private var captureSession: AVCaptureSession?
     
@@ -337,25 +336,54 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate, 
     /// Most recently captured image
     @Published var capturedImage: UIImage?
     
+    /// Session queue for camera operations
+    private let sessionQueue = DispatchQueue(label: "camera.session.queue")
+    
+    /// Is session currently running
+    @Published var isSessionRunning = false
+    
+    override init() {
+        super.init()
+        setupNotificationObserver()
+    }
+    
+    private func setupNotificationObserver() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("PhotoCaptured"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let image = notification.userInfo?["image"] as? UIImage {
+                self?.capturedImage = image
+                print("📷 Photo assigned to capturedImage property via notification")
+            }
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     /**
      * Checks and requests camera permissions if needed.
      */
     func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            // Already authorized
-            break
+            // Already authorized - no need to setup here as it's handled by the view
+            print("Camera permission already granted")
         case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+            AVCaptureDevice.requestAccess(for: .video) { granted in
                 if granted {
-                    Task { @MainActor in
-                        self?.setupCamera { _ in }
-                    }
+                    print("Camera permission granted")
+                } else {
+                    print("Camera permission denied")
                 }
             }
-        default:
-            // Handle denied or restricted access
-            break
+        case .denied, .restricted:
+            print("Camera permission denied or restricted")
+        @unknown default:
+            print("Unknown camera permission status")
         }
     }
     
@@ -364,40 +392,75 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate, 
      * 
      * - Parameter completion: Callback with configured preview layer
      */
-    func setupCamera(completion: @MainActor @escaping (AVCaptureVideoPreviewLayer) -> Void) {
-        let session = AVCaptureSession()
-        session.beginConfiguration()
-        
-        // Configure camera device input
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: camera) else {
-            return
-        }
-        
-        if session.canAddInput(input) {
-            session.addInput(input)
-        }
-        
-        // Configure photo output
-        let output = AVCapturePhotoOutput()
-        if session.canAddOutput(output) {
-            session.addOutput(output)
-            photoOutput = output
-        }
-        
-        session.commitConfiguration()
-        captureSession = session
-        
-        // Create preview layer
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        
-        // Start session on background queue
-        DispatchQueue.global(qos: .userInitiated).async {
+    func setupCamera(completion: @escaping @MainActor (AVCaptureVideoPreviewLayer) -> Void) {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            print("📷 Setting up camera session...")
+            
+            let session = AVCaptureSession()
+            
+            // Set session preset for better performance
+            if session.canSetSessionPreset(.photo) {
+                session.sessionPreset = .photo
+            }
+            
+            session.beginConfiguration()
+            
+            // Configure camera device input
+            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+                print("❌ Failed to get camera device")
+                return
+            }
+            
+            do {
+                let input = try AVCaptureDeviceInput(device: camera)
+                
+                if session.canAddInput(input) {
+                    session.addInput(input)
+                    print("✅ Camera input added to session")
+                } else {
+                    print("❌ Failed to add camera input to session")
+                    return
+                }
+            } catch {
+                print("❌ Failed to create camera input: \(error)")
+                return
+            }
+            
+            // Configure photo output
+            let output = AVCapturePhotoOutput()
+            
+            // Enable high resolution capture
+            if output.isHighResolutionCaptureEnabled {
+                output.isHighResolutionCaptureEnabled = true
+            }
+            
+            if session.canAddOutput(output) {
+                session.addOutput(output)
+                self.photoOutput = output
+                print("✅ Photo output added to session")
+            } else {
+                print("❌ Failed to add photo output to session")
+                return
+            }
+            
+            session.commitConfiguration()
+            self.captureSession = session
+            
+            // Create preview layer
+            let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+            previewLayer.videoGravity = .resizeAspectFill
+            
+            // Start session
             session.startRunning()
-        }
-        
-        Task { @MainActor in
-            completion(previewLayer)
+            
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.isSessionRunning = session.isRunning
+                print("📷 Camera session started: \(self.isSessionRunning)")
+                completion(previewLayer)
+            }
         }
     }
     
@@ -405,10 +468,33 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate, 
      * Captures a photo using current camera settings.
      */
     func takePhoto() {
-        guard let photoOutput = photoOutput else { return }
-        
-        let settings = AVCapturePhotoSettings()
-        photoOutput.capturePhoto(with: settings, delegate: self)
+        sessionQueue.async { [weak self] in
+            guard let self = self,
+                  let photoOutput = self.photoOutput,
+                  let session = self.captureSession,
+                  session.isRunning else {
+                print("❌ Cannot take photo: session not ready")
+                return
+            }
+            
+            // Create settings with appropriate format
+            let settings: AVCapturePhotoSettings
+            
+            // Use HEVC format if available, otherwise use default
+            if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+                settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+            } else {
+                settings = AVCapturePhotoSettings()
+            }
+            
+            // Enable high resolution if available
+            if photoOutput.isHighResolutionCaptureEnabled {
+                settings.isHighResolutionPhotoEnabled = true
+            }
+            
+            print("📷 Taking photo with settings: \(settings)")
+            photoOutput.capturePhoto(with: settings, delegate: self)
+        }
     }
     
     // MARK: - AVCapturePhotoCaptureDelegate
@@ -419,12 +505,170 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate, 
      * Processes the captured photo and applies film effects if needed.
      */
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data) else { return }
+        if let error = error {
+            print("❌ Photo capture error: \(error.localizedDescription)")
+            return
+        }
         
-        Task { @MainActor [weak self] in
-            self?.capturedImage = image
-            // TODO: Apply film filter based on selected film type and save to photo library
+        guard let data = photo.fileDataRepresentation() else {
+            print("❌ Failed to get photo data representation")
+            return
+        }
+        
+        guard let image = UIImage(data: data) else {
+            print("❌ Failed to create UIImage from photo data")
+            return
+        }
+        
+        print("📷 Photo captured successfully - Size: \(image.size)")
+        
+        // Notify about photo capture without self reference
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("PhotoCaptured"), 
+                object: nil, 
+                userInfo: ["image": image]
+            )
+        }
+        
+        // Save to photo library in completely isolated task
+        Task.detached {
+            await CameraManager.savePhotoToLibraryStatic(image: image)
+        }
+    }
+    
+    /**
+     * Static method to save photo without any instance dependencies
+     */
+    static func savePhotoToLibraryStatic(image: UIImage) async {
+        // Check photo library permission
+        let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        
+        switch status {
+        case .authorized, .limited:
+            await performSaveStatic(image: image)
+        case .notDetermined:
+            let newStatus = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            if newStatus == .authorized || newStatus == .limited {
+                await performSaveStatic(image: image)
+            } else {
+                print("❌ Photo library access denied")
+            }
+        case .denied, .restricted:
+            print("❌ Photo library access denied or restricted")
+        @unknown default:
+            print("❌ Unknown photo library authorization status")
+        }
+    }
+    
+    /**
+     * Saves the captured photo to the device's photo library (isolated version)
+     */
+    private func savePhotoToLibraryIsolated(image: UIImage) async {
+        await CameraManager.savePhotoToLibraryStatic(image: image)
+    }
+    
+    /**
+     * Saves the captured photo to the device's photo library (MainActor version)
+     */
+    @MainActor
+    private func savePhotoToLibrary(image: UIImage) {
+        // Check photo library permission
+        let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        
+        switch status {
+        case .authorized, .limited:
+            performSave(image: image)
+        case .notDetermined:
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { newStatus in
+                Task { @MainActor [weak self] in
+                    if newStatus == .authorized || newStatus == .limited {
+                        self?.performSave(image: image)
+                    } else {
+                        print("❌ Photo library access denied")
+                    }
+                }
+            }
+        case .denied, .restricted:
+            print("❌ Photo library access denied or restricted")
+        @unknown default:
+            print("❌ Unknown photo library authorization status")
+        }
+    }
+    
+    /**
+     * Static method to perform the actual save operation
+     */
+    static func performSaveStatic(image: UIImage) async {
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
+            }
+            print("✅ Photo saved to library successfully")
+        } catch {
+            print("❌ Failed to save photo to library: \(error.localizedDescription)")
+        }
+    }
+    
+    /**
+     * Performs the actual save operation to photo library (isolated version)
+     */
+    private func performSaveIsolated(image: UIImage) async {
+        await CameraManager.performSaveStatic(image: image)
+    }
+    
+    /**
+     * Performs the actual save operation to photo library (MainActor version)
+     */
+    @MainActor
+    private func performSave(image: UIImage) {
+        PHPhotoLibrary.shared().performChanges({
+            PHAssetChangeRequest.creationRequestForAsset(from: image)
+        }) { success, error in
+            Task { @MainActor in
+                if success {
+                    print("✅ Photo saved to library successfully")
+                    // Optional: Show success feedback to user
+                } else if let error = error {
+                    print("❌ Failed to save photo to library: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Stops the camera session
+     */
+    func stopSession() {
+        sessionQueue.async { [weak self] in
+            guard let self = self, let session = self.captureSession else { return }
+            
+            if session.isRunning {
+                session.stopRunning()
+                print("📷 Camera session stopped")
+                
+                Task { @MainActor [weak self] in
+                    self?.isSessionRunning = false
+                }
+            }
+        }
+    }
+    
+    /**
+     * Restarts the camera session if needed
+     */
+    func restartSessionIfNeeded() {
+        sessionQueue.async { [weak self] in
+            guard let self = self, let session = self.captureSession else { return }
+            
+            if !session.isRunning {
+                session.startRunning()
+                print("📷 Camera session restarted")
+                
+                Task { @MainActor [weak self] in
+                    self?.isSessionRunning = session.isRunning
+                }
+            }
         }
     }
 }
