@@ -35,6 +35,7 @@ final class MyPageViewModel: BaseViewModelClass {
     
     private let userRepository: UserRepositoryProtocol
     private let authManager: any AuthManagerProtocol
+    private let postService: PostServiceProtocol
     
     // MARK: - Private Properties
     
@@ -47,10 +48,12 @@ final class MyPageViewModel: BaseViewModelClass {
     
     init(
         userRepository: UserRepositoryProtocol? = nil,
-        authManager: (any AuthManagerProtocol)? = nil
+        authManager: (any AuthManagerProtocol)? = nil,
+        postService: PostServiceProtocol? = nil
     ) {
         self.userRepository = userRepository ?? UserRepository()
         self.authManager = authManager ?? (DependencyContainer.shared.resolve((any AuthManagerProtocol).self) ?? AuthManager.shared)
+        self.postService = postService ?? PostService()
         super.init()
         
         Task {
@@ -85,19 +88,43 @@ final class MyPageViewModel: BaseViewModelClass {
     /// Loads all user data including profile, posts, and statistics
     func loadUserData() async {
         guard let userId = currentUserId else {
+            print("❌ MyPageViewModel: No current user ID")
             handleError(ViewModelError.unauthorized)
             return
         }
         
+        print("🔵 MyPageViewModel: Starting to load data for user: \(userId)")
         showLoading()
         
         do {
             // Load profile
+            print("🔵 MyPageViewModel: Loading profile...")
             userProfile = try await userRepository.fetchUserProfile(userId: userId)
+            print("✅ MyPageViewModel: Profile loaded for \(userProfile?.username ?? "unknown")")
             
-            // Load posts
-            userPosts = try await userRepository.fetchUserPosts(userId: userId)
-            print("🟢 MyPageViewModel: Loaded \(userPosts.count) posts for user \(userId)")
+            // Load user's own posts (both public and private)
+            print("🔵 MyPageViewModel: Loading posts for user \(userId)...")
+            userPosts = try await postService.fetchUserPosts(userId: userId)
+            print("🔵 MyPageViewModel: Received \(userPosts.count) posts from PostService")
+            
+            // Debug: Print post details
+            for (index, post) in userPosts.enumerated() {
+                print("📋 Post \(index + 1): ID=\(post.id), userId=\(post.userId), mediaUrl=\(post.mediaUrl)")
+            }
+            
+            // Set like status for each post
+            for i in 0..<userPosts.count {
+                do {
+                    userPosts[i].isLikedByMe = try await LikeService().checkUserLikeStatus(
+                        postId: userPosts[i].id,
+                        userId: userId
+                    )
+                } catch {
+                    print("⚠️ MyPageViewModel: Failed to get like status for post \(userPosts[i].id): \(error)")
+                    userPosts[i].isLikedByMe = false
+                }
+            }
+            print("✅ MyPageViewModel: Loaded \(userPosts.count) posts for user \(userId)")
             
             // Check for new followers
             hasNewFollowers = try await FollowService.shared.checkNewFollowers()
@@ -107,11 +134,14 @@ final class MyPageViewModel: BaseViewModelClass {
             followersCount = try await userRepository.fetchFollowersCount(userId: userId)
             followingCount = try await userRepository.fetchFollowingCount(userId: userId)
             
+            print("📊 MyPageViewModel: Stats - Posts: \(postsCount), Followers: \(followersCount), Following: \(followingCount)")
+            
             hasLoadedInitially = true
             hideLoading()
             Logger.shared.info("User data loaded successfully")
             
         } catch {
+            print("❌ MyPageViewModel: Error loading user data: \(error)")
             handleError(error)
         }
     }
@@ -280,6 +310,12 @@ final class MyPageViewModel: BaseViewModelClass {
         await loadUserData()
     }
     
+    /// Forces a complete reload of user data (ignores cache)
+    func forceReload() async {
+        hasLoadedInitially = false
+        await loadUserData()
+    }
+    
     // MARK: - Private Methods
     
     @objc private func handlePostCreated() {
@@ -324,5 +360,74 @@ final class MyPageViewModel: BaseViewModelClass {
     func markNewFollowersAsSeen() {
         hasNewFollowers = false
         FollowService.shared.markFollowersAsChecked()
+    }
+    
+    // MARK: - Like Operations
+    
+    /// Toggles like status for a post with optimistic UI updates
+    func toggleLike(for post: Post) async {
+        print("🔄 MyPageViewModel: toggleLike called for post \(post.id)")
+        guard let userId = currentUserId else {
+            print("❌ MyPageViewModel: No current user ID")
+            handleError(ViewModelError.unauthorized)
+            return
+        }
+        
+        print("🔍 MyPageViewModel: Current user ID: \(userId)")
+        print("🔍 MyPageViewModel: Post like status before: \(post.isLikedByMe), count: \(post.likeCount)")
+        
+        // Optimistic UI update
+        let originalLikeStatus = post.isLikedByMe
+        let newLikeStatus = !originalLikeStatus
+        updatePostLikeStatus(postId: post.id, isLiked: newLikeStatus)
+        
+        print("🔄 MyPageViewModel: Optimistic update - new status: \(newLikeStatus)")
+        
+        do {
+            let isNowLiked = try await postService.toggleLike(
+                postId: post.id,
+                userId: userId
+            )
+            
+            // Verify optimistic update was correct
+            if isNowLiked != newLikeStatus {
+                updatePostLikeStatusOnly(postId: post.id, isLiked: isNowLiked)
+            }
+            
+            Logger.shared.info("Toggled like for post \(post.id): \(isNowLiked)")
+            
+        } catch {
+            // Revert optimistic update on error
+            updatePostLikeStatus(postId: post.id, isLiked: originalLikeStatus)
+            handleError(error)
+        }
+    }
+    
+    private func updatePostLikeStatus(postId: String, isLiked: Bool) {
+        print("🔄 MyPageViewModel: updatePostLikeStatus called - postId: \(postId), isLiked: \(isLiked)")
+        if let index = userPosts.firstIndex(where: { $0.id == postId }) {
+            print("🔍 MyPageViewModel: Found post at index \(index)")
+            print("🔍 MyPageViewModel: Before update - isLiked: \(userPosts[index].isLikedByMe), count: \(userPosts[index].likeCount)")
+            
+            userPosts[index].isLikedByMe = isLiked
+            
+            // Update like count
+            if isLiked {
+                userPosts[index].likeCount += 1
+            } else {
+                userPosts[index].likeCount = max(0, userPosts[index].likeCount - 1)
+            }
+            
+            print("✅ MyPageViewModel: After update - isLiked: \(userPosts[index].isLikedByMe), count: \(userPosts[index].likeCount)")
+        } else {
+            print("❌ MyPageViewModel: Post not found in userPosts array")
+        }
+    }
+    
+    // Like状態のみ更新（カウントは更新しない）
+    private func updatePostLikeStatusOnly(postId: String, isLiked: Bool) {
+        if let index = userPosts.firstIndex(where: { $0.id == postId }) {
+            userPosts[index].isLikedByMe = isLiked
+        }
     }
 }

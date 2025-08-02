@@ -146,7 +146,15 @@ struct HomeGridView: View {
         }
         .onAppear {
             Task {
+                // Always load posts for following view first (primary)
                 await viewModel.loadPostsIfNeeded()
+                
+                // If currently showing following view, also preload grid data in background
+                if !showGridMode {
+                    Task.detached(priority: .background) {
+                        await viewModel.preloadGridData()
+                    }
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PostCreated"))) { _ in
@@ -166,6 +174,21 @@ struct HomeGridView: View {
                 // When switching to grid mode, also exit single view
                 navigateToSingleView = false
                 selectedPost = nil
+            }
+            
+            // Handle mode switching
+            Task {
+                if newValue {
+                    // Switching to grid mode - ensure posts are loaded for grid
+                    print("🔄 Switching to grid mode")
+                    await viewModel.loadPostsIfNeeded()
+                } else {
+                    // Switching to following mode - start background preload for grid
+                    print("🔄 Switching to following mode")
+                    Task.detached(priority: .background) {
+                        await viewModel.preloadGridData()
+                    }
+                }
             }
         }
     }
@@ -189,11 +212,19 @@ struct PostCardView: View {
                         showProfile = true
                     }
                 }) {
-                    AsyncImage(url: URL(string: post.user?.avatarUrl ?? "")) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
+                    if let avatarUrl = post.user?.avatarUrl {
+                        FastAsyncImage(urlString: avatarUrl) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color(.tertiarySystemBackground))
+                                .overlay(
+                                    Text(post.user?.username.prefix(1).uppercased() ?? "?")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                )
+                        }
+                        .frame(width: 32, height: 32)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    } else {
                         RoundedRectangle(cornerRadius: 6)
                             .fill(Color(.tertiarySystemBackground))
                             .overlay(
@@ -201,9 +232,8 @@ struct PostCardView: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             )
+                            .frame(width: 32, height: 32)
                     }
-                    .frame(width: 32, height: 32)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .buttonStyle(PlainButtonStyle())
                 
@@ -240,8 +270,8 @@ struct PostCardView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             
-            // Image
-            AsyncImage(url: URL(string: post.mediaUrl)) { phase in
+            // Image with optimized loading
+            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -259,6 +289,10 @@ struct PostCardView: View {
                     // Loading skeleton display
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
+                        .overlay(
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        )
                 @unknown default:
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))

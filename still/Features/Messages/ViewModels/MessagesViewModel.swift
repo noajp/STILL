@@ -65,6 +65,18 @@ class MessagesViewModel: ObservableObject {
     /// Current conversation loading task for cancellation
     private var conversationLoadTask: Task<Void, Never>?
     
+    /// Last refresh timestamp to prevent excessive API calls
+    private var lastRefreshTime: Date = Date.distantPast
+    
+    /// Minimum interval between refreshes (3 seconds)
+    private let minimumRefreshInterval: TimeInterval = 3.0
+    
+    /// Batch delay for grouping multiple refresh requests
+    private var refreshTimer: Timer?
+    
+    /// Pending refresh flag
+    private var hasPendingRefresh = false
+    
     // MARK: - Initialization
     
     /**
@@ -225,6 +237,26 @@ class MessagesViewModel: ObservableObject {
      * Shows loading indicators during the refresh process.
      */
     func refreshConversations() async {
+        // Rate limiting: prevent excessive API calls
+        let now = Date()
+        if now.timeIntervalSince(lastRefreshTime) < minimumRefreshInterval {
+            print("⏳ MessagesViewModel: Skipping refresh (rate limited)")
+            // Schedule a delayed refresh if needed
+            if !hasPendingRefresh {
+                hasPendingRefresh = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + minimumRefreshInterval) { [weak self] in
+                    guard let self = self else { return }
+                    self.hasPendingRefresh = false
+                    Task {
+                        await self.refreshConversations()
+                    }
+                }
+            }
+            return
+        }
+        
+        lastRefreshTime = now
+        hasPendingRefresh = false
         await loadConversations()
     }
     
@@ -263,22 +295,27 @@ class MessagesViewModel: ObservableObject {
      */
     func createNewConversation(with userId: String) async -> String? {
         do {
+            print("🔄 MessagesViewModel: Creating conversation with user: \(userId)")
             let conversationId = try await messageService.getOrCreateDirectConversation(with: userId)
-            print("🔄 Conversation created with ID: \(conversationId)")
+            print("✅ MessagesViewModel: Conversation created/found with ID: \(conversationId)")
+            
+            // Give the database a moment to process the updates
+            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
             
             // Force complete reload of conversations to ensure new conversation appears
             hasLoadedInitially = false
             await loadConversations()
             
             // Verify conversation appears in list with multiple retries
-            for attempt in 1...3 {
+            for attempt in 1...5 {
                 if conversations.contains(where: { $0.id == conversationId }) {
-                    print("✅ New conversation confirmed in list after \(attempt) attempt(s)")
+                    print("✅ MessagesViewModel: Conversation confirmed in list after \(attempt) attempt(s)")
+                    print("🔍 MessagesViewModel: Conversation list now contains \(conversations.count) conversations")
                     break
                 }
                 
-                print("⏳ Attempt \(attempt): Conversation not found, retrying...")
-                try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                print("⏳ MessagesViewModel: Attempt \(attempt): Conversation not found, retrying...")
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                 await loadConversations()
             }
             
@@ -287,7 +324,7 @@ class MessagesViewModel: ObservableObject {
             await MainActor.run {
                 errorMessage = "Failed to create conversation: \(error.localizedDescription)"
             }
-            print("❌ Failed to create conversation: \(error)")
+            print("❌ MessagesViewModel: Failed to create conversation: \(error)")
             return nil
         }
     }

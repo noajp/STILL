@@ -33,14 +33,6 @@ struct UnifiedHeader: View {
         VStack(spacing: 0) {
             // Header content
             HStack(spacing: 0) {
-                // Title - 左端に配置
-                Text(title)
-                    .font(.system(size: 24, weight: .regular))
-                    .foregroundColor(isDarkMode ? .white : MinimalDesign.Colors.primary)
-                    .padding(.leading, 8)
-                
-                Spacer()
-                
                 // Left button area (if back button is needed)
                 if showBackButton {
                     Button(action: {
@@ -50,9 +42,17 @@ struct UnifiedHeader: View {
                             .font(.system(size: 20, weight: .regular))
                             .foregroundColor(isDarkMode ? .white : MinimalDesign.Colors.primary)
                     }
-                    .frame(width: 44, height: 44)
-                    .padding(.trailing, 8)
+                    .frame(width: 30, height: 44)
+                    .padding(.leading, 0)
                 }
+                
+                // Title - 戻るボタンの右側または左端に配置
+                Text(title)
+                    .font(.system(size: 24, weight: .regular))
+                    .foregroundColor(isDarkMode ? .white : MinimalDesign.Colors.primary)
+                    .padding(.leading, showBackButton ? -8 : 8)
+                
+                Spacer()
                 
                 // Right buttons area
                 HStack(spacing: 8) {
@@ -93,7 +93,7 @@ struct UnifiedHeader: View {
                     }
                 }
             }
-            .padding(.horizontal, MinimalDesign.Spacing.sm)
+            .padding(.horizontal, showBackButton ? MinimalDesign.Spacing.xs : MinimalDesign.Spacing.sm)
             .padding(.bottom, MinimalDesign.Spacing.xs)
             .padding(.top, 0) // Safe Areaを考慮した適切な位置
             .background(Color.clear)

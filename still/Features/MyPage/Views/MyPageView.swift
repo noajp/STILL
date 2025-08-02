@@ -203,6 +203,12 @@ struct MyPageView: View {
                             }
                         }
                     )
+                    .onAppear {
+                        print("🔵 MyPageView: ModernPostsTabSection appeared with \(viewModel.userPosts.count) posts")
+                        for (index, post) in viewModel.userPosts.enumerated() {
+                            print("📋 UI Post \(index + 1): ID=\(post.id)")
+                        }
+                    }
                 }
                 
                 // タブバー用の下部余白
@@ -221,6 +227,8 @@ struct MyPageView: View {
                     .environmentObject(authManager)
             }
             .task {
+                print("🔵 MyPageView: Task started")
+                print("🔵 MyPageView: Current user ID from AuthManager: \(authManager.currentUser?.id ?? "nil")")
                 await viewModel.loadUserDataIfNeeded()
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
@@ -232,7 +240,8 @@ struct MyPageView: View {
                 if let selectedPost = selectedPost {
                     ProfileSinglePostView(
                         initialPost: selectedPost,
-                        allPosts: viewModel.userPosts
+                        allPosts: viewModel.userPosts,
+                        viewModel: viewModel
                     )
                     .onAppear {
                         isInProfileSingleView = true
@@ -649,6 +658,9 @@ struct ModernPostsTabSection: View {
                             message: "Share your first photo to get started"
                         )
                         .frame(height: 300)
+                        .onAppear {
+                            print("🔵 ModernPostsTabSection: Showing empty state - posts.count = \(posts.count)")
+                        }
                     } else {
                         if showGridMode {
                             GridView(posts: posts, onPostTapped: { post in
@@ -656,12 +668,18 @@ struct ModernPostsTabSection: View {
                                 navigateToSingleView = true
                             }, onDeletePost: onDeletePost, onReorderPosts: onReorderPosts)
                                 .transition(.opacity)
+                                .onAppear {
+                                    print("🔵 ModernPostsTabSection: Showing GridView with \(posts.count) posts")
+                                }
                         } else {
                             SingleCardGridView(posts: posts, onPostTapped: { post in
                                 selectedPost = post
                                 navigateToSingleView = true
                             }, onDeletePost: onDeletePost, onReorderPosts: onReorderPosts)
                                 .transition(.opacity)
+                                .onAppear {
+                                    print("🔵 ModernPostsTabSection: Showing SingleCardGridView with \(posts.count) posts")
+                                }
                         }
                     }
                 case 1:

@@ -22,6 +22,8 @@ final class HomeFeedViewModel: BaseViewModelClass {
     
     private var hasLoadedInitially = false
     private var loadingTask: Task<Void, Never>?
+    private var preloadTask: Task<Void, Never>?
+    private var gridDataPreloaded = false
     private var currentUserId: String? {
         authManager.currentUser?.id
     }
@@ -45,7 +47,12 @@ final class HomeFeedViewModel: BaseViewModelClass {
     
     /// Loads posts only if not already loaded
     func loadPostsIfNeeded() async {
-        guard !hasLoadedInitially else { return }
+        guard !hasLoadedInitially else { 
+            if gridDataPreloaded {
+                print("✅ HomeFeedViewModel: Posts already loaded (with preloaded grid data)")
+            }
+            return 
+        }
         await loadPosts()
     }
     
@@ -89,7 +96,43 @@ final class HomeFeedViewModel: BaseViewModelClass {
     func forceRefreshPosts() async {
         print("🔄 HomeFeedViewModel: Force refreshing posts...")
         hasLoadedInitially = false // Reset to force reload
+        gridDataPreloaded = false // Reset preload flag
         await loadPosts()
+    }
+    
+    /// Preload grid data in background for smooth switching
+    func preloadGridData() async {
+        // Skip if already preloaded or currently preloading
+        guard !gridDataPreloaded else {
+            print("🔄 HomeFeedViewModel: Grid data already preloaded, skipping")
+            return
+        }
+        
+        // Cancel any existing preload task
+        preloadTask?.cancel()
+        
+        preloadTask = Task {
+            print("🔄 HomeFeedViewModel: Preloading grid data in background...")
+            
+            // This is a background task, so we don't show loading indicators
+            // and we don't update the main posts array yet
+            do {
+                let _ = try await postService.fetchFeedPosts(currentUserId: currentUserId)
+                
+                // Check if task was cancelled
+                try Task.checkCancellation()
+                
+                gridDataPreloaded = true
+                print("✅ HomeFeedViewModel: Grid data preloaded successfully")
+            } catch is CancellationError {
+                print("🔄 HomeFeedViewModel: Grid data preload was cancelled")
+            } catch {
+                print("⚠️ HomeFeedViewModel: Grid data preload failed: \(error.localizedDescription)")
+                // Silently fail for background preloading
+            }
+        }
+        
+        await preloadTask?.value
     }
     
     // MARK: - Like Operations

@@ -9,51 +9,67 @@ import SwiftUI
 struct ProfileSinglePostView: View {
     let initialPost: Post
     let allPosts: [Post]
+    let viewModel: MyPageViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var currentIndex: Int = 0
     
     private var reorderedPosts: [Post] {
-        // 選択された投稿を最初に表示し、残りを順序で表示
-        guard let selectedIndex = allPosts.firstIndex(where: { $0.id == initialPost.id }) else {
-            return allPosts
+        // Get latest user posts from MyPageViewModel (supports live updates)
+        let currentPosts = viewModel.userPosts
+        
+        // Display selected post first, then show remaining posts in order
+        guard let selectedIndex = currentPosts.firstIndex(where: { $0.id == initialPost.id }) else {
+            return currentPosts
         }
         
         var posts = [Post]()
         
-        // 選択された投稿を最初に追加
-        posts.append(allPosts[selectedIndex])
+        // Add selected post first
+        posts.append(currentPosts[selectedIndex])
         
-        // 選択された投稿より後の投稿を追加
-        for i in (selectedIndex + 1)..<allPosts.count {
-            posts.append(allPosts[i])
+        // Add posts after the selected post
+        for i in (selectedIndex + 1)..<currentPosts.count {
+            posts.append(currentPosts[i])
         }
         
-        // 選択された投稿より前の投稿を追加
+        // Add posts before the selected post
         for i in 0..<selectedIndex {
-            posts.append(allPosts[i])
+            posts.append(currentPosts[i])
         }
         
         return posts
     }
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                // 並び替えられた投稿を表示（選択された投稿が最初）
+        ScrollableHeaderView(
+            title: "POST",
+            showBackButton: true,
+            onBack: { dismiss() }
+        ) {
+            VStack(spacing: 0) {
+                // Display reordered posts with selected post first
                 ForEach(Array(reorderedPosts.enumerated()), id: \.element.id) { index, post in
                     PostCardView(post: post) { post in
-                        // プロフィールページなのでlike機能は無効
+                        // Enable like functionality
+                        print("🔄 ProfileSinglePostView: Like button tapped for post \(post.id)")
+                        print("🔍 Current like status: \(post.isLikedByMe), like count: \(post.likeCount)")
+                        Task {
+                            await viewModel.toggleLike(for: post)
+                        }
                     }
                     .onAppear {
                         currentIndex = index
                     }
                 }
+                
+                // Padding for tab bar clearance
+                Color.clear
+                    .frame(height: 110)
             }
         }
         .navigationBarHidden(true)
-        .ignoresSafeArea(.all, edges: .top)
         .onAppear {
-            currentIndex = 0 // 選択された投稿が最初なので0
+            currentIndex = 0 // Selected post is displayed first, so index is 0
         }
     }
 }

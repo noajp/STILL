@@ -136,11 +136,25 @@ struct MessagesView: View {
                 NewMessageView { userId in
                     Task {
                         print("🔄 Starting conversation creation with user: \(userId)")
+                        print("🔍 Debug: Current conversations count before creation: \(viewModel.conversations.count)")
+                        
                         if let conversationId = await viewModel.createNewConversation(with: userId) {
                             print("✅ Conversation created with ID: \(conversationId)")
+                            print("🔍 Debug: Current conversations count after creation: \(viewModel.conversations.count)")
                             
                             // 会話リストを強制更新してUIに反映
                             await viewModel.refreshConversations()
+                            print("🔍 Debug: Current conversations count after refresh: \(viewModel.conversations.count)")
+                            
+                            // 少し待ってから最終確認
+                            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                            print("🔍 Debug: Final conversations list:")
+                            for (index, conv) in viewModel.conversations.enumerated() {
+                                print("   [\(index)] ID: \(conv.id)")
+                                conv.participants?.forEach { participant in
+                                    print("       - \(participant.user?.username ?? "unknown") (\(participant.userId))")
+                                }
+                            }
                             
                             // 会話作成が完了してから画面遷移
                             await MainActor.run {
@@ -149,7 +163,8 @@ struct MessagesView: View {
                                 isNavigatingToNewMessage = false
                             }
                         } else {
-                            print("❌ Failed to create conversation")
+                            print("❌ Failed to create conversation with user: \(userId)")
+                            print("🔍 Error message: \(viewModel.errorMessage ?? "No error message available")")
                             await MainActor.run {
                                 isNavigatingToNewMessage = false
                             }

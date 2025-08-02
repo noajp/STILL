@@ -36,8 +36,8 @@ struct MainTabView: View {
     /// Data passed to the photo editor containing image and metadata
     @State private var editorData: PhotoEditorData?
     
-    /// Controls whether the home feed displays in grid or list mode
-    @State private var showGridMode = true
+    /// Controls whether the home feed displays in grid or list mode (default: Following View)
+    @State private var showGridMode = false
     
     /// Top-level page selection (0: Camera, 1: Main Feed)
     @State private var pageSelection = 1

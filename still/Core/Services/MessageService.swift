@@ -354,9 +354,14 @@ class MessageService: ObservableObject {
     
     /// Get or create a direct conversation with another user
     func getOrCreateDirectConversation(with userId: String) async throws -> String {
+        print("🔄 MessageService: Starting getOrCreateDirectConversation with userId: \(userId)")
+        
         guard let currentUserId = AuthManager.shared.currentUser?.id else {
+            print("❌ MessageService: User not authenticated")
             throw NSError(domain: "MessageService", code: 401, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
+        
+        print("🔍 MessageService: Current user ID: \(currentUserId)")
         
         
         // Verify both users exist in user_profiles table using count instead of full object
@@ -405,13 +410,20 @@ class MessageService: ObservableObject {
                 throw NSError(domain: "MessageService", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid user ID format"])
             }
             
+            print("🔄 MessageService: Calling RPC get_or_create_direct_conversation with userId: \(userId)")
             let conversationId: String = try await supabase
                 .rpc("get_or_create_direct_conversation", params: ["other_user_id": AnyJSON.string(userId)])
                 .execute()
                 .value
+            print("✅ MessageService: RPC returned conversation ID: \(conversationId)")
             return conversationId
         } catch {
-            print("❌ CREATE CONVERSATION: RPC failed: \(error)")
+            print("❌ CREATE CONVERSATION: RPC failed with error: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
+                print("❌ Error userInfo: \(nsError.userInfo)")
+            }
             throw error
         }
     }

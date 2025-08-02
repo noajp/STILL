@@ -172,11 +172,15 @@ class PostService: @unchecked Sendable {
     
     // 特定ユーザーの投稿を取得
     func fetchUserPosts(userId: String) async throws -> [Post] {
+        print("🔵 PostService.fetchUserPosts: Starting fetch for userId: \(userId)")
+        
         if PostService.useMockData {
+            print("🔵 PostService.fetchUserPosts: Using mock data")
             return getMockPosts().filter { $0.userId == userId }
         }
         
         do {
+            print("🔵 PostService.fetchUserPosts: Querying database...")
             var posts: [Post] = try await client
                 .from("posts")
                 .select("*")
@@ -185,9 +189,17 @@ class PostService: @unchecked Sendable {
                 .execute()
                 .value
             
+            print("🔵 PostService.fetchUserPosts: Found \(posts.count) posts in database")
+            
+            // Debug: Print raw post data
+            for (index, post) in posts.enumerated() {
+                print("📋 Raw Post \(index + 1): ID=\(post.id), userId=\(post.userId)")
+            }
+            
             // 手動でユーザー情報を取得
             for i in 0..<posts.count {
                 do {
+                    print("🔵 PostService.fetchUserPosts: Getting user profile for post \(i + 1)")
                     let userProfile: UserProfile = try await client
                         .from("profiles")
                         .select("*")
@@ -196,15 +208,17 @@ class PostService: @unchecked Sendable {
                         .execute()
                         .value
                     posts[i].user = userProfile
+                    print("✅ PostService.fetchUserPosts: User profile added for post \(i + 1): \(userProfile.username)")
                 } catch {
-                    print("⚠️ ユーザー情報取得エラー: \(error)")
+                    print("⚠️ PostService.fetchUserPosts: ユーザー情報取得エラー for post \(i + 1): \(error)")
                 }
             }
             
+            print("✅ PostService.fetchUserPosts: Returning \(posts.count) posts")
             return posts
             
         } catch {
-            print("❌ fetchUserPosts エラー: \(error)")
+            print("❌ PostService.fetchUserPosts エラー: \(error)")
             throw error
         }
     }
