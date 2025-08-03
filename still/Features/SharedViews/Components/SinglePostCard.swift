@@ -26,7 +26,7 @@ struct SinglePostCard: View {
                 captionSection(caption: caption)
             }
         }
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .onAppear {
             print("🔍 SinglePostCard - Post ID: \(post.id)")
             print("🔍 SinglePostCard - User ID: \(post.userId)")
@@ -44,15 +44,24 @@ struct SinglePostCard: View {
                     Group {
                         if let avatarUrl = post.user?.avatarUrl {
                             RemoteImageView(imageURL: avatarUrl)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 0)
+                                        .fill(Color(white: 0.15))
+                                )
                         } else {
                             RoundedRectangle(cornerRadius: 0)
-                                .fill(Color.gray.opacity(0.3))
+                                .fill(Color(white: 0.15))
                         }
                     }
                     .frame(width: 36, height: 36)
                     .clipShape(RoundedRectangle(cornerRadius: 0))
                 }
                 .buttonStyle(PlainButtonStyle())
+            } else {
+                // ユーザー情報がない場合のプレースホルダー
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(Color(white: 0.15))
+                    .frame(width: 36, height: 36)
             }
             
             VStack(alignment: .leading, spacing: 2) {
@@ -61,19 +70,36 @@ struct SinglePostCard: View {
                     if let displayName = post.user?.displayName, !displayName.isEmpty {
                         Text(displayName)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 0)
+                                    .fill(Color(white: 0.15))
+                            )
+                    } else {
+                        // 表示名のプレースホルダー
+                        RoundedRectangle(cornerRadius: 0)
+                            .fill(Color(white: 0.15))
+                            .frame(width: 60, height: 20)
                     }
                     
                     Text("@\(post.user?.username ?? "unknown")")
                         .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 0)
+                                .fill(Color(white: 0.15))
+                        )
                 }
                 
                 // ロケーション
                 if let locationName = post.locationName, !locationName.isEmpty {
                     Text(locationName)
                         .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                 }
             }
@@ -93,43 +119,44 @@ struct SinglePostCard: View {
     private var imageSection: some View {
         Group {
             if let _ = URL(string: post.mediaUrl) {
-                OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    case .failure(_):
-                        RoundedRectangle(cornerRadius: 0)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(height: 300)
-                            .overlay(
+                // 画像のアスペクト比を維持するための背景
+                Rectangle()
+                    .fill(Color(white: 0.15))
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1.0, contentMode: .fit) // デフォルトで正方形の背景
+                    .overlay(
+                        OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                            case .failure(_):
                                 Image(systemName: "photo")
                                     .font(.largeTitle)
-                                    .foregroundColor(.gray)
-                            )
-                    case .empty:
-                        RoundedRectangle(cornerRadius: 0)
-                            .fill(Color.gray.opacity(0.1))
-                            .frame(height: 300)
-                            .overlay(
+                                    .foregroundColor(.white)
+                            case .empty:
                                 ProgressView()
                                     .scaleEffect(1.2)
-                            )
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .clipped()
+                                    .tint(.white)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    )
+                    .background(MinimalDesign.Colors.background)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 0)
+                            .stroke(Color.black, lineWidth: 10)
+                    )
             } else {
                 RoundedRectangle(cornerRadius: 0)
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(Color(white: 0.15))
                     .frame(height: 300)
                     .overlay(
                         Image(systemName: "photo")
                             .font(.largeTitle)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.white)
                     )
             }
         }
@@ -143,12 +170,12 @@ struct SinglePostCard: View {
                 HStack(spacing: 4) {
                     Image(systemName: post.isLikedByMe ? "heart.fill" : "heart")
                         .font(.system(size: 16))
-                        .foregroundColor(post.isLikedByMe ? .red : .primary)
+                        .foregroundColor(post.isLikedByMe ? .red : .white)
                     
                     if post.likeCount > 0 {
                         Text("\(post.likeCount)")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                     }
                 }
             }
@@ -159,12 +186,12 @@ struct SinglePostCard: View {
                 HStack(spacing: 4) {
                     Image(systemName: "message")
                         .font(.system(size: 16))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     
                     if post.commentCount > 0 {
                         Text("\(post.commentCount)")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                     }
                 }
             }
@@ -189,7 +216,7 @@ struct SinglePostCard: View {
         HStack {
             Text(caption)
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
                 .lineLimit(nil)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)

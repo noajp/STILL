@@ -28,7 +28,7 @@ struct CreatePostView: View {
     var body: some View {
         Text("CreatePostView - Currently Disabled")
             .font(.title2)
-            .foregroundColor(.secondary)
+            .foregroundColor(.white)
         
         /*
         if viewModel.selectedImage == nil {

@@ -111,7 +111,7 @@ struct MainTabView: View {
                     .tag(3)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .background(Color(.systemBackground))
+                .background(Color.black)
                 .ignoresSafeArea(.all)
                 .tag(1)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -177,7 +177,7 @@ struct MainTabView: View {
                 .zIndex(999) // Display on top of all other views
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color.black)
         .ignoresSafeArea(.all)
         .accentColor(MinimalDesign.Colors.accentRed)
         // MARK: - Modal Presentations

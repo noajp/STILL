@@ -97,7 +97,7 @@ struct NotificationListView: View {
                         ProgressView()
                         Text("Loading notifications...")
                             .font(.system(size: 16))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if notificationService.notifications.isEmpty {

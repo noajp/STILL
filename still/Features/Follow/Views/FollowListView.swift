@@ -45,7 +45,7 @@ struct FollowListView: View {
                 
                 Text(listType.title)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
@@ -56,7 +56,7 @@ struct FollowListView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(Color(.systemBackground))
+            .background(MinimalDesign.Colors.background)
             
             // User List
             if viewModel.isLoading {
@@ -65,7 +65,7 @@ struct FollowListView: View {
                     ProgressView()
                     Text("Loading...")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .padding(.top, 8)
                     Spacer()
                 }
@@ -78,10 +78,10 @@ struct FollowListView: View {
                     Text("No \(listType.title.lowercased()) yet")
                         .font(.title3)
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     Text(listType == .followers ? "When people follow this account, they\'ll appear here." : "When this account follows people, they\'ll appear here.")
                         .font(.body)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                     Spacer()
@@ -95,7 +95,7 @@ struct FollowListView: View {
                             HStack {
                                 Text("Follow Requests")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                                 
                                 Spacer()
                                 
@@ -109,7 +109,7 @@ struct FollowListView: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .background(Color.gray.opacity(0.05))
+                            .background(Color.gray.opacity(0.1))
                             
                             // Pending Requests List
                             ForEach($viewModel.pendingRequests) { $request in
@@ -149,7 +149,7 @@ struct FollowListView: View {
                 }
             }
         }
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .navigationBarHidden(true)
         .onAppear {
             Task {
@@ -221,12 +221,12 @@ struct FollowUserRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(user.displayName ?? user.username)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                     
                     Text("@\(user.username)")
                         .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                 }
             }
@@ -240,21 +240,21 @@ struct FollowUserRow: View {
                     HStack {
                         if isLoading {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: isFollowing ? .primary : .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: isFollowing ? .white : .white))
                                 .scaleEffect(0.8)
                         } else {
                             Text(buttonText)
                                 .font(.system(size: 14, weight: .medium))
                         }
                     }
-                    .foregroundColor(isFollowing ? .primary : .white)
+                    .foregroundColor(isFollowing ? .white : .white)
                     .frame(width: 90, height: 32)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
                             .fill(isFollowing ? Color.clear : MinimalDesign.Colors.accentRed)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .stroke(isFollowing ? Color.primary : Color.clear, lineWidth: 1)
+                                    .stroke(isFollowing ? Color.white : Color.clear, lineWidth: 1)
                             )
                     )
                 }
@@ -263,7 +263,7 @@ struct FollowUserRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .onAppear {
             if !isCurrentUser && !hasCheckedFollowStatus {
                 checkFollowStatus()

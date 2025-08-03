@@ -33,7 +33,7 @@ struct EditProfileView: View {
             }
             .alert("Error", isPresented: $showAlert) {
                 Button("OK", role: .cancel) {}
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
             } message: {
                 Text(alertMessage)
             }
@@ -69,6 +69,10 @@ struct EditProfileView: View {
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 80, height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white, lineWidth: 3)
+                    )
             } else if let avatarUrl = viewModel.userProfile?.avatarUrl {
                 AsyncImage(url: URL(string: avatarUrl)) { image in
                     image
@@ -85,6 +89,10 @@ struct EditProfileView: View {
                 }
                 .frame(width: 80, height: 80)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white, lineWidth: 3)
+                )
             } else {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.3))
@@ -93,6 +101,10 @@ struct EditProfileView: View {
                         Image(systemName: "person.fill")
                             .foregroundColor(.white)
                             .font(.system(size: 30))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white, lineWidth: 3)
                     )
             }
         }
@@ -110,7 +122,7 @@ struct EditProfileView: View {
                         .scaleEffect(0.8)
                     Text("Uploading...")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                 }
             }
         }
@@ -120,7 +132,7 @@ struct EditProfileView: View {
         Section(header: Text("Basic Information")) {
             HStack {
                 Text("Username")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white)
                 TextField("@username", text: $username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -131,7 +143,7 @@ struct EditProfileView: View {
             
             HStack {
                 Text("Display Name")
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white)
                 TextField("Your name", text: $displayName)
             }
         }
@@ -149,7 +161,7 @@ struct EditProfileView: View {
         Section {
             Text("Maximum 200 characters")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
         }
     }
     
@@ -159,14 +171,14 @@ struct EditProfileView: View {
             Button("Cancel") {
                 dismiss()
             }
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
         }
         
         ToolbarItem(placement: .navigationBarTrailing) {
             Button("Save") {
                 saveProfile()
             }
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
             .fontWeight(.semibold)
             .disabled(username.isEmpty || displayName.isEmpty)
         }

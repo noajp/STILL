@@ -73,13 +73,13 @@ struct SearchView: View {
                         }) {
                             Text(tab.rawValue)
                                 .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))
-                                .foregroundColor(selectedTab == tab ? .primary : .secondary)
+                                .foregroundColor(selectedTab == tab ? .white : .gray)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                         }
                     }
                 }
-                .background(Color(.systemBackground))
+                .background(MinimalDesign.Colors.background)
                 .overlay(
                     // Animated selection indicator that slides between tabs
                     Rectangle()
@@ -101,7 +101,7 @@ struct SearchView: View {
                                 .foregroundColor(.gray)
                                 .padding()
                             Text("No posts found for '\(viewModel.searchText)'")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if !viewModel.searchResults.isEmpty {
@@ -109,7 +109,7 @@ struct SearchView: View {
                         ScrollView {
                             // TODO: Implement post search results display
                             Text("Post search coming soon")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                         .padding(.horizontal)
@@ -136,7 +136,7 @@ struct SearchView: View {
                                 .foregroundColor(.gray)
                                 .padding()
                             Text("No users found for '\(viewModel.searchText)'")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if !viewModel.userSearchResults.isEmpty {
@@ -157,13 +157,13 @@ struct SearchView: View {
                                 .foregroundColor(.gray)
                                 .padding()
                             Text("Search for users to connect")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
             }
-            .background(Color(.systemBackground))
+            .background(MinimalDesign.Colors.background)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.large)
         }

@@ -37,7 +37,7 @@ struct UserSearchView: View {
     private var searchField: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
+                .foregroundColor(.white)
                 .font(.system(size: 16))
             
             TextField("Search by user ID", text: $searchText)
@@ -54,14 +54,14 @@ struct UserSearchView: View {
                     searchText = ""
                 }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .font(.system(size: 16))
                 }
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(25)
         .padding(.horizontal, MinimalDesign.Spacing.md)
     }
@@ -88,13 +88,13 @@ struct UserSearchView: View {
         VStack(spacing: 16) {
             Image(systemName: "person.2")
                 .font(.system(size: 60))
-                .foregroundColor(.gray)
+                .foregroundColor(.white)
             Text("Search for users")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
             Text("Enter a user ID to find\nother users")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
                 .multilineTextAlignment(.center)
         }
         .padding(.top, 50)
@@ -105,7 +105,7 @@ struct UserSearchView: View {
         VStack {
             ProgressView()
             Text("Searching...")
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
                 .padding(.top, 8)
         }
         .padding(.top, 50)
@@ -119,10 +119,10 @@ struct UserSearchView: View {
                 .foregroundColor(.orange)
             Text("Error")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
             Text(error)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
                 .multilineTextAlignment(.center)
         }
         .padding(.top, 50)
@@ -133,13 +133,13 @@ struct UserSearchView: View {
         VStack(spacing: 16) {
             Image(systemName: "person.slash")
                 .font(.system(size: 40))
-                .foregroundColor(.gray)
+                .foregroundColor(.white)
             Text("No users found")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
             Text("Try a different user ID")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
         }
         .padding(.top, 50)
     }
@@ -254,7 +254,7 @@ struct UserSearchResultRow: View {
                     .fill(Color.gray.opacity(0.3))
                     .overlay(
                         Image(systemName: "person.fill")
-                            .foregroundColor(.gray)
+                            .foregroundColor(.white)
                     )
             }
             .frame(width: 50, height: 50)
@@ -263,16 +263,16 @@ struct UserSearchResultRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.profileDisplayName)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Text(user.userIdWithAt)
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white)
                 
                 if let bio = user.bio, !bio.isEmpty {
                     Text(bio)
                         .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .lineLimit(2)
                 }
             }
@@ -287,14 +287,14 @@ struct UserSearchResultRow: View {
                     HStack {
                         if isLoading {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: isFollowing ? .primary : .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: isFollowing ? .white : .white))
                                 .scaleEffect(0.8)
                         } else {
                             Text(buttonText)
                                 .font(.system(size: 14, weight: .medium))
                         }
                     }
-                    .foregroundColor(isFollowing ? .primary : .white)
+                    .foregroundColor(isFollowing ? .white : .white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(
@@ -302,7 +302,7 @@ struct UserSearchResultRow: View {
                             .fill(isFollowing ? Color.clear : MinimalDesign.Colors.accentRed)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .stroke(isFollowing ? Color.primary : Color.clear, lineWidth: 1)
+                                    .stroke(isFollowing ? Color.white : Color.clear, lineWidth: 1)
                             )
                     )
                 }
@@ -311,7 +311,7 @@ struct UserSearchResultRow: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
-        .background(Color.gray.opacity(0.05))
+        .background(Color.gray.opacity(0.1))
         .cornerRadius(12)
         .onAppear {
             // Reset state for current user to prevent any UI inconsistencies

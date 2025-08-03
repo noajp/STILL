@@ -37,7 +37,7 @@ struct RemoteImageView: View {
                 } else {
                     Image(systemName: "photo")
                         .font(.system(size: 32))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.gray.opacity(0.1))
                 }

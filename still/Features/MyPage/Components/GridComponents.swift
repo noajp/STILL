@@ -21,7 +21,7 @@ struct SingleCardGridView: View {
         GridItem(.flexible(), spacing: 1.5)
     ]
     
-    @State private var draggedItem: Post?
+    @State private var draggedItemId: String?
     @State private var isDragging: Bool = false
     
     init(posts: [Post], onPostTapped: ((Post) -> Void)? = nil, onDeletePost: ((Post) -> Void)? = nil, onReorderPosts: (([Post]) -> Void)? = nil) {
@@ -45,46 +45,22 @@ struct SingleCardGridView: View {
                             onDeletePost?(post)
                         }
                     }
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        // Long press to initiate drag with haptic feedback
+                    .onDrag {
+                        print("🟢 onDrag triggered for post: \(post.id)")
+                        draggedItemId = post.id
+                        isDragging = true
+                        
+                        // ハプティックフィードバック
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                         impactFeedback.impactOccurred()
                         
-                        withAnimation(.spring(response: 0.3)) {
-                            isDragging = true
-                        }
-                        print("🔄 Long press detected - drag mode enabled for post: \(post.id)")
-                    }
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { _ in
-                                if isDragging {
-                                    draggedItem = post
-                                }
-                            }
-                            .onEnded { _ in
-                                withAnimation(.spring(response: 0.3)) {
-                                    isDragging = false
-                                    draggedItem = nil
-                                }
-                            }
-                    )
-                    .onDrag {
-                        draggedItem = post
-                        isDragging = true
-                        let provider = NSItemProvider()
-                        provider.suggestedName = post.id
+                        let provider = NSItemProvider(object: post.id as NSString)
                         return provider
-                    }
-                    .draggable(post) {
-                        // Return empty view to disable drag preview
-                        Color.clear
-                            .frame(width: 1, height: 1)
                     }
                     .onDrop(of: [.text], delegate: LongPressDropDelegate(
                         item: post,
                         posts: $posts,
-                        draggedItem: $draggedItem,
+                        draggedItemId: $draggedItemId,
                         isDragging: $isDragging,
                         onReorderPosts: onReorderPosts
                     ))
@@ -110,7 +86,7 @@ struct GridView: View {
         GridItem(.flexible(), spacing: 1.5)
     ]
     
-    @State private var draggedItem: Post?
+    @State private var draggedItemId: String?
     @State private var isDragging: Bool = false
     
     init(posts: [Post], onPostTapped: ((Post) -> Void)? = nil, onDeletePost: ((Post) -> Void)? = nil, onReorderPosts: (([Post]) -> Void)? = nil) {
@@ -134,46 +110,23 @@ struct GridView: View {
                             onDeletePost?(post)
                         }
                     }
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        // Long press to initiate drag with haptic feedback
+                    .opacity(isDragging && draggedItemId == post.id ? 0.8 : 1.0)
+                    .onDrag {
+                        print("🟢 onDrag triggered for post: \(post.id)")
+                        draggedItemId = post.id
+                        isDragging = true
+                        
+                        // ハプティックフィードバック
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                         impactFeedback.impactOccurred()
                         
-                        withAnimation(.spring(response: 0.3)) {
-                            isDragging = true
-                        }
-                        print("🔄 Long press detected - drag mode enabled for post: \(post.id)")
-                    }
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { _ in
-                                if isDragging {
-                                    draggedItem = post
-                                }
-                            }
-                            .onEnded { _ in
-                                withAnimation(.spring(response: 0.3)) {
-                                    isDragging = false
-                                    draggedItem = nil
-                                }
-                            }
-                    )
-                    .onDrag {
-                        draggedItem = post
-                        isDragging = true
-                        let provider = NSItemProvider()
-                        provider.suggestedName = post.id
+                        let provider = NSItemProvider(object: post.id as NSString)
                         return provider
-                    }
-                    .draggable(post) {
-                        // Return empty view to disable drag preview
-                        Color.clear
-                            .frame(width: 1, height: 1)
                     }
                     .onDrop(of: [.text], delegate: LongPressDropDelegate(
                         item: post,
                         posts: $posts,
-                        draggedItem: $draggedItem,
+                        draggedItemId: $draggedItemId,
                         isDragging: $isDragging,
                         onReorderPosts: onReorderPosts
                     ))
@@ -190,7 +143,7 @@ struct GridView: View {
 struct LongPressDropDelegate: DropDelegate {
     let item: Post
     @Binding var posts: [Post]
-    @Binding var draggedItem: Post?
+    @Binding var draggedItemId: String?
     @Binding var isDragging: Bool
     let onReorderPosts: (([Post]) -> Void)?
     
@@ -199,24 +152,37 @@ struct LongPressDropDelegate: DropDelegate {
     }
     
     func performDrop(info: DropInfo) -> Bool {
-        withAnimation(.spring(response: 0.3)) {
-            draggedItem = nil
-            isDragging = false
-        }
+        print("🔚 performDrop: Completing drag operation")
+        
+        // Reset dragging state without vibration
+        draggedItemId = nil
+        isDragging = false
+        
+        print("✅ performDrop: Drag state reset - isDragging: \(isDragging), draggedItemId: \(draggedItemId ?? "nil")")
+        
         return true
     }
     
     func dropEntered(info: DropInfo) {
-        guard let draggedItem = draggedItem, isDragging else { return }
+        guard let draggedItemId = draggedItemId, isDragging else { 
+            print("❌ dropEntered: No dragged item or not dragging")
+            return 
+        }
         
-        if draggedItem.id != item.id {
-            let fromIndex = posts.firstIndex(of: draggedItem) ?? 0
+        print("🔄 dropEntered: Dragged \(draggedItemId) onto \(item.id)")
+        
+        if draggedItemId != item.id {
+            guard let draggedPost = posts.first(where: { $0.id == draggedItemId }) else { return }
+            let fromIndex = posts.firstIndex(of: draggedPost) ?? 0
             let toIndex = posts.firstIndex(of: item) ?? 0
+            
+            print("📍 Moving from index \(fromIndex) to \(toIndex)")
             
             if fromIndex != toIndex {
                 withAnimation(.spring()) {
                     posts.move(fromOffsets: IndexSet([fromIndex]), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
                     onReorderPosts?(posts)
+                    print("✅ Posts reordered successfully")
                 }
             }
         }
@@ -238,35 +204,22 @@ struct ProfileSingleCardView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            // High-performance OptimizedAsyncImage
-            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                switch phase {
-                case .empty:
-                    Rectangle()
-                        .fill(MinimalDesign.Colors.tertiaryBackground)
-                        .frame(width: geometry.size.width, height: geometry.size.width)
-                        .overlay(
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
-                        )
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.width)
-                        .clipped()
-                case .failure(_):
-                    Rectangle()
-                        .fill(MinimalDesign.Colors.tertiaryBackground)
-                        .frame(width: geometry.size.width, height: geometry.size.width)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(MinimalDesign.Colors.secondary)
-                        )
-                @unknown default:
-                    EmptyView()
-                }
+            // High-performance CompressedAsyncImage for faster loading
+            CompressedAsyncImage(
+                urlString: post.mediaUrl,
+                quality: .medium
+            ) {
+                Rectangle()
+                    .fill(MinimalDesign.Colors.tertiaryBackground)
+                    .frame(width: geometry.size.width, height: geometry.size.width)
+                    .overlay(
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
+                    )
             }
+            .aspectRatio(contentMode: .fill)
+            .frame(width: geometry.size.width, height: geometry.size.width)
+            .clipped()
         }
         .aspectRatio(1, contentMode: .fit)
         .contentShape(Rectangle())
@@ -291,35 +244,21 @@ struct GridItemView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            // High-performance OptimizedAsyncImage
-            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                switch phase {
-                case .empty:
-                    Rectangle()
-                        .fill(MinimalDesign.Colors.tertiaryBackground)
-                        .frame(width: geometry.size.width, height: geometry.size.width)
-                        .overlay(
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
-                        )
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.width)
-                        .clipped()
-                case .failure(_):
-                    Rectangle()
-                        .fill(MinimalDesign.Colors.tertiaryBackground)
-                        .frame(width: geometry.size.width, height: geometry.size.width)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(MinimalDesign.Colors.secondary)
-                        )
-                @unknown default:
-                    EmptyView()
-                }
+            // High-performance CompressedAsyncImage for faster loading
+            CompressedAsyncImage(
+                urlString: post.mediaUrl,
+                quality: .medium
+            ) {
+                Rectangle()
+                    .fill(MinimalDesign.Colors.tertiaryBackground)
+                    .frame(width: geometry.size.width, height: geometry.size.width)
+                    .overlay(
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
+                    )
             }
+            .aspectRatio(contentMode: .fit)
+            .frame(width: geometry.size.width, height: geometry.size.width)
         }
         .aspectRatio(1, contentMode: .fit)
         .contentShape(Rectangle())

@@ -22,7 +22,7 @@ struct SignInView: View {
                 // Title
                 Text("LOG IN")
                     .font(.system(size: 32, weight: .regular))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 // Form
                 VStack(alignment: .leading, spacing: 25) {
@@ -30,11 +30,11 @@ struct SignInView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("EMAIL")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                         
                         TextField("", text: $email)
                             .font(.system(size: 18))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
                             .keyboardType(.emailAddress)
@@ -43,7 +43,7 @@ struct SignInView: View {
                             .overlay(
                                 Rectangle()
                                     .frame(height: 1)
-                                    .foregroundColor(.secondary.opacity(0.5)),
+                                    .foregroundColor(.white.opacity(0.5)),
                                 alignment: .bottom
                             )
                     }
@@ -52,16 +52,16 @@ struct SignInView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("PASSWORD")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                         
                         SecureField("", text: $password)
                             .font(.system(size: 18))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .padding(.bottom, 10)
                             .overlay(
                                 Rectangle()
                                     .frame(height: 1)
-                                    .foregroundColor(.secondary.opacity(0.5)),
+                                    .foregroundColor(.white.opacity(0.5)),
                                 alignment: .bottom
                             )
                     }
@@ -71,7 +71,7 @@ struct SignInView: View {
                         showForgotPassword = true
                     }
                     .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white)
                     .padding(.top, -10)
                 }
                 
@@ -96,14 +96,14 @@ struct SignInView: View {
                     HStack {
                         Rectangle()
                             .frame(height: 1)
-                            .foregroundColor(.secondary.opacity(0.3))
+                            .foregroundColor(.white.opacity(0.3))
                         Text("OR")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                             .padding(.horizontal, 15)
                         Rectangle()
                             .frame(height: 1)
-                            .foregroundColor(.secondary.opacity(0.3))
+                            .foregroundColor(.white.opacity(0.3))
                     }
                     .padding(.vertical, 10)
                     
@@ -118,17 +118,17 @@ struct SignInView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "globe")
                                     .font(.system(size: 18))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                                 Text("Sign in with Google")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(
                                 Rectangle()
-                                    .stroke(Color.primary.opacity(0.3), lineWidth: 1)
-                                    .background(Color(.systemBackground))
+                                    .stroke(Color.white, lineWidth: 1)
+                                    .background(MinimalDesign.Colors.background)
                             )
                         }
                         .disabled(authManager.isLoading)
@@ -142,17 +142,17 @@ struct SignInView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "applelogo")
                                     .font(.system(size: 18))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                                 Text("Sign in with Apple")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(
                                 Rectangle()
-                                    .stroke(Color.primary.opacity(0.3), lineWidth: 1)
-                                    .background(Color(.systemBackground))
+                                    .stroke(Color.white, lineWidth: 1)
+                                    .background(MinimalDesign.Colors.background)
                             )
                         }
                         .disabled(authManager.isLoading)
@@ -164,13 +164,13 @@ struct SignInView: View {
                     }) {
                         Text("REGISTER")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(
                                 Rectangle()
-                                    .stroke(Color.primary, lineWidth: 1)
-                                    .background(Color(.systemBackground))
+                                    .stroke(Color.white, lineWidth: 1)
+                                    .background(MinimalDesign.Colors.background)
                             )
                     }
                 }
@@ -179,7 +179,7 @@ struct SignInView: View {
             
             Spacer()
         }
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .alert("Error", isPresented: $showError) {
             Button("OK") { }
         } message: {

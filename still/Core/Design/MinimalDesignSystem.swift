@@ -17,13 +17,13 @@ struct MinimalDesign {
     
     // MARK: - Colors
     struct Colors {
-        static let background = Color(.systemBackground)
-        static let secondaryBackground = Color(.secondarySystemBackground)
-        static let tertiaryBackground = Color(.tertiarySystemBackground)
+        static let background = Color.black
+        static let secondaryBackground = Color(white: 0.1)
+        static let tertiaryBackground = Color(white: 0.15)
         
-        static let primary = Color(.label)
-        static let secondary = Color(.secondaryLabel)
-        static let tertiary = Color(.tertiaryLabel)
+        static let primary = Color.white
+        static let secondary = Color(white: 0.7)
+        static let tertiary = Color(white: 0.5)
         
         static let accent = Color(.systemBlue)
         static let accentRed = Color(red: 0.949, green: 0.098, blue: 0.020) // Custom TETE red #F21905

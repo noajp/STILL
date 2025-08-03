@@ -314,6 +314,10 @@ struct ProfileImagePicker: View {
                 }
                 .frame(width: 100, height: 100)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white, lineWidth: 3)
+                )
             } else {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.3))
@@ -322,6 +326,10 @@ struct ProfileImagePicker: View {
                         Image(systemName: "person.fill")
                             .font(.system(size: 40))
                             .foregroundColor(.gray)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white, lineWidth: 3)
                     )
             }
         }

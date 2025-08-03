@@ -54,9 +54,14 @@ struct MessagesView: View {
             )
         ) {
             if viewModel.isLoading {
-                ProgressView("Loading conversations...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, 100)
+                VStack(spacing: 16) {
+                    ProgressView()
+                    Text("Loading conversations...")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 100)
             } else if viewModel.conversations.isEmpty {
                 if isGroupChatMode {
                     GroupChatEmptyStateView()
@@ -270,7 +275,7 @@ struct ConversationRow: View {
                     .frame(width: 50, height: 50)
                     .overlay(
                         Image(systemName: "person.fill")
-                            .foregroundColor(MinimalDesign.Colors.secondary)
+                            .foregroundColor(.white)
                     )
             }
             
@@ -280,13 +285,13 @@ struct ConversationRow: View {
                         conversation.displayName(currentUserId: authManager.currentUser?.id)
                     }())
                         .font(.system(size: 16, weight: hasUnread ? .semibold : .regular))
-                        .foregroundColor(MinimalDesign.Colors.primary)
+                        .foregroundColor(.white)
                     
                     Spacer()
                     
                     Text(timestamp)
                         .font(.system(size: 14))
-                        .foregroundColor(MinimalDesign.Colors.secondary)
+                        .foregroundColor(.white)
                 }
                 
                 Text(conversation.displayLastMessagePreview)
@@ -337,7 +342,7 @@ struct GroupChatEmptyStateView: View {
             Text("No group chats yet")
                 .font(.title3)
                 .fontWeight(.medium)
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
             Text("Create a group chat to start\nchatting with multiple people")
                 .font(.body)
                 .foregroundColor(.gray)
@@ -374,13 +379,13 @@ struct GroupConversationRow: View {
                 HStack {
                     Text(groupConversation.displayName)
                         .font(.system(size: 16, weight: hasUnread ? .semibold : .regular))
-                        .foregroundColor(MinimalDesign.Colors.primary)
+                        .foregroundColor(.white)
                     
                     Spacer()
                     
                     Text(timestamp)
                         .font(.system(size: 14))
-                        .foregroundColor(MinimalDesign.Colors.secondary)
+                        .foregroundColor(.white)
                 }
                 
                 // displayLastMessagePreviewを使用（既に送信者名が含まれている）
@@ -440,7 +445,7 @@ struct NewMessageView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.gray.opacity(0.1))
+            .background(Color.gray.opacity(0.2))
             .cornerRadius(12)
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -452,7 +457,7 @@ struct NewMessageView: View {
                     ProgressView()
                     Text("Searching...")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .padding(.top, 8)
                     Spacer()
                 }
@@ -464,7 +469,7 @@ struct NewMessageView: View {
                         .foregroundColor(.gray.opacity(0.6))
                     Text("No users found")
                         .font(.system(size: 16))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                     Spacer()
                 }
             } else if searchText.isEmpty {
@@ -475,7 +480,7 @@ struct NewMessageView: View {
                         .foregroundColor(.gray.opacity(0.6))
                     Text("Search for users to start a conversation")
                         .font(.system(size: 16))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     Spacer()
                 }
@@ -523,7 +528,7 @@ struct UserRowView: View {
                         .overlay(
                             Text(String(user.profileDisplayName.prefix(1)).uppercased())
                                 .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.white)
                         )
                 }
                 
@@ -531,7 +536,7 @@ struct UserRowView: View {
                     // 表示名を最初に表示
                     Text(user.profileDisplayName)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(MinimalDesign.Colors.primary)
+                        .foregroundColor(.white)
                     
                     // ユーザーIDを小さい文字で表示
                     Text("@\(user.username)")
@@ -583,14 +588,14 @@ struct ConversationPreviewFullScreen: View {
                     
                     Text(conversation.displayName(currentUserId: currentUserId))
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(MinimalDesign.Colors.primary)
+                        .foregroundColor(.white)
                 }
                 Spacer()
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(
-                Color(.systemBackground)
+                MinimalDesign.Colors.background
                     .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             )
             
@@ -621,8 +626,8 @@ struct ConversationPreviewFullScreen: View {
                 .background(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Color(.systemGray6).opacity(0.3),
-                            Color(.systemBackground)
+                            MinimalDesign.Colors.background.opacity(0.3),
+                            MinimalDesign.Colors.background
                         ]),
                         startPoint: .top,
                         endPoint: .bottom
@@ -656,7 +661,7 @@ struct ConversationPreviewFullScreen: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.systemBackground))
+            .background(MinimalDesign.Colors.background)
             
             // Bottom spacer
             Rectangle()
@@ -696,7 +701,7 @@ struct MessageBubblePreview: View {
                             if isCurrentUser {
                                 MinimalDesign.Colors.accentRed
                             } else {
-                                Color(.systemGray5)
+                                Color.gray
                                     .opacity(0.9)
                             }
                         }
@@ -704,7 +709,7 @@ struct MessageBubblePreview: View {
                     .foregroundColor(
                         isCurrentUser ? 
                         MinimalDesign.Colors.background : 
-                        Color(.label)
+                        .white
                     )
                     .cornerRadius(20)
                     .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 2)
@@ -712,7 +717,7 @@ struct MessageBubblePreview: View {
                 if message.isEdited {
                     Text("Edited")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                 }
             }
             .frame(maxWidth: .infinity, alignment: isCurrentUser ? .trailing : .leading)
@@ -765,7 +770,7 @@ struct ConversationPreview: View {
                         .overlay(
                             Image(systemName: "person.fill")
                                 .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.white)
                         )
                 }
             }
@@ -779,7 +784,7 @@ struct ConversationPreview: View {
                 if let lastMessageAt = conversation.lastMessageAt {
                     Text(lastMessageAt.timeAgoDisplay())
                         .font(.system(size: 11))
-                        .foregroundColor(MinimalDesign.Colors.secondary)
+                        .foregroundColor(.white)
                 }
             }
             

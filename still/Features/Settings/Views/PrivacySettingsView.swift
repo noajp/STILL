@@ -26,12 +26,12 @@ struct PrivacySettingsView: View {
                     
                     Text("Privacy Settings")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     
                     Spacer()
                 }
                 .padding()
-                .background(Color(UIColor.systemBackground))
+                .background(MinimalDesign.Colors.background)
                 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -44,7 +44,7 @@ struct PrivacySettingsView: View {
                                 
                                 Text("Private Account")
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                                 
                                 Spacer()
                                 
@@ -58,11 +58,11 @@ struct PrivacySettingsView: View {
                             
                             Text("When your account is private, only followers you approve can see your photos, articles, and profile information. Your existing followers won't be affected.")
                                 .font(.system(size: 14))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(16)
-                        .background(Color.gray.opacity(0.05))
+                        .background(Color.gray.opacity(0.1))
                         .cornerRadius(12)
                         
                         

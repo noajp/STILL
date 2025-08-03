@@ -22,7 +22,7 @@ final class ImageCacheManager: ObservableObject {
     static let shared = ImageCacheManager()
     
     // MARK: - Properties
-    private let cache = NSCache<NSString, UIImage>()
+    let cache = NSCache<NSString, UIImage>()
     private let fileManager = FileManager.default
     private let cacheDirectory: URL
     private var loadingTasks: [String: Task<UIImage?, Error>] = [:]
@@ -163,24 +163,33 @@ final class ImageCacheManager: ObservableObject {
     
     /// 圧縮された画像を取得（グリッドビュー用）
     func loadCompressedImage(from urlString: String, quality: CompressionQuality = .medium) async -> UIImage? {
-        guard let url = URL(string: urlString) else { return nil }
+        print("🔍 loadCompressedImage called for: \(urlString)")
+        guard let url = URL(string: urlString) else { 
+            print("❌ Invalid URL in loadCompressedImage: \(urlString)")
+            return nil 
+        }
         
         let cacheKey = "\(urlString)_compressed_\(quality.rawValue)" as NSString
         
         // 1. Memory cache check
         if let cachedImage = cache.object(forKey: cacheKey) {
+            print("✅ Compressed image found in cache: \(urlString)")
             return cachedImage
         }
         
         // 2. Load full image and compress
+        print("🔄 Loading full image for compression: \(urlString)")
         if let fullImage = await loadImage(from: urlString) {
+            print("📏 Compressing image: \(urlString)")
             let compressedImage = compressImageForGrid(fullImage, quality: quality)
             
             // Cache compressed image
             cache.setObject(compressedImage, forKey: cacheKey, cost: estimateMemoryUsage(for: compressedImage))
+            print("✅ Image compressed and cached: \(urlString)")
             return compressedImage
         }
         
+        print("❌ Failed to load/compress image: \(urlString)")
         return nil
     }
     
@@ -189,6 +198,7 @@ final class ImageCacheManager: ObservableObject {
         case low = "low"           // 0.3 quality, 200px max
         case medium = "medium"     // 0.5 quality, 400px max  
         case high = "high"         // 0.7 quality, 600px max
+        case grid = "grid"         // 0.8 quality, 800px max - optimized for grid
         case original = "original" // No compression
         
         var jpegQuality: CGFloat {
@@ -196,6 +206,7 @@ final class ImageCacheManager: ObservableObject {
             case .low: return 0.3
             case .medium: return 0.5
             case .high: return 0.7
+            case .grid: return 0.8
             case .original: return 1.0
             }
         }
@@ -205,6 +216,7 @@ final class ImageCacheManager: ObservableObject {
             case .low: return 200
             case .medium: return 400
             case .high: return 600
+            case .grid: return 800
             case .original: return 2048
             }
         }
@@ -469,7 +481,9 @@ struct OptimizedAsyncImage<Content: View>: View {
     
     private func loadImage() async {
         isLoading = true
+        print("🔄 OptimizedAsyncImage loading: \(urlString)")
         image = await cacheManager.loadImage(from: urlString)
+        print("✅ OptimizedAsyncImage result: \(image != nil ? "success" : "failed") for \(urlString)")
         isLoading = false
     }
 }
@@ -534,16 +548,16 @@ struct ThumbnailAsyncImage: View {
             return
         }
         
-        // Step 3: Load full image in background with delay to prioritize visible content
+        // Step 3: Load full image in background with longer delay for grid optimization
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                // Small delay to allow thumbnail to render first
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                // Longer delay for grid view to prioritize visible thumbnails
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
                 let fullImageResult = await ImageCacheManager.shared.loadImage(from: urlString)
                 
                 await MainActor.run {
                     if let fullImageResult = fullImageResult {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
                             self.fullImage = fullImageResult
                         }
                     }
@@ -587,7 +601,9 @@ struct CompressedAsyncImage: View {
     
     private func loadCompressedImage() async {
         isLoading = true
+        print("🔄 CompressedAsyncImage loading: \(urlString)")
         image = await ImageCacheManager.shared.loadCompressedImage(from: urlString, quality: compressionQuality)
+        print("✅ CompressedAsyncImage result: \(image != nil ? "success" : "failed") for \(urlString)")
         isLoading = false
     }
 }

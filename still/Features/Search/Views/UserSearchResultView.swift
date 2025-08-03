@@ -41,18 +41,18 @@ struct UserSearchResultView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(user.displayName ?? user.username)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                     
                     Text("@\(user.username)")
                         .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                     
                     if let bio = user.bio, !bio.isEmpty {
                         Text(bio)
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                             .lineLimit(2)
                     }
                 }
@@ -95,7 +95,7 @@ struct UserSearchResultView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .contentShape(Rectangle())
         .fullScreenCover(isPresented: $showProfile) {
             if isCurrentUser {

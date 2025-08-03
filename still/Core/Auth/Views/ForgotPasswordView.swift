@@ -22,7 +22,7 @@ struct ForgotPasswordView: View {
                     dismiss()
                 }
                 .font(.system(size: 24))
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
                 
                 Spacer()
             }
@@ -35,22 +35,23 @@ struct ForgotPasswordView: View {
                 // Title
                 Text("RESET PASSWORD")
                     .font(.system(size: 32, weight: .regular))
-                    .foregroundColor(.black)
+                    .foregroundColor(.white)
                 
                 // Description
                 Text("Please enter your registered email address. We will send you a password reset link.")
                     .font(.system(size: 16))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white)
                     .lineLimit(nil)
                 
                 // Email Field
                 VStack(alignment: .leading, spacing: 5) {
                     Text("EMAIL")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                     
                     TextField("", text: $email)
                         .font(.system(size: 18))
+                        .foregroundColor(.white)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                         .keyboardType(.emailAddress)
@@ -60,7 +61,7 @@ struct ForgotPasswordView: View {
                         .overlay(
                             Rectangle()
                                 .frame(height: 1)
-                                .foregroundColor(.gray.opacity(0.3)),
+                                .foregroundColor(.white.opacity(0.5)),
                             alignment: .bottom
                         )
                 }
@@ -83,7 +84,7 @@ struct ForgotPasswordView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(email.contains("@") ? Color.black : Color.gray)
+                    .background(email.contains("@") ? MinimalDesign.Colors.accentRed : Color.gray)
                 }
                 .disabled(!email.contains("@") || isLoading)
             }
@@ -91,7 +92,7 @@ struct ForgotPasswordView: View {
             
             Spacer()
         }
-        .background(Color.white)
+        .background(MinimalDesign.Colors.background)
         .alert("Success", isPresented: $showSuccess) {
             Button("OK") {
                 dismiss()

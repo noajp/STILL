@@ -23,18 +23,18 @@ struct SettingsView: View {
                 
                 Text("Settings")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Spacer()
             }
             .padding()
-            .background(Color(UIColor.systemBackground))
+            .background(MinimalDesign.Colors.background)
             
             Form {
                 Section(header: Text("Account")) {
                     NavigationLink(destination: PrivacySettingsView()) {
                         Label("Privacy Settings", systemImage: "lock.shield")
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                     }
                     
                     NavigationLink(destination: EmptyView()) {
@@ -97,7 +97,7 @@ struct SettingsView: View {
             } message: {
                 Text("Are you sure you want to sign out?")
             }
-            .accentColor(.primary)
+            .accentColor(.white)
         }
         .navigationBarHidden(true)
     }

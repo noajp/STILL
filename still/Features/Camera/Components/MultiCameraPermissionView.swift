@@ -44,11 +44,11 @@ struct MultiCameraPermissionView: View {
                 
                 Text("Multi-Camera Access")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(MinimalDesign.Colors.primary)
+                    .foregroundColor(.white)
                 
                 Text("This feature uses multiple cameras simultaneously to create unique photo compositions")
                     .font(.system(size: 16))
-                    .foregroundColor(MinimalDesign.Colors.secondary)
+                    .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
@@ -83,11 +83,11 @@ struct MultiCameraPermissionView: View {
                 
                 Text("Camera Access Denied")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(MinimalDesign.Colors.primary)
+                    .foregroundColor(.white)
                 
                 Text("To use multi-camera features, please enable camera access in Settings")
                     .font(.system(size: 16))
-                    .foregroundColor(MinimalDesign.Colors.secondary)
+                    .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }

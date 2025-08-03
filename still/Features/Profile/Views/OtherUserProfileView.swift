@@ -90,7 +90,7 @@ struct OtherUserProfileView: View {
                         .foregroundColor(.clear)
                 }
                 .padding()
-                .background(Color(.systemBackground))
+                .background(Color.black)
                 
                 // Profile section
                 VStack(spacing: 24) {
@@ -276,7 +276,7 @@ struct OtherUserProfileView: View {
                 }
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color.black)
         .navigationBarHidden(true)
         .onAppear {
             print("🔵 OtherUserProfileView appeared - userId: \(userId)")

@@ -58,7 +58,7 @@ struct CreateGroupChatView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.gray.opacity(0.1))
+            .background(Color.gray.opacity(0.2))
             .cornerRadius(12)
             .padding(.horizontal, 20)
                 
@@ -69,7 +69,7 @@ struct CreateGroupChatView: View {
                     ProgressView()
                     Text("Searching...")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .padding(.top, 8)
                     Spacer()
                 }
@@ -81,7 +81,7 @@ struct CreateGroupChatView: View {
                         .foregroundColor(.gray.opacity(0.6))
                     Text("No users found")
                         .font(.system(size: 16))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                     Spacer()
                 }
             } else if searchText.isEmpty {
@@ -92,7 +92,7 @@ struct CreateGroupChatView: View {
                         .foregroundColor(.gray.opacity(0.6))
                     Text("Search for users to add to group")
                         .font(.system(size: 16))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     Spacer()
                 }
@@ -187,14 +187,14 @@ struct GroupUserRowView: View {
                         .overlay(
                             Text(String(user.profileDisplayName.prefix(1)).uppercased())
                                 .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.white)
                         )
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(user.profileDisplayName)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(MinimalDesign.Colors.primary)
+                        .foregroundColor(.white)
                     
                     Text("@\(user.username)")
                         .font(.system(size: 14))
@@ -250,23 +250,23 @@ struct SelectedUserChip: View {
                     .overlay(
                         Text(String(user.profileDisplayName.prefix(1)).uppercased())
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.white)
                     )
             }
             
             Text(user.profileDisplayName)
                 .font(.system(size: 14))
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
             
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.white)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(16)
     }
 }

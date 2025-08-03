@@ -167,7 +167,7 @@ struct ConversationView: View {
                                     .foregroundColor(.red)
                                 Text(errorMessage)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.white)
                                     .multilineTextAlignment(.center)
                                 Button("Retry") {
                                     Task {
@@ -264,14 +264,14 @@ struct ConversationView: View {
                                     // ユーザー名
                                     Text(conversation.displayName(currentUserId: authManager.currentUser?.id))
                                         .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(MinimalDesign.Colors.primary)
+                                        .foregroundColor(.white)
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
                         } else {
                             Text("Message")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(MinimalDesign.Colors.primary)
+                                .foregroundColor(.white)
                         }
                     }
                     
@@ -280,7 +280,7 @@ struct ConversationView: View {
                 .padding(.horizontal)
                 .padding(.top, 12)
                 .padding(.bottom, 8)
-                .background(Color(.systemBackground))
+                .background(MinimalDesign.Colors.background)
                 
                 Spacer()
             }

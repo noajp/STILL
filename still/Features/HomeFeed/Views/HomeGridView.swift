@@ -82,7 +82,7 @@ struct HomeGridView: View {
                         // Thin progress bar
                         ZStack(alignment: .leading) {
                             Rectangle()
-                                .fill(Color(.tertiarySystemBackground))
+                                .fill(Color(white: 0.15))
                                 .frame(height: 2)
                             
                             Rectangle()
@@ -95,20 +95,25 @@ struct HomeGridView: View {
                 
                 // Content
                 if viewModel.isLoading {
-                    ProgressView("Loading...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.top, 100)
+                    VStack(spacing: 16) {
+                        ProgressView()
+                        Text("Loading...")
+                            .font(.system(size: 16))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 100)
                 } else if viewModel.posts.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.system(size: 60))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.white)
                         Text("No posts yet")
                             .font(.headline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                         Text("Tap the + button\nto create your first post")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -155,9 +160,11 @@ struct HomeGridView: View {
                         await viewModel.preloadGridData()
                     }
                 } else {
-                    // When in grid mode, preload thumbnails for faster display
+                    // When in grid mode, preload grid-optimized images
                     let mediaUrls = viewModel.posts.map { $0.mediaUrl }
-                    ImageCacheManager.shared.preloadThumbnailsForGrid(mediaUrls)
+                    Task.detached(priority: .high) {
+                        await preloadGridImages(mediaUrls)
+                    }
                 }
             }
         }
@@ -187,14 +194,35 @@ struct HomeGridView: View {
                     print("🔄 Switching to grid mode")
                     await viewModel.loadPostsIfNeeded()
                     
-                    // Preload thumbnails for instant grid display
+                    // Preload grid-optimized images for instant display
                     let mediaUrls = viewModel.posts.map { $0.mediaUrl }
-                    ImageCacheManager.shared.preloadThumbnailsForGrid(mediaUrls)
+                    Task.detached(priority: .high) {
+                        await preloadGridImages(mediaUrls)
+                    }
                 } else {
                     // Switching to following mode - start background preload for grid
                     print("🔄 Switching to following mode")
                     Task.detached(priority: .background) {
                         await viewModel.preloadGridData()
+                    }
+                }
+            }
+        }
+    }
+    
+    // Grid image preloader
+    private func preloadGridImages(_ urls: [String]) async {
+        await withTaskGroup(of: Void.self) { group in
+            for (index, url) in urls.enumerated() {
+                // Load first 20 images with high priority
+                if index < 20 {
+                    group.addTask(priority: .high) {
+                        let _ = await GridOptimizedImageView.preloadImage(url)
+                    }
+                } else {
+                    // Load rest with lower priority
+                    group.addTask(priority: .medium) {
+                        let _ = await GridOptimizedImageView.preloadImage(url)
                     }
                 }
             }
@@ -212,7 +240,44 @@ struct PostCardView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // User Header
+            // Image with optimized loading
+            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                case .failure(_):
+                    Rectangle()
+                        .fill(Color.gray)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .font(.title)
+                                .foregroundColor(.white)
+                        )
+                case .empty:
+                    Rectangle()
+                        .fill(Color.gray)
+                        .overlay(
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.white)
+                        )
+                @unknown default:
+                    Rectangle()
+                        .fill(Color.gray)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: 400)
+            .frame(width: UIScreen.main.bounds.width)
+            .clipped()
+            .background(MinimalDesign.Colors.background)
+            .overlay(
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(Color.black, lineWidth: 10)
+            )
+            
+            // User Header (moved below image)
             HStack(spacing: 12) {
                 // Avatar - タップ可能 (compressed for performance)
                 Button(action: {
@@ -226,24 +291,32 @@ struct PostCardView: View {
                             quality: .low
                         ) {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color(.tertiarySystemBackground))
+                                .fill(Color(white: 0.15))
                                 .overlay(
                                     Text(post.user?.username.prefix(1).uppercased() ?? "?")
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.white)
                                 )
                         }
                         .frame(width: 32, height: 32)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.white, lineWidth: 2)
+                        )
                     } else {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(.tertiarySystemBackground))
+                            .fill(Color(white: 0.15))
                             .overlay(
                                 Text(post.user?.username.prefix(1).uppercased() ?? "?")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.white)
                             )
                             .frame(width: 32, height: 32)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.white, lineWidth: 2)
+                            )
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -258,12 +331,12 @@ struct PostCardView: View {
                         Text(post.user?.username ?? "unknown")
                             .font(.body)
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                         
                         if let location = post.locationName {
                             Text(location)
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -271,70 +344,20 @@ struct PostCardView: View {
                 
                 Spacer()
                 
-                // Options
-                Button(action: {}) {
-                    Image(systemName: "ellipsis")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            
-            // Image with optimized loading
-            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                case .failure(_):
-                    Rectangle()
-                        .fill(Color(.tertiarySystemBackground))
-                        .overlay(
-                            Image(systemName: "photo")
-                                .font(.title)
-                                .foregroundColor(.secondary)
-                        )
-                case .empty:
-                    Rectangle()
-                        .fill(Color(.tertiarySystemBackground))
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(.secondary)
-                        )
-                @unknown default:
-                    Rectangle()
-                        .fill(Color(.tertiarySystemBackground))
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: 400)
-            .frame(width: UIScreen.main.bounds.width)
-            .clipped()
-            
-            // Actions
-            HStack(spacing: 16) {
                 // Like Button
                 Button(action: { onLikeTapped(post) }) {
                     Image(systemName: post.isLikedByMe ? "heart.fill" : "heart")
                         .font(.system(size: 20, weight: .light))
-                        .foregroundColor(post.isLikedByMe ? .red : .primary)
+                        .foregroundColor(post.isLikedByMe ? .red : .white)
                 }
                 
                 // Comment Button
                 Button(action: {}) {
                     Image(systemName: "message")
                         .font(.system(size: 20, weight: .light))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                 }
                 
-                Spacer()
-                
-                // Time
-                Text(timeAgoString(from: post.createdAt))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -344,7 +367,7 @@ struct PostCardView: View {
                 HStack {
                     Text(caption)
                         .font(.body)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                     Spacer()
@@ -352,8 +375,18 @@ struct PostCardView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }
+            
+            // Divider line between posts
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 1)
+                .padding(.vertical, 50)
+            
+            // Large spacing between posts for single view
+            Color.clear
+                .frame(height: 50)
         }
-        .background(Color(.systemBackground))
+        .background(Color.black)
         .fullScreenCover(isPresented: $showProfile) {
             if let userId = post.user?.id, userId != authManager.currentUser?.id {
                 OtherUserProfileView(userId: userId)
@@ -384,7 +417,7 @@ struct CustomGridView: View {
             ForEach(0..<groupedPosts.count, id: \.self) { groupIndex in
                 let group = groupedPosts[groupIndex]
                 let isOddRow = groupIndex % 2 == 0
-                let showGroup = groupLoadStatus[groupIndex] ?? false
+                let showGroup = true // groupLoadStatus[groupIndex] ?? false
                 
                 if isOddRow {
                     // 奇数段: 横長写真1枚 + 正方形写真1枚
@@ -416,7 +449,7 @@ struct CustomGridView: View {
             }
             }
         }
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
     }
     
     private var groupedPosts: [[Post]] {
@@ -628,7 +661,7 @@ struct EvenRowView: View {
                         .aspectRatio(1, contentMode: .fill)
                     } else {
                         Rectangle()
-                            .fill(Color(.tertiarySystemBackground))
+                            .fill(Color(white: 0.15))
                             .frame(width: squareSize, height: squareSize)
                     }
                 }
@@ -650,7 +683,7 @@ struct EvenRowView: View {
                         .aspectRatio(1, contentMode: .fill)
                     } else {
                         Rectangle()
-                            .fill(Color(.tertiarySystemBackground))
+                            .fill(Color(white: 0.15))
                             .frame(width: squareSize, height: squareSize)
                     }
                 }
@@ -705,38 +738,110 @@ struct GridImageView: View {
             // Compressed image loading for grid performance (medium quality)
             Group {
                 if showContent {
-                    CompressedAsyncImage(
-                        urlString: post.mediaUrl,
-                        quality: .medium
-                    ) {
-                        Rectangle()
-                            .fill(Color(.tertiarySystemBackground))
-                            .overlay(
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                                    .tint(.secondary)
-                            )
-                    }
-                    .aspectRatio(contentMode: .fill)
-                    .onAppear {
-                        if !imageLoaded {
-                            imageLoaded = true
-                            onImageLoaded?()
+                    GridOptimizedImageView(imageURL: post.mediaUrl)
+                        .onAppear {
+                            if !imageLoaded {
+                                imageLoaded = true
+                                onImageLoaded?()
+                            }
                         }
-                    }
                 } else {
                     // Content not ready to show - display skeleton
                     Rectangle()
-                        .fill(Color(.tertiarySystemBackground))
+                        .fill(Color(white: 0.15))
                         .overlay(
                             Rectangle()
-                                .fill(Color(.systemGray5))
-                                .opacity(0.3)
+                                .fill(Color(white: 0.2))
+                                .opacity(0.5)
                         )
                 }
             }
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Grid Optimized Image View
+struct GridOptimizedImageView: View {
+    let imageURL: String
+    @State private var image: UIImage?
+    @State private var isLoading = true
+    
+    var body: some View {
+        Group {
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Rectangle()
+                    .fill(Color(white: 0.15))
+                    .overlay(
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .tint(.white)
+                    )
+            }
+        }
+        .task {
+            await loadImage()
+        }
+    }
+    
+    private func loadImage() async {
+        // First check for cached compressed image
+        let cacheKey = "\(imageURL)_compressed_grid" as NSString
+        if let cachedImage = ImageCacheManager.shared.cache.object(forKey: cacheKey) {
+            self.image = cachedImage
+            isLoading = false
+            return
+        }
+        
+        // Load image directly
+        if let loadedImage = await ImageCacheManager.shared.loadImage(from: imageURL) {
+            // Compress for grid
+            let gridImage = await Self.compressForGrid(loadedImage)
+            
+            // Cache it
+            ImageCacheManager.shared.cache.setObject(gridImage, forKey: cacheKey)
+            
+            self.image = gridImage
+        }
+        isLoading = false
+    }
+    
+    static func preloadImage(_ url: String) async {
+        let cacheKey = "\(url)_compressed_grid" as NSString
+        
+        // Skip if already cached
+        if ImageCacheManager.shared.cache.object(forKey: cacheKey) != nil {
+            return
+        }
+        
+        // Load and compress
+        if let loadedImage = await ImageCacheManager.shared.loadImage(from: url) {
+            let gridImage = await compressForGrid(loadedImage)
+            ImageCacheManager.shared.cache.setObject(gridImage, forKey: cacheKey)
+        }
+    }
+    
+    private static func compressForGrid(_ image: UIImage) async -> UIImage {
+        let maxSize: CGFloat = 400 // Grid cell size
+        let size = image.size
+        
+        let aspectRatio = size.width / size.height
+        let newSize: CGSize
+        
+        if aspectRatio > 1 {
+            newSize = CGSize(width: maxSize, height: maxSize / aspectRatio)
+        } else {
+            newSize = CGSize(width: maxSize * aspectRatio, height: maxSize)
+        }
+        
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
     }
 }
 

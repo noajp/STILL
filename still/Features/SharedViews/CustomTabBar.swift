@@ -66,7 +66,7 @@ struct CustomTabBar: View {
                         // 非選択時
                         Image(systemName: showGridMode ? "square.grid.3x3" : "square")
                             .font(.system(size: 20, weight: .light))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(.white)
                     }
                 }
             }
@@ -78,7 +78,7 @@ struct CustomTabBar: View {
             }) {
                 Image(systemName: selectedTab == 1 ? "book.fill" : "book")
                     .font(.system(size: 20, weight: .light))
-                    .foregroundColor(selectedTab == 1 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
+                    .foregroundColor(selectedTab == 1 ? MinimalDesign.Colors.accentRed : .white)
             }
             .frame(maxWidth: .infinity)
             
@@ -111,21 +111,21 @@ struct CustomTabBar: View {
                                 // 左側のメッセージ（右向き、水平反転、小さい）
                                 Image(systemName: selectedTab == 2 ? "message.fill" : "message")
                                     .font(.system(size: 12, weight: .light))
-                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
+                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
                                     .scaleEffect(x: -1, y: 1) // 水平反転で右向きに
                                     .frame(width: 12, height: 20, alignment: .center) // 固定フレーム
                                 
                                 // 右側のメッセージ（左向き、通常、大きい）
                                 Image(systemName: selectedTab == 2 ? "message.fill" : "message")
                                     .font(.system(size: 18, weight: .light))
-                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
+                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
                                     .frame(width: 18, height: 20, alignment: .center) // 固定フレーム
                             }
                         } else {
                             // 個人メッセージ: 通常のメッセージアイコン
                             Image(systemName: messageIconName)
                                 .font(.system(size: 20, weight: .light))
-                                .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
+                                .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
                                 .frame(width: 20, height: 20, alignment: .center) // 固定フレーム
                         }
                     }
@@ -155,7 +155,7 @@ struct CustomTabBar: View {
             VStack {
                 Image(systemName: profileIconName)
                     .font(.system(size: 20, weight: .light))
-                    .foregroundColor(selectedTab == 3 ? MinimalDesign.Colors.accentRed : (colorScheme == .dark ? .white : .black))
+                    .foregroundColor(selectedTab == 3 ? MinimalDesign.Colors.accentRed : .white)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -172,6 +172,6 @@ struct CustomTabBar: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .padding(.bottom, 30) // タブバーを上に移動
-        .background(colorScheme == .dark ? Color.black : Color.white)
+        .background(MinimalDesign.Colors.background)
     }
 }

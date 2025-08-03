@@ -24,7 +24,7 @@ struct SignUpView: View {
                 HStack {
                     Text("PERSONAL DETAILS")
                         .font(.system(size: 24, weight: .regular))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     
                     Spacer()
                     
@@ -32,7 +32,7 @@ struct SignUpView: View {
                         dismiss()
                     }
                     .font(.system(size: 24))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -47,11 +47,11 @@ struct SignUpView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("EMAIL")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                             
                             TextField("", text: $email)
                                 .font(.system(size: 18))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.emailAddress)
@@ -60,7 +60,7 @@ struct SignUpView: View {
                                 .overlay(
                                     Rectangle()
                                         .frame(height: 1)
-                                        .foregroundColor(.secondary.opacity(0.5)),
+                                        .foregroundColor(.white.opacity(0.5)),
                                     alignment: .bottom
                                 )
                         }
@@ -69,16 +69,16 @@ struct SignUpView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("PASSWORD")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                             
                             SecureField("", text: $password)
                                 .font(.system(size: 18))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                                 .padding(.bottom, 10)
                                 .overlay(
                                     Rectangle()
                                         .frame(height: 1)
-                                        .foregroundColor(.secondary.opacity(0.5)),
+                                        .foregroundColor(.white.opacity(0.5)),
                                     alignment: .bottom
                                 )
                         }
@@ -87,11 +87,11 @@ struct SignUpView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("USERID")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                             
                             TextField("", text: $userid)
                                 .font(.system(size: 18))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .onChange(of: userid) { oldValue, newValue in
@@ -107,7 +107,7 @@ struct SignUpView: View {
                                 .overlay(
                                     Rectangle()
                                         .frame(height: 1)
-                                        .foregroundColor(.secondary.opacity(0.5)),
+                                        .foregroundColor(.white.opacity(0.5)),
                                     alignment: .bottom
                                 )
                         }
@@ -116,18 +116,18 @@ struct SignUpView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("NAME")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                             
                             TextField("", text: $name)
                                 .font(.system(size: 18))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .padding(.bottom, 10)
                                 .overlay(
                                     Rectangle()
                                         .frame(height: 1)
-                                        .foregroundColor(.secondary.opacity(0.5)),
+                                        .foregroundColor(.white.opacity(0.5)),
                                     alignment: .bottom
                                 )
                         }
@@ -140,7 +140,7 @@ struct SignUpView: View {
                                     .foregroundColor(newsletter ? Color(red: 0.949, green: 0.098, blue: 0.020) : .clear)
                                     .overlay(
                                         Rectangle()
-                                            .stroke(Color.primary, lineWidth: 1)
+                                            .stroke(Color.white, lineWidth: 1)
                                     )
                                     .overlay(
                                         newsletter ? Image(systemName: "checkmark")
@@ -151,7 +151,7 @@ struct SignUpView: View {
                             
                             Text("I would like to receive the latest news from TETE by email")
                                 .font(.system(size: 14))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.white)
                                 .multilineTextAlignment(.leading)
                         }
                     }
@@ -160,14 +160,14 @@ struct SignUpView: View {
                     HStack {
                         Rectangle()
                             .frame(height: 1)
-                            .foregroundColor(.secondary.opacity(0.3))
+                            .foregroundColor(.white.opacity(0.3))
                         Text("OR")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                             .padding(.horizontal, 15)
                         Rectangle()
                             .frame(height: 1)
-                            .foregroundColor(.secondary.opacity(0.3))
+                            .foregroundColor(.white.opacity(0.3))
                     }
                     .padding(.vertical, 10)
                     
@@ -182,17 +182,17 @@ struct SignUpView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "globe")
                                     .font(.system(size: 18))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                                 Text("Sign up with Google")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(
                                 Rectangle()
-                                    .stroke(Color.primary.opacity(0.3), lineWidth: 1)
-                                    .background(Color(UIColor.systemBackground))
+                                    .stroke(Color.white, lineWidth: 1)
+                                    .background(MinimalDesign.Colors.background)
                             )
                         }
                         .disabled(authManager.isLoading)
@@ -206,17 +206,17 @@ struct SignUpView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "applelogo")
                                     .font(.system(size: 18))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                                 Text("Sign up with Apple")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(
                                 Rectangle()
-                                    .stroke(Color.primary.opacity(0.3), lineWidth: 1)
-                                    .background(Color(UIColor.systemBackground))
+                                    .stroke(Color.white, lineWidth: 1)
+                                    .background(MinimalDesign.Colors.background)
                             )
                         }
                         .disabled(authManager.isLoading)
@@ -230,13 +230,13 @@ struct SignUpView: View {
                     }) {
                         Text("CREATE ACCOUNT")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(
                                 Rectangle()
-                                    .stroke(Color.primary, lineWidth: 1)
-                                    .background(Color(UIColor.systemBackground))
+                                    .stroke(Color.white, lineWidth: 1)
+                                    .background(MinimalDesign.Colors.background)
                             )
                     }
                     .disabled(email.isEmpty || password.isEmpty || userid.isEmpty || name.isEmpty || authManager.isLoading)
@@ -245,7 +245,7 @@ struct SignUpView: View {
                 
                 Spacer()
             }
-            .background(Color(UIColor.systemBackground))
+            .background(MinimalDesign.Colors.background)
             .navigationBarHidden(true)
             .alert(isSuccessMessage ? "Success" : "Error", isPresented: $showError) {
                 Button("OK") { }
