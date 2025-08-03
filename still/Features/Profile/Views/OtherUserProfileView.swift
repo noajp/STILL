@@ -95,16 +95,16 @@ struct OtherUserProfileView: View {
                 // Profile section
                 VStack(spacing: 24) {
                     HStack(alignment: .top, spacing: 16) {
-                        // Profile image
+                        // Profile image (compressed for performance)
                         if let avatarUrl = viewModel.userProfile?.avatarUrl {
-                            AsyncImage(url: URL(string: avatarUrl)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } placeholder: {
+                            CompressedAsyncImage(
+                                urlString: avatarUrl,
+                                quality: .medium
+                            ) {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(Color.gray.opacity(0.3))
                             }
+                            .aspectRatio(contentMode: .fill)
                             .frame(width: 100, height: 100)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         } else {
@@ -253,30 +253,21 @@ struct OtherUserProfileView: View {
                     ], spacing: 1.5) {
                         ForEach(viewModel.userPosts) { post in
                             GeometryReader { geometry in
-                                AsyncImage(url: URL(string: post.mediaUrl)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        Rectangle()
-                                            .fill(Color(.tertiarySystemBackground))
-                                            .frame(width: geometry.size.width, height: geometry.size.width)
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: geometry.size.width, height: geometry.size.width)
-                                            .clipped()
-                                    case .failure(_):
-                                        Rectangle()
-                                            .fill(Color(.tertiarySystemBackground))
-                                            .frame(width: geometry.size.width, height: geometry.size.width)
-                                            .overlay(
-                                                Image(systemName: "photo")
-                                                    .foregroundColor(.gray)
-                                            )
-                                    @unknown default:
-                                        EmptyView()
-                                    }
+                                CompressedAsyncImage(
+                                    urlString: post.mediaUrl,
+                                    quality: .medium
+                                ) {
+                                    Rectangle()
+                                        .fill(Color(.tertiarySystemBackground))
+                                        .overlay(
+                                            ProgressView()
+                                                .scaleEffect(0.7)
+                                                .tint(.secondary)
+                                        )
                                 }
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geometry.size.width, height: geometry.size.width)
+                                .clipped()
                             }
                             .aspectRatio(1, contentMode: .fit)
                         }

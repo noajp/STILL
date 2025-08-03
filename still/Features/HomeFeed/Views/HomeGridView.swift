@@ -154,6 +154,10 @@ struct HomeGridView: View {
                     Task.detached(priority: .background) {
                         await viewModel.preloadGridData()
                     }
+                } else {
+                    // When in grid mode, preload thumbnails for faster display
+                    let mediaUrls = viewModel.posts.map { $0.mediaUrl }
+                    ImageCacheManager.shared.preloadThumbnailsForGrid(mediaUrls)
                 }
             }
         }
@@ -179,9 +183,13 @@ struct HomeGridView: View {
             // Handle mode switching
             Task {
                 if newValue {
-                    // Switching to grid mode - ensure posts are loaded for grid
+                    // Switching to grid mode - ensure posts are loaded and preload thumbnails
                     print("🔄 Switching to grid mode")
                     await viewModel.loadPostsIfNeeded()
+                    
+                    // Preload thumbnails for instant grid display
+                    let mediaUrls = viewModel.posts.map { $0.mediaUrl }
+                    ImageCacheManager.shared.preloadThumbnailsForGrid(mediaUrls)
                 } else {
                     // Switching to following mode - start background preload for grid
                     print("🔄 Switching to following mode")
@@ -206,14 +214,17 @@ struct PostCardView: View {
         VStack(spacing: 0) {
             // User Header
             HStack(spacing: 12) {
-                // Avatar - タップ可能
+                // Avatar - タップ可能 (compressed for performance)
                 Button(action: {
                     if post.user?.id != authManager.currentUser?.id {
                         showProfile = true
                     }
                 }) {
                     if let avatarUrl = post.user?.avatarUrl {
-                        FastAsyncImage(urlString: avatarUrl) {
+                        CompressedAsyncImage(
+                            urlString: avatarUrl,
+                            quality: .low
+                        ) {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(Color(.tertiarySystemBackground))
                                 .overlay(
@@ -286,12 +297,12 @@ struct PostCardView: View {
                                 .foregroundColor(.secondary)
                         )
                 case .empty:
-                    // Loading skeleton display
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
                         .overlay(
                             ProgressView()
                                 .scaleEffect(0.8)
+                                .tint(.secondary)
                         )
                 @unknown default:
                     Rectangle()
@@ -691,44 +702,37 @@ struct GridImageView: View {
         Button(action: {
             onTap?()
         }) {
-            // 高性能なOptimizedAsyncImageを使用
-            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                switch phase {
-                case .success(let image):
-                    Group {
-                        if showContent {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .transition(.opacity)
-                        } else {
-                            // コンテンツをまだ表示しない場合はスケルトンを表示
-                            Rectangle()
-                                .fill(Color(.tertiarySystemBackground))
-                        }
+            // Compressed image loading for grid performance (medium quality)
+            Group {
+                if showContent {
+                    CompressedAsyncImage(
+                        urlString: post.mediaUrl,
+                        quality: .medium
+                    ) {
+                        Rectangle()
+                            .fill(Color(.tertiarySystemBackground))
+                            .overlay(
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                    .tint(.secondary)
+                            )
                     }
-                    // 画像が読み込まれたことを通知
+                    .aspectRatio(contentMode: .fill)
                     .onAppear {
                         if !imageLoaded {
                             imageLoaded = true
                             onImageLoaded?()
                         }
                     }
-                case .failure(_):
+                } else {
+                    // Content not ready to show - display skeleton
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
                         .overlay(
-                            Image(systemName: "photo")
-                                .font(.title3)
-                                .foregroundColor(.secondary)
+                            Rectangle()
+                                .fill(Color(.systemGray5))
+                                .opacity(0.3)
                         )
-                case .empty:
-                    // Loading skeleton display
-                    Rectangle()
-                        .fill(Color(.tertiarySystemBackground))
-                @unknown default:
-                    Rectangle()
-                        .fill(Color(.tertiarySystemBackground))
                 }
             }
         }

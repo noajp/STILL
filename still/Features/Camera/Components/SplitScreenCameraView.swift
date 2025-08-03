@@ -6,6 +6,7 @@
 import SwiftUI
 import AVFoundation
 import Photos
+import MediaPlayer
 
 /**
  * Split screen camera view that allows capturing multiple separate images
@@ -16,6 +17,10 @@ struct SplitScreenCameraView: View {
     @State private var splitMode: SplitMode = .dual
     @State private var capturedImages: [Int: UIImage] = [:]
     @State private var isCapturingAll = false
+    @State private var showSuccessAnimation = false
+    @State private var currentInstructions = ""
+    @State private var volumeObserver: Any?
+    @State private var showCompositePreview = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -23,48 +28,74 @@ struct SplitScreenCameraView: View {
                 // Background
                 Color.black.ignoresSafeArea()
                 
-                // Split camera views
-                splitCameraViews(geometry: geometry)
+                if showCompositePreview && capturedImages.count == splitMode.splitCount {
+                    // Show captured images side by side
+                    HStack(spacing: 2) {
+                        ForEach(0..<splitMode.splitCount, id: \.self) { index in
+                            if let image = capturedImages[index] {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: geometry.size.width / CGFloat(splitMode.splitCount) - 1)
+                                    .clipped()
+                            }
+                        }
+                    }
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                } else {
+                    // Split camera views
+                    splitCameraViews(geometry: geometry)
+                }
                 
                 // Overlay controls
-                VStack {
-                    // Top controls
-                    HStack {
-                        splitModeSelector
+                if !showCompositePreview {
+                    VStack {
+                        // Top controls - Only show progress indicator
+                        HStack {
+                            Spacer()
+                            captureProgressIndicator
+                            Spacer()
+                        }
+                        .padding(.top, 50)
+                        .padding(.horizontal, 20)
+                        
+                        // Instructions
+                        if !currentInstructions.isEmpty {
+                            Text(currentInstructions)
+                                .font(.callout)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.black.opacity(0.7))
+                                .cornerRadius(12)
+                                .padding(.horizontal, 20)
+                                .transition(.opacity)
+                        }
+                        
                         Spacer()
-                        captureProgressIndicator
+                        
+                        // Bottom controls - Only reset button
+                        HStack {
+                            Spacer()
+                            resetButton
+                        }
+                        .padding(.bottom, 50)
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.top, 50)
-                    .padding(.horizontal, 20)
-                    
-                    Spacer()
-                    
-                    // Bottom controls
-                    HStack(spacing: 30) {
-                        // Individual capture buttons
-                        individualCaptureButtons
-                        
-                        Spacer()
-                        
-                        // Master capture button
-                        masterCaptureButton
-                        
-                        Spacer()
-                        
-                        // Reset button
-                        resetButton
-                    }
-                    .padding(.bottom, 50)
-                    .padding(.horizontal, 20)
                 }
             }
         }
         .onAppear {
             cameraManager.setupCamera()
+            updateInstructions()
+            setupVolumeButtonObserver()
         }
         .onDisappear {
             cameraManager.stopSession()
+            removeVolumeButtonObserver()
         }
+        .onChange(of: cameraManager.activeSplit) { _, _ in updateInstructions() }
+        .onChange(of: capturedImages) { _, _ in updateInstructions() }
     }
     
     // MARK: - Split Camera Views
@@ -186,26 +217,6 @@ struct SplitScreenCameraView: View {
     }
     
     // MARK: - UI Components
-    private var splitModeSelector: some View {
-        Menu {
-            ForEach(SplitMode.allCases, id: \.self) { mode in
-                Button(mode.displayName) {
-                    splitMode = mode
-                    capturedImages.removeAll()
-                }
-            }
-        } label: {
-            HStack {
-                Image(systemName: splitMode.iconName)
-                Text(splitMode.displayName)
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.black.opacity(0.6))
-            .cornerRadius(20)
-        }
-    }
     
     private var captureProgressIndicator: some View {
         HStack {
@@ -221,44 +232,6 @@ struct SplitScreenCameraView: View {
         .cornerRadius(20)
     }
     
-    private var individualCaptureButtons: some View {
-        HStack(spacing: 10) {
-            ForEach(0..<splitMode.splitCount, id: \.self) { index in
-                Button(action: { captureSplit(index) }) {
-                    Circle()
-                        .fill(capturedImages[index] != nil ? Color.green : Color.white)
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Text("\(index + 1)")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(capturedImages[index] != nil ? .white : .black)
-                        )
-                }
-                .disabled(isCapturingAll)
-            }
-        }
-    }
-    
-    private var masterCaptureButton: some View {
-        Button(action: captureAllSplits) {
-            ZStack {
-                Circle()
-                    .stroke(Color.white, lineWidth: 4)
-                    .frame(width: 80, height: 80)
-                
-                Circle()
-                    .fill(isCapturingAll ? Color.red : Color.white)
-                    .frame(width: 65, height: 65)
-                
-                if isCapturingAll {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                }
-            }
-        }
-        .disabled(isCapturingAll)
-    }
     
     private var resetButton: some View {
         Button(action: resetAllCaptures) {
@@ -274,67 +247,145 @@ struct SplitScreenCameraView: View {
     // MARK: - Actions
     private func captureSplit(_ index: Int) {
         print("📷 Capturing split \(index)")
+        
+        // Haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+        
         cameraManager.capturePhoto { image in
-            if let image = image {
-                capturedImages[index] = image
-                print("📷 Split \(index) captured successfully")
+            DispatchQueue.main.async {
+                if let image = image {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                        capturedImages[index] = image
+                    }
+                    
+                    // Success animation
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showSuccessAnimation = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showSuccessAnimation = false
+                        }
+                    }
+                    
+                    print("📷 Split \(index) captured successfully")
+                } else {
+                    print("❌ Failed to capture split \(index)")
+                }
             }
         }
     }
     
-    private func captureAllSplits() {
-        guard !isCapturingAll else { return }
-        
-        isCapturingAll = true
-        capturedImages.removeAll()
-        
-        let totalSplits = splitMode.splitCount
-        var capturedCount = 0
-        
-        func captureNext() {
-            guard capturedCount < totalSplits else {
-                // All splits captured, create composite
-                createCompositeImage()
-                isCapturingAll = false
-                return
-            }
-            
-            cameraManager.activeSplit = capturedCount
-            
-            // Wait a moment for camera to adjust
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                cameraManager.capturePhoto { image in
-                    if let image = image {
-                        capturedImages[capturedCount] = image
-                        print("📷 Auto-captured split \(capturedCount)")
-                    }
-                    
-                    capturedCount += 1
-                    captureNext()
-                }
-            }
-        }
-        
-        captureNext()
-    }
     
     private func resetAllCaptures() {
         capturedImages.removeAll()
         cameraManager.activeSplit = 0
     }
     
-    private func createCompositeImage() {
-        guard !capturedImages.isEmpty else { return }
+    private func createAndShowComposite() {
+        guard capturedImages.count == splitMode.splitCount else { return }
         
-        Task.detached {
-            let composite = await SplitScreenCompositor.createComposite(
-                images: capturedImages,
-                mode: splitMode
-            )
+        Task { @MainActor in
+            // Show preview immediately
+            withAnimation(.easeInOut(duration: 0.3)) {
+                self.showCompositePreview = true
+            }
             
-            if let composite = composite {
-                await CameraManager.savePhotoToLibraryStatic(image: composite)
-                print("✅ Composite image saved to library")
+            // Save each image separately to photo library
+            for (_, image) in capturedImages {
+                await CameraManager.savePhotoToLibraryStatic(image: image)
+            }
+            print("✅ \(capturedImages.count) images saved to library")
+            
+            // Hide preview and reset after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    self.showCompositePreview = false
+                    self.resetAllCaptures()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    private func updateInstructions() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            let capturedCount = capturedImages.count
+            let totalCount = splitMode.splitCount
+            
+            if capturedCount == 0 {
+                currentInstructions = "音量上げボタンで撮影 - 分割\(cameraManager.activeSplit + 1)"
+            } else if capturedCount < totalCount {
+                let remaining = totalCount - capturedCount
+                currentInstructions = "残り\(remaining)枚 - 音量上げボタンで撮影"
+            } else {
+                currentInstructions = ""
+                // All splits captured - create and show composite
+                if !showCompositePreview {
+                    createAndShowComposite()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Volume Button Handling
+    private func setupVolumeButtonObserver() {
+        // Setup audio session for volume button capture
+        let audioSession = AVAudioSession.sharedInstance()
+        
+        do {
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers])
+            try audioSession.setActive(true)
+        } catch {
+            print("❌ Failed to setup audio session: \(error)")
+        }
+        
+        // Hide system volume HUD
+        let volumeView = MPVolumeView(frame: CGRect(x: -1000, y: -1000, width: 1, height: 1))
+        if let window = UIApplication.shared.windows.first {
+            window.addSubview(volumeView)
+        }
+        
+        // Store notification observer
+        volumeObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("AVSystemController_SystemVolumeDidChangeNotification"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            // Check if it's a physical button press
+            if let userInfo = notification.userInfo,
+               let changeReason = userInfo["AVSystemController_AudioVolumeChangeReasonNotificationParameter"] as? String,
+               changeReason == "ExplicitVolumeChange" {
+                Task { @MainActor in
+                    self.handleVolumeButtonPress()
+                }
+            }
+        }
+    }
+    
+    private func removeVolumeButtonObserver() {
+        if let observer = volumeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        volumeObserver = nil
+    }
+    
+    private func handleVolumeButtonPress() {
+        // Capture current split
+        captureSplit(cameraManager.activeSplit)
+        
+        // Auto-advance to next split if not all captured
+        if capturedImages.count < splitMode.splitCount {
+            let nextSplit = (cameraManager.activeSplit + 1) % splitMode.splitCount
+            // Skip if already captured
+            var targetSplit = nextSplit
+            while capturedImages[targetSplit] != nil && targetSplit != cameraManager.activeSplit {
+                targetSplit = (targetSplit + 1) % splitMode.splitCount
+            }
+            if targetSplit != cameraManager.activeSplit {
+                cameraManager.activeSplit = targetSplit
             }
         }
     }
@@ -379,6 +430,8 @@ struct SplitCameraFrame: View {
     let isActive: Bool
     let onTap: () -> Void
     
+    @State private var isPressed = false
+    
     var body: some View {
         ZStack {
             // Camera preview or captured image
@@ -399,6 +452,25 @@ struct SplitCameraFrame: View {
             if isActive && capturedImage == nil {
                 Rectangle()
                     .stroke(Color.yellow, lineWidth: 3)
+                    .opacity(0.8)
+                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isActive)
+            }
+            
+            // Success checkmark for captured images
+            if capturedImage != nil {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.green)
+                            .background(Color.white.clipShape(Circle()))
+                            .scaleEffect(1.2)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: capturedImage != nil)
+                    }
+                }
+                .padding(12)
             }
             
             // Split number indicator
@@ -421,7 +493,21 @@ struct SplitCameraFrame: View {
             Rectangle()
                 .fill(Color.clear)
                 .contentShape(Rectangle())
+                .scaleEffect(isPressed ? 0.95 : 1.0)
                 .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        isPressed = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isPressed = false
+                        }
+                    }
+                    
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                    
                     onTap()
                 }
         }

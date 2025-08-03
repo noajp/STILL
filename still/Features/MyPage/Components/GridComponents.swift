@@ -46,10 +46,14 @@ struct SingleCardGridView: View {
                         }
                     }
                     .onLongPressGesture(minimumDuration: 0.5) {
-                        // Long press to initiate drag
+                        // Long press to initiate drag with haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                        
                         withAnimation(.spring(response: 0.3)) {
                             isDragging = true
                         }
+                        print("🔄 Long press detected - drag mode enabled for post: \(post.id)")
                     }
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 0)
@@ -131,10 +135,14 @@ struct GridView: View {
                         }
                     }
                     .onLongPressGesture(minimumDuration: 0.5) {
-                        // Long press to initiate drag
+                        // Long press to initiate drag with haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                        
                         withAnimation(.spring(response: 0.3)) {
                             isDragging = true
                         }
+                        print("🔄 Long press detected - drag mode enabled for post: \(post.id)")
                     }
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 0)
@@ -229,43 +237,42 @@ struct ProfileSingleCardView: View {
     }
     
     var body: some View {
-        Button(action: {
-            onTap?()
-        }) {
-            GeometryReader { geometry in
-                // High-performance OptimizedAsyncImage
-                OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        Rectangle()
-                            .fill(MinimalDesign.Colors.tertiaryBackground)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                            .overlay(
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
-                            )
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                            .clipped()
-                    case .failure(_):
-                        Rectangle()
-                            .fill(MinimalDesign.Colors.tertiaryBackground)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundColor(MinimalDesign.Colors.secondary)
-                            )
-                    @unknown default:
-                        EmptyView()
-                    }
+        GeometryReader { geometry in
+            // High-performance OptimizedAsyncImage
+            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
+                switch phase {
+                case .empty:
+                    Rectangle()
+                        .fill(MinimalDesign.Colors.tertiaryBackground)
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .overlay(
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
+                        )
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .clipped()
+                case .failure(_):
+                    Rectangle()
+                        .fill(MinimalDesign.Colors.tertiaryBackground)
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(MinimalDesign.Colors.secondary)
+                        )
+                @unknown default:
+                    EmptyView()
                 }
             }
-            .aspectRatio(1, contentMode: .fit)
         }
-        .buttonStyle(PlainButtonStyle())
+        .aspectRatio(1, contentMode: .fit)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
     }
 }
 
@@ -283,43 +290,42 @@ struct GridItemView: View {
     }
     
     var body: some View {
-        Button(action: {
-            onTap?()
-        }) {
-            GeometryReader { geometry in
-                // High-performance OptimizedAsyncImage
-                OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                    switch phase {
-                    case .empty:
-                        Rectangle()
-                            .fill(MinimalDesign.Colors.tertiaryBackground)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                            .overlay(
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
-                            )
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                            .clipped()
-                    case .failure(_):
-                        Rectangle()
-                            .fill(MinimalDesign.Colors.tertiaryBackground)
-                            .frame(width: geometry.size.width, height: geometry.size.width)
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundColor(MinimalDesign.Colors.secondary)
-                            )
-                    @unknown default:
-                        EmptyView()
-                    }
+        GeometryReader { geometry in
+            // High-performance OptimizedAsyncImage
+            OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
+                switch phase {
+                case .empty:
+                    Rectangle()
+                        .fill(MinimalDesign.Colors.tertiaryBackground)
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .overlay(
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: MinimalDesign.Colors.secondary))
+                        )
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .clipped()
+                case .failure(_):
+                    Rectangle()
+                        .fill(MinimalDesign.Colors.tertiaryBackground)
+                        .frame(width: geometry.size.width, height: geometry.size.width)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(MinimalDesign.Colors.secondary)
+                        )
+                @unknown default:
+                    EmptyView()
                 }
             }
-            .aspectRatio(1, contentMode: .fit)
         }
-        .buttonStyle(PlainButtonStyle())
+        .aspectRatio(1, contentMode: .fit)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
     }
 }
 
@@ -356,13 +362,12 @@ struct MagazinePostCard: View {
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(height: 280)
-                    .clipped()
             } placeholder: {
                 Rectangle()
                     .fill(MinimalDesign.Colors.tertiaryBackground)
-                    .frame(height: 280)
             }
+            .frame(height: 280)
+            .clipped()
             .cornerRadius(MinimalDesign.Radius.md)
             
             // Caption
