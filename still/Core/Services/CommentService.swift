@@ -46,7 +46,8 @@ class CommentService: ObservableObject {
                 post_id,
                 user_id,
                 content,
-                created_at
+                created_at,
+                user:profiles!comments_user_id_fkey(*)
             """)
             .eq("post_id", value: postId)
             .order("created_at", ascending: true) // Oldest first for chronological order
@@ -105,7 +106,8 @@ class CommentService: ObservableObject {
                 post_id,
                 user_id,
                 content,
-                created_at
+                created_at,
+                user:profiles!comments_user_id_fkey(*)
             """)
             .execute()
             .value
@@ -117,10 +119,9 @@ class CommentService: ObservableObject {
         print("✅ CommentService: Created comment with ID: \(newComment.id)")
         
         // Create notification for post owner (if not commenting on own post)
-        // Temporarily disabled to debug updated_at issue
-        // Task {
-        //     await createCommentNotification(for: newComment, postId: postId, currentUser: currentUser)
-        // }
+        Task {
+            await createCommentNotification(for: newComment, postId: postId, currentUser: currentUser)
+        }
         
         return newComment
     }

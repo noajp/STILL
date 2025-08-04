@@ -181,6 +181,22 @@ struct Post: Identifiable, Codable, Hashable, Transferable {
                 )
             }
         }
+        
+        // Handle optional updated_at parsing
+        if let updatedAtString = try container.decodeIfPresent(String.self, forKey: .updatedAt) {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
+            if let date = formatter.date(from: updatedAtString) {
+                updatedAt = date
+            } else {
+                // Fallback without fractional seconds
+                formatter.formatOptions = [.withInternetDateTime]
+                updatedAt = formatter.date(from: updatedAtString)
+            }
+        } else {
+            updatedAt = nil
+        }
     }
     
     // MARK: - Hashable Implementation

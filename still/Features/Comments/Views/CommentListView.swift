@@ -140,7 +140,7 @@ struct CommentListView: View {
             
             HStack(spacing: 12) {
                 // User Avatar
-                Circle()
+                RoundedRectangle(cornerRadius: 6)
                     .fill(Color(hex: "1e1e1e"))
                     .frame(width: 32, height: 32)
                     .overlay(
@@ -226,9 +226,9 @@ struct CommentRowView: View {
                 if let avatarUrl = comment.authorAvatarUrl {
                     RemoteImageView(imageURL: avatarUrl)
                         .frame(width: 36, height: 36)
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
-                    Circle()
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(Color(hex: "1e1e1e"))
                         .frame(width: 36, height: 36)
                         .overlay(
