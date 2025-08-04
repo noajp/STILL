@@ -378,7 +378,7 @@ struct EnhancedFilterSelectionView_Previews: PreviewProvider {
             onFilterApplied: { _, _ in }
         )
         .frame(height: 300)
-        .background(Color.black)
+        .background(Color(hex: "121212"))
     }
 }
 #endif

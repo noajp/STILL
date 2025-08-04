@@ -69,6 +69,7 @@ struct ProfileView: View {
                     }
                 }
             }
+            .background(MinimalDesign.Colors.background)
         }
     }
 }

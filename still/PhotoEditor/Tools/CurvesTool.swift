@@ -54,7 +54,7 @@ struct CurvesTool: View {
             // Curve editor
             curveEditor
                 .frame(width: curveSize, height: curveSize)
-                .background(Color.black)
+                .background(Color(hex: "121212"))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             
             // Curve info
@@ -312,7 +312,7 @@ struct CurvesTool: View {
                             // Mini curve preview
                             MiniCurvePreview(points: preset.curvePoints)
                                 .frame(width: 60, height: 60)
-                                .background(Color.black)
+                                .background(Color(hex: "121212"))
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                             
                             Text(preset.displayName)

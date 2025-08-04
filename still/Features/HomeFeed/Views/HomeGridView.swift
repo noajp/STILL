@@ -142,11 +142,15 @@ struct HomeGridView: View {
                     showGridMode: $showGridMode
                 )
                 .onAppear {
+                    print("🔍 SinglePostView appeared for post: \(selectedPost.id)")
                     isInSingleView = true
                 }
                 .onDisappear {
+                    print("🔍 SinglePostView disappeared")
                     isInSingleView = false
                 }
+            } else {
+                EmptyView()
             }
         }
         .onAppear {
@@ -274,7 +278,7 @@ struct PostCardView: View {
             .background(MinimalDesign.Colors.background)
             .overlay(
                 RoundedRectangle(cornerRadius: 0)
-                    .stroke(Color.black, lineWidth: 10)
+                    .stroke(Color(hex: "121212"), lineWidth: 10)
             )
             
             // User Header (moved below image)
@@ -376,15 +380,6 @@ struct PostCardView: View {
                 .padding(.bottom, 12)
             }
             
-            // Divider line between posts
-            Rectangle()
-                .fill(Color(.systemGray5))
-                .frame(height: 1)
-                .padding(.vertical, 50)
-            
-            // Large spacing between posts for single view
-            Color.clear
-                .frame(height: 50)
         }
         .background(Color(hex: "121212"))
         .fullScreenCover(isPresented: $showProfile) {
@@ -429,8 +424,11 @@ struct CustomGridView: View {
                             checkGroupLoadStatus(groupIndex: groupIndex, group: group)
                         }
                     ) { post in
+                        print("🔍 Grid - Post tapped: \(post.id)")
                         selectedPost = post
+                        print("🔍 Grid - selectedPost set to: \(selectedPost?.id ?? "nil")")
                         navigateToSingleView = true
+                        print("🔍 Grid - navigateToSingleView set to: \(navigateToSingleView)")
                     }
                 } else {
                     // 偶数段: 正方形写真6枚
@@ -442,8 +440,11 @@ struct CustomGridView: View {
                             checkGroupLoadStatus(groupIndex: groupIndex, group: group)
                         }
                     ) { post in
+                        print("🔍 Grid - Post tapped: \(post.id)")
                         selectedPost = post
+                        print("🔍 Grid - selectedPost set to: \(selectedPost?.id ?? "nil")")
                         navigateToSingleView = true
+                        print("🔍 Grid - navigateToSingleView set to: \(navigateToSingleView)")
                     }
                 }
             }
@@ -733,6 +734,7 @@ struct GridImageView: View {
     
     var body: some View {
         Button(action: {
+            print("🔍 GridImageView - Button tapped for post: \(post.id)")
             onTap?()
         }) {
             // Compressed image loading for grid performance (medium quality)

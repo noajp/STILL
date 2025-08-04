@@ -42,7 +42,7 @@ struct CameraView: View {
                     .ignoresSafeArea()
             } else {
                 Rectangle()
-                    .fill(Color.black)
+                    .fill(Color(hex: "121212"))
                     .ignoresSafeArea()
                     .overlay(
                         VStack {
@@ -210,7 +210,7 @@ struct FilmLoadedView: View {
                     Rectangle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.black, Color.black.opacity(0.8)],
+                                colors: [Color(hex: "121212"), Color(hex: "121212").opacity(0.8)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )

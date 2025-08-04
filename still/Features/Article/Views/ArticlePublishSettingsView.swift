@@ -30,7 +30,7 @@ struct ArticlePublishSettingsView: View {
             // Dark gradient background
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.black,
+                    Color(hex: "121212"),
                     Color(red: 0.05, green: 0.05, blue: 0.08)
                 ]),
                 startPoint: .topLeading,

@@ -304,20 +304,26 @@ struct GroupMessageBubble: View {
                     Button(action: {
                         showingProfile = true
                     }) {
-                        if let avatarUrl = message.sender?.avatarUrl {
-                            RemoteImageView(imageURL: avatarUrl)
-                                .frame(width: 32, height: 32)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        } else {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.gray.opacity(0.3))
-                                .frame(width: 32, height: 32)
-                                .overlay(
-                                    Text(String(message.sender?.username.prefix(1) ?? "?").uppercased())
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white)
-                                )
+                        Group {
+                            if let avatarUrl = message.sender?.avatarUrl {
+                                RemoteImageView(imageURL: avatarUrl)
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 32, height: 32)
+                                    .overlay(
+                                        Text(String(message.sender?.username.prefix(1) ?? "?").uppercased())
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white)
+                                    )
+                            }
                         }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.white, lineWidth: 2)
+                        )
                     }
                     .buttonStyle(PlainButtonStyle())
                 } else {

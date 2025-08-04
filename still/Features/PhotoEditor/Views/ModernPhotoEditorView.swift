@@ -97,7 +97,7 @@ struct ModernPhotoEditorView: View {
     }
     
     private var backgroundView: some View {
-        Color.black.ignoresSafeArea()
+        Color(hex: "121212").ignoresSafeArea()
     }
     
     private var contentView: some View {

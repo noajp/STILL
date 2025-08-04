@@ -227,7 +227,7 @@ struct PresetSelectionView_Previews: PreviewProvider {
             onPresetSelected: { _ in }
         )
         .frame(height: 180)
-        .background(Color.black)
+        .background(Color(hex: "121212"))
     }
 }
 #endif

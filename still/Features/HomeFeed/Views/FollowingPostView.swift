@@ -37,7 +37,7 @@ struct FollowingPostView: View {
             SinglePostCard(post: singlePost, onLikeTapped: onLikeTapped ?? { _ in })
         } else {
             // Feed mode
-            LazyVStack(spacing: 0) {
+            LazyVStack(spacing: 40) {
                 if filteredPosts.isEmpty && !isLoadingFollowing {
                     // フォローしている人がいないか、投稿がない場合
                     VStack(spacing: 20) {

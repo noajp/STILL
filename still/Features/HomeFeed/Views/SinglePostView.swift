@@ -20,62 +20,34 @@ struct SinglePostView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            ScrollViewReader { proxy in
-                ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 0) {
-                        // Header space
-                        Color.clear
-                            .frame(height: 105) // Same as HomeGridView header height
-                            .frame(width: UIScreen.main.bounds.width)
-                        
-                        // 選択された投稿を最初に表示
-                        PostCardView(post: initialPost) { post in
-                            Task {
-                                await viewModel.toggleLike(for: post)
-                            }
-                        }
-                        .id(initialPost.id)
-                        
-                        // 全ユーザーの投稿を時系列順で表示（初期投稿以外）
-                        ForEach(allPostsExceptInitial) { post in
-                            PostCardView(post: post) { post in
-                                Task {
-                                    await viewModel.toggleLike(for: post)
-                                }
-                            }
-                        }
-                        
-                        // Bottom space for tab bar
-                        Color.clear
-                            .frame(height: 110)
+        ScrollableHeaderView(
+            title: "STILL"
+        ) {
+            VStack(spacing: 40) {
+                // 選択された投稿を最初に表示
+                PostCardView(post: initialPost) { post in
+                    Task {
+                        await viewModel.toggleLike(for: post)
                     }
                 }
-                .onAppear {
-                    // グリッドから遷移した場合でもグリッドモードのままにする
-                    // showGridMode = false を削除
-                }
-                .onChange(of: scrollToTop) { _, newValue in
-                    if newValue {
-                        withAnimation {
-                            proxy.scrollTo(initialPost.id, anchor: .top)
+                .id(initialPost.id)
+                
+                // 全ユーザーの投稿を時系列順で表示（初期投稿以外）
+                ForEach(allPostsExceptInitial) { post in
+                    PostCardView(post: post) { post in
+                        Task {
+                            await viewModel.toggleLike(for: post)
                         }
-                        scrollToTop = false
                     }
                 }
+                
+                // Bottom space for tab bar
+                Color.clear
+                    .frame(height: 110)
             }
-            
-            // Header without back button
-            VStack(spacing: 0) {
-                UnifiedHeader(
-                    title: "STILL"
-                )
-            }
-            .zIndex(1000)
         }
         .background(Color(hex: "121212"))
         .navigationBarHidden(true)
-        .ignoresSafeArea(.all, edges: .top)
     }
     
     // MARK: - Computed Properties

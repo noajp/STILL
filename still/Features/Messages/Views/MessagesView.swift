@@ -267,19 +267,25 @@ struct ConversationRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // プロフィール画像
-            if let avatarUrl = conversation.displayAvatar(currentUserId: authManager.currentUser?.id) {
-                RemoteImageView(imageURL: avatarUrl)
-                    .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 50, height: 50)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.white)
-                    )
+            Group {
+                if let avatarUrl = conversation.displayAvatar(currentUserId: authManager.currentUser?.id) {
+                    RemoteImageView(imageURL: avatarUrl)
+                        .frame(width: 50, height: 50)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .foregroundColor(.white)
+                        )
+                }
             }
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white, lineWidth: 2)
+            )
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {

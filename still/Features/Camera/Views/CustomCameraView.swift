@@ -27,7 +27,7 @@ struct CustomCameraView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(hex: "121212").ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // ナビゲーションエリア
@@ -160,7 +160,7 @@ struct CustomCameraView: View {
                             .frame(width: 70, height: 70)
                             .overlay(
                                 Circle()
-                                    .stroke(Color.black, lineWidth: 2)
+                                    .stroke(Color(hex: "121212"), lineWidth: 2)
                                     .frame(width: 60, height: 60)
                             )
                     }

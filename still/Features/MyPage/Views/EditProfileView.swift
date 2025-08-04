@@ -26,6 +26,8 @@ struct EditProfileView: View {
                 bioSection
                 bioHintSection
             }
+            .scrollContentBackground(.hidden)
+            .background(MinimalDesign.Colors.background)
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

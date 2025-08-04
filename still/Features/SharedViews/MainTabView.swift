@@ -84,11 +84,13 @@ struct MainTabView: View {
                 // Navigation order: Home → Articles → Messages → Profile
                 TabView(selection: $selectedTab) {
                     // Home feed tab (0) - Main photo grid and feed view
-                    HomeGridView(
-                        showGridMode: $showGridMode, 
-                        showingCreatePost: $showingCreatePost,
-                        isInSingleView: $isInSingleView
-                    )
+                    NavigationStack {
+                        HomeGridView(
+                            showGridMode: $showGridMode, 
+                            showingCreatePost: $showingCreatePost,
+                            isInSingleView: $isInSingleView
+                        )
+                    }
                     .tag(0)
                     
                     // Articles tab (1) - Article browsing and reading
@@ -111,7 +113,7 @@ struct MainTabView: View {
                     .tag(3)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .background(Color.black)
+                .background(Color(hex: "121212"))
                 .ignoresSafeArea(.all)
                 .tag(1)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -177,7 +179,7 @@ struct MainTabView: View {
                 .zIndex(999) // Display on top of all other views
             }
         }
-        .background(Color.black)
+        .background(Color(hex: "121212"))
         .ignoresSafeArea(.all)
         .accentColor(MinimalDesign.Colors.accentRed)
         // MARK: - Modal Presentations

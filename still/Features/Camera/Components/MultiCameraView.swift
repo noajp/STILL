@@ -22,7 +22,7 @@ struct MultiCameraView: View {
         GeometryReader { geometry in
             ZStack {
                 // Background
-                Color.black.ignoresSafeArea()
+                Color(hex: "121212").ignoresSafeArea()
                 
                 // Camera frames based on selected layout
                 cameraFramesView(geometry: geometry)
@@ -215,7 +215,7 @@ struct MultiCameraView: View {
                     .frame(width: 70, height: 70)
                     .overlay(
                         Circle()
-                            .stroke(Color.black, lineWidth: 3)
+                            .stroke(Color(hex: "121212"), lineWidth: 3)
                             .frame(width: 60, height: 60)
                     )
             }

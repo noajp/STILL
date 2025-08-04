@@ -102,14 +102,14 @@ struct EditorFooterView_Previews: PreviewProvider {
                 selectedTab: .constant(.presets),
                 onTabSelected: { _ in }
             )
-            .background(Color.black)
+            .background(Color(hex: "121212"))
             .previewDisplayName("Simple Footer")
             
             ExtendedEditorFooterView(
                 selectedTab: .constant(.presets),
                 onTabSelected: { _ in }
             )
-            .background(Color.black)
+            .background(Color(hex: "121212"))
             .previewDisplayName("Extended Footer")
         }
     }

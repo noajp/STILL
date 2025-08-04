@@ -27,6 +27,12 @@ struct SinglePostCard: View {
             }
         }
         .background(Color(hex: "121212"))
+        .overlay(
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
         .onAppear {
             print("🔍 SinglePostCard - Post ID: \(post.id)")
             print("🔍 SinglePostCard - User ID: \(post.userId)")
@@ -182,10 +188,6 @@ struct SinglePostCard: View {
                 }
             }
             .background(Color(hex: "121212"))
-            .overlay(
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(Color.black, lineWidth: 10)
-            )
         }
     }
     

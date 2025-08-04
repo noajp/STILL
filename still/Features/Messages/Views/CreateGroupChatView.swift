@@ -177,20 +177,26 @@ struct GroupUserRowView: View {
         Button(action: onToggle) {
             HStack(spacing: 16) {
                 // プロフィール画像
-                if let avatarUrl = user.avatarUrl {
-                    RemoteImageView(imageURL: avatarUrl)
-                        .frame(width: 48, height: 48)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                        .overlay(
-                            Text(String(user.profileDisplayName.prefix(1)).uppercased())
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
-                        )
+                Group {
+                    if let avatarUrl = user.avatarUrl {
+                        RemoteImageView(imageURL: avatarUrl)
+                            .frame(width: 48, height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                            .overlay(
+                                Text(String(user.profileDisplayName.prefix(1)).uppercased())
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                            )
+                    }
                 }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.white, lineWidth: 2)
+                )
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(user.profileDisplayName)
@@ -240,20 +246,26 @@ struct SelectedUserChip: View {
     var body: some View {
         HStack(spacing: 8) {
             // ユーザーアバター
-            if let avatarUrl = user.avatarUrl {
-                RemoteImageView(imageURL: avatarUrl)
-                    .frame(width: 28, height: 28)
-                    .clipShape(Circle())
-            } else {
-                Circle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 28, height: 28)
-                    .overlay(
-                        Text(String(user.profileDisplayName.prefix(1)).uppercased())
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white)
-                    )
+            Group {
+                if let avatarUrl = user.avatarUrl {
+                    RemoteImageView(imageURL: avatarUrl)
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                } else {
+                    Circle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Text(String(user.profileDisplayName.prefix(1)).uppercased())
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white)
+                        )
+                }
             }
+            .overlay(
+                Circle()
+                    .stroke(Color.white, lineWidth: 2)
+            )
             
             Text(user.profileDisplayName)
                 .font(.system(size: 14))

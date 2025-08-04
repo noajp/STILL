@@ -92,7 +92,7 @@ struct PhotoEditorView: View {
                     filterIntensity: $filterIntensity
                 )
                 .frame(width: geometry.size.width, height: geometry.size.height)
-                .background(Color.black)
+                .background(Color(hex: "121212"))
             } else {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
