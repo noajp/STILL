@@ -9,6 +9,7 @@ struct SinglePostCard: View {
     let post: Post
     let onLikeTapped: (Post) -> Void
     @State private var showingProfile = false
+    @State private var showingComments = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,12 @@ struct SinglePostCard: View {
                 .frame(height: 0.5),
             alignment: .bottom
         )
+        .sheet(isPresented: $showingComments) {
+            CommentListView(post: post)
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.medium, .large])
+                .presentationCornerRadius(20)
+        }
         .onAppear {
             print("🔍 SinglePostCard - Post ID: \(post.id)")
             print("🔍 SinglePostCard - User ID: \(post.userId)")
@@ -211,7 +218,7 @@ struct SinglePostCard: View {
             .buttonStyle(PlainButtonStyle())
             
             // コメントボタン
-            Button(action: {}) {
+            Button(action: { showingComments = true }) {
                 HStack(spacing: 4) {
                     Image(systemName: "message")
                         .font(.system(size: 16))

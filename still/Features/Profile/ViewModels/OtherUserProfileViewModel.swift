@@ -307,7 +307,24 @@ class OtherUserProfileViewModel: ObservableObject {
         do {
             let loadedPosts: [Post] = try await SupabaseManager.shared.client
                 .from("posts")
-                .select("*")
+                .select("""
+                    id,
+                    user_id,
+                    media_url,
+                    media_type,
+                    thumbnail_url,
+                    media_width,
+                    media_height,
+                    caption,
+                    location_name,
+                    latitude,
+                    longitude,
+                    is_public,
+                    like_count,
+                    comment_count,
+                    created_at,
+                    updated_at
+                """)
                 .eq("user_id", value: userId)
                 .order("created_at", ascending: false)
                 .limit(20)

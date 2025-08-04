@@ -164,7 +164,7 @@ final class ImageCacheManager: ObservableObject {
     /// 圧縮された画像を取得（グリッドビュー用）
     func loadCompressedImage(from urlString: String, quality: CompressionQuality = .medium) async -> UIImage? {
         print("🔍 loadCompressedImage called for: \(urlString)")
-        guard let url = URL(string: urlString) else { 
+        guard URL(string: urlString) != nil else { 
             print("❌ Invalid URL in loadCompressedImage: \(urlString)")
             return nil 
         }

@@ -150,6 +150,28 @@ class NotificationService: ObservableObject {
         )
     }
 
+    func createCommentNotification(fromUserId: String, toUserId: String, postId: String, senderProfile: UserProfile) async {
+        guard fromUserId != toUserId else { return }
+        
+        // Check if notification already exists
+        let exists = await checkNotificationExists(userId: toUserId, type: .comment, relatedUserId: fromUserId, relatedPostId: postId)
+        if exists {
+            print("ℹ️ Comment notification already exists, skipping creation")
+            return
+        }
+        
+        let title = "New Comment"
+        let message = "\(senderProfile.displayName ?? senderProfile.username) commented on your post"
+        
+        await createNotification(
+            targetUserId: toUserId,
+            relatedUserId: fromUserId,
+            notificationType: AppNotification.NotificationType.comment,
+            title: title,
+            message: message
+        )
+    }
+
     // MARK: - Private RPC Call
 
     private func createNotification(

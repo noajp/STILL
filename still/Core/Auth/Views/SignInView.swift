@@ -4,6 +4,8 @@
 //======================================================================
 import SwiftUI
 
+
+
 struct SignInView: View {
     @State private var email = ""
     @State private var password = ""
@@ -11,18 +13,25 @@ struct SignInView: View {
     @State private var showForgotPassword = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @FocusState private var isEmailFocused: Bool
+    @FocusState private var isPasswordFocused: Bool
     
     @EnvironmentObject var authManager: AuthManager
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer()
+        ZStack {
+            MinimalDesign.Colors.background
+                .ignoresSafeArea()
             
-            VStack(alignment: .leading, spacing: 40) {
-                // Title
-                Text("LOG IN")
-                    .font(.system(size: 32, weight: .regular))
-                    .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer()
+                    .frame(height: 120)
+                
+                VStack(alignment: .leading, spacing: 40) {
+                    // Title
+                    Text("LOG IN")
+                        .font(.system(size: 32, weight: .regular))
+                        .foregroundColor(.white)
                 
                 // Form
                 VStack(alignment: .leading, spacing: 25) {
@@ -40,6 +49,7 @@ struct SignInView: View {
                             .keyboardType(.emailAddress)
                             .textContentType(.emailAddress)
                             .padding(.bottom, 10)
+                            .focused($isEmailFocused)
                             .overlay(
                                 Rectangle()
                                     .frame(height: 1)
@@ -58,6 +68,7 @@ struct SignInView: View {
                             .font(.system(size: 18))
                             .foregroundColor(.white)
                             .padding(.bottom, 10)
+                            .focused($isPasswordFocused)
                             .overlay(
                                 Rectangle()
                                     .frame(height: 1)
@@ -89,7 +100,9 @@ struct SignInView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
                             .background(MinimalDesign.Colors.accentRed)
+                            .cornerRadius(4)
                     }
+                    .buttonStyle(PlainButtonStyle())
                     .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
                     
                     // OR Divider
@@ -179,7 +192,12 @@ struct SignInView: View {
             
             Spacer()
         }
-        .background(MinimalDesign.Colors.background)
+    }
+        .onTapGesture {
+            // キーボードを閉じる
+            isEmailFocused = false
+            isPasswordFocused = false
+        }
         .alert("Error", isPresented: $showError) {
             Button("OK") { }
         } message: {

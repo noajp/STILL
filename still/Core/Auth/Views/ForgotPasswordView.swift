@@ -93,6 +93,7 @@ struct ForgotPasswordView: View {
             Spacer()
         }
         .background(MinimalDesign.Colors.background)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .alert("Success", isPresented: $showSuccess) {
             Button("OK") {
                 dismiss()

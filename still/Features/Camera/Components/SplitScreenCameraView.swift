@@ -344,7 +344,8 @@ struct SplitScreenCameraView: View {
         
         // Hide system volume HUD
         let volumeView = MPVolumeView(frame: CGRect(x: -1000, y: -1000, width: 1, height: 1))
-        if let window = UIApplication.shared.windows.first {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
             window.addSubview(volumeView)
         }
         

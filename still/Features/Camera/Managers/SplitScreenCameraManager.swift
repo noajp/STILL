@@ -129,8 +129,10 @@ class SplitScreenCameraManager: NSObject, ObservableObject, AVCapturePhotoCaptur
             // Configure photo output
             let output = AVCapturePhotoOutput()
             
-            // Enable high resolution capture
-            if output.isHighResolutionCaptureEnabled {
+            // Enable high resolution capture (iOS 16+)
+            if #available(iOS 16.0, *) {
+                output.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
+            } else {
                 output.isHighResolutionCaptureEnabled = true
             }
             
@@ -198,9 +200,13 @@ class SplitScreenCameraManager: NSObject, ObservableObject, AVCapturePhotoCaptur
                 settings = AVCapturePhotoSettings()
             }
             
-            // Enable high resolution if available
-            if photoOutput.isHighResolutionCaptureEnabled {
-                settings.isHighResolutionPhotoEnabled = true
+            // Enable high resolution if available (iOS 16+)
+            if #available(iOS 16.0, *) {
+                settings.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
+            } else {
+                if photoOutput.isHighResolutionCaptureEnabled {
+                    settings.isHighResolutionPhotoEnabled = true
+                }
             }
             
             print("📷 Taking photo for split \(self.activeSplit) with settings: \(settings)")

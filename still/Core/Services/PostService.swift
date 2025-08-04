@@ -70,7 +70,24 @@ class PostService: @unchecked Sendable {
             // まず投稿のみを取得
             var posts: [Post] = try await client
                 .from("posts")
-                .select("*")
+                .select("""
+                    id,
+                    user_id,
+                    media_url,
+                    media_type,
+                    thumbnail_url,
+                    media_width,
+                    media_height,
+                    caption,
+                    location_name,
+                    latitude,
+                    longitude,
+                    is_public,
+                    like_count,
+                    comment_count,
+                    created_at,
+                    updated_at
+                """)
                 .eq("is_public", value: true)
                 .order("created_at", ascending: false)
                 .execute()
@@ -183,7 +200,24 @@ class PostService: @unchecked Sendable {
             print("🔵 PostService.fetchUserPosts: Querying database...")
             var posts: [Post] = try await client
                 .from("posts")
-                .select("*")
+                .select("""
+                    id,
+                    user_id,
+                    media_url,
+                    media_type,
+                    thumbnail_url,
+                    media_width,
+                    media_height,
+                    caption,
+                    location_name,
+                    latitude,
+                    longitude,
+                    is_public,
+                    like_count,
+                    comment_count,
+                    created_at,
+                    updated_at
+                """)
                 .eq("user_id", value: userId)
                 .order("created_at", ascending: false)
                 .execute()

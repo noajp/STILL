@@ -104,7 +104,7 @@ struct CameraView: View {
         .onDisappear {
             cameraManager.stopSession()
         }
-        .onChange(of: cameraManager.isSessionRunning) { isRunning in
+        .onChange(of: cameraManager.isSessionRunning) { _, isRunning in
             if !isRunning {
                 print("⚠️ Camera session stopped unexpectedly")
             }
@@ -431,8 +431,10 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
             // Configure photo output
             let output = AVCapturePhotoOutput()
             
-            // Enable high resolution capture
-            if output.isHighResolutionCaptureEnabled {
+            // Enable high resolution capture (iOS 16+)
+            if #available(iOS 16.0, *) {
+                output.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
+            } else {
                 output.isHighResolutionCaptureEnabled = true
             }
             
@@ -487,9 +489,13 @@ class CameraManager: NSObject, ObservableObject, AVCapturePhotoCaptureDelegate {
                 settings = AVCapturePhotoSettings()
             }
             
-            // Enable high resolution if available
-            if photoOutput.isHighResolutionCaptureEnabled {
-                settings.isHighResolutionPhotoEnabled = true
+            // Enable high resolution if available (iOS 16+)
+            if #available(iOS 16.0, *) {
+                settings.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
+            } else {
+                if photoOutput.isHighResolutionCaptureEnabled {
+                    settings.isHighResolutionPhotoEnabled = true
+                }
             }
             
             print("📷 Taking photo with settings: \(settings)")

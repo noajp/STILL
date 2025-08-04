@@ -247,6 +247,21 @@ class CreatePostViewModel: ObservableObject {
                     let latitude: Double?
                     let longitude: Double?
                     let is_public: Bool
+                    let updated_at: String?
+                    
+                    init(user_id: UUID, media_url: String, media_type: String, media_width: Double?, media_height: Double?, caption: String?, location_name: String?, latitude: Double?, longitude: Double?, is_public: Bool) {
+                        self.user_id = user_id
+                        self.media_url = media_url
+                        self.media_type = media_type
+                        self.media_width = media_width
+                        self.media_height = media_height
+                        self.caption = caption
+                        self.location_name = location_name
+                        self.latitude = latitude
+                        self.longitude = longitude
+                        self.is_public = is_public
+                        self.updated_at = ISO8601DateFormatter().string(from: Date())
+                    }
                 }
                 
                 // Get media dimensions
@@ -292,7 +307,24 @@ class CreatePostViewModel: ObservableObject {
                 let response = try await supabase
                     .from("posts")
                     .insert(newPost)
-                    .select()
+                    .select("""
+                        id,
+                        user_id,
+                        media_url,
+                        media_type,
+                        thumbnail_url,
+                        media_width,
+                        media_height,
+                        caption,
+                        location_name,
+                        latitude,
+                        longitude,
+                        is_public,
+                        like_count,
+                        comment_count,
+                        created_at,
+                        updated_at
+                    """)
                     .single()
                     .execute()
                 print("🟢 Database insert response received")
@@ -433,6 +465,21 @@ class CreatePostViewModel: ObservableObject {
             let latitude: Double?
             let longitude: Double?
             let is_public: Bool
+            let updated_at: String?
+            
+            init(user_id: UUID, media_url: String, media_type: String, media_width: Double?, media_height: Double?, caption: String?, location_name: String?, latitude: Double?, longitude: Double?, is_public: Bool) {
+                self.user_id = user_id
+                self.media_url = media_url
+                self.media_type = media_type
+                self.media_width = media_width
+                self.media_height = media_height
+                self.caption = caption
+                self.location_name = location_name
+                self.latitude = latitude
+                self.longitude = longitude
+                self.is_public = is_public
+                self.updated_at = ISO8601DateFormatter().string(from: Date())
+            }
         }
         
         // Get media dimensions

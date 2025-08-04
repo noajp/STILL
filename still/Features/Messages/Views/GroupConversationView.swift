@@ -139,14 +139,15 @@ struct GroupConversationView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Messages list
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Add space for custom header
-                        Spacer()
-                            .frame(height: 60) // Height for custom navigation bar
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                // Messages list
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Add space for custom header
+                            Spacer()
+                                .frame(height: 60) // Height for custom navigation bar
                         if viewModel.isLoading {
                             ProgressView()
                                 .padding()
@@ -193,21 +194,29 @@ struct GroupConversationView: View {
                         }
                     }
                 }
+                
+                // Bottom padding for input area
+                Spacer()
+                    .frame(height: 80)
             }
+        }
             
-            // Message input
-            MessageInputView(
-                text: $messageText,
-                isSending: viewModel.isSending,
-                isTextFieldFocused: $isTextFieldFocused,
-                onSend: {
-                    Task {
-                        await viewModel.sendMessage(messageText)
-                        messageText = ""
-                        isTextFieldFocused = false
+            // Message input - positioned at bottom
+            VStack {
+                Spacer()
+                MessageInputView(
+                    text: $messageText,
+                    isSending: viewModel.isSending,
+                    isTextFieldFocused: $isTextFieldFocused,
+                    onSend: {
+                        Task {
+                            await viewModel.sendMessage(messageText)
+                            messageText = ""
+                            isTextFieldFocused = false
+                        }
                     }
-                }
-            )
+                )
+            }
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -246,7 +255,6 @@ struct GroupConversationView: View {
                 }
             }
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear {
             Task {
                 await viewModel.markAsRead()

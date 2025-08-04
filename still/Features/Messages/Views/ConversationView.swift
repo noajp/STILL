@@ -149,14 +149,15 @@ struct ConversationView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Messages list
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Add space for custom header
-                        Spacer()
-                            .frame(height: 60) // Height for custom navigation bar
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                // Messages list
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Add space for custom header
+                            Spacer()
+                                .frame(height: 60) // Height for custom navigation bar
                         if viewModel.isLoading {
                             ProgressView()
                                 .padding()
@@ -205,21 +206,29 @@ struct ConversationView: View {
                         }
                     }
                 }
+                
+                // Bottom padding for input area
+                Spacer()
+                    .frame(height: 80)
             }
+        }
             
-            // Message input
-            MessageInputView(
-                text: $messageText,
-                isSending: viewModel.isSending,
-                isTextFieldFocused: $isTextFieldFocused,
-                onSend: {
-                    Task {
-                        await viewModel.sendMessage(messageText)
-                        messageText = ""
-                        isTextFieldFocused = false
+            // Message input - positioned at bottom
+            VStack {
+                Spacer()
+                MessageInputView(
+                    text: $messageText,
+                    isSending: viewModel.isSending,
+                    isTextFieldFocused: $isTextFieldFocused,
+                    onSend: {
+                        Task {
+                            await viewModel.sendMessage(messageText)
+                            messageText = ""
+                            isTextFieldFocused = false
+                        }
                     }
-                }
-            )
+                )
+            }
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -365,6 +374,11 @@ struct MessageInputView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // 入力エリアの上部に線を追加
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 0.5)
+            
             HStack(spacing: 12) {
                 TextField("Type a message...", text: $text)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -388,11 +402,7 @@ struct MessageInputView: View {
             }
             .padding()
             .background(MinimalDesign.Colors.background)
-            
-            // Spacer to account for custom tab bar
-            Rectangle()
-                .fill(Color.clear)
-                .frame(height: 60) // Height to clear the custom tab bar
         }
+        .background(MinimalDesign.Colors.background)
     }
 }

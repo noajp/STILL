@@ -87,7 +87,9 @@ struct HomeGridView: View {
                             
                             Rectangle()
                                 .fill(PostStatusManager.shared.statusColor)
-                                .frame(width: UIScreen.main.bounds.width * PostStatusManager.shared.progress, height: 2)
+                                .frame(maxWidth: .infinity)
+                                .scaleEffect(x: PostStatusManager.shared.progress, y: 1, anchor: .leading)
+                                .frame(height: 2)
                         }
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -241,6 +243,7 @@ struct PostCardView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var authManager: AuthManager
     @State private var showProfile = false
+    @State private var showingComments = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -273,7 +276,6 @@ struct PostCardView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: 400)
-            .frame(width: UIScreen.main.bounds.width)
             .clipped()
             .background(MinimalDesign.Colors.background)
             .overlay(
@@ -356,10 +358,18 @@ struct PostCardView: View {
                 }
                 
                 // Comment Button
-                Button(action: {}) {
-                    Image(systemName: "message")
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundColor(.white)
+                Button(action: { showingComments = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "message")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(.white)
+                        
+                        if post.commentCount > 0 {
+                            Text("\(post.commentCount)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                    }
                 }
                 
             }
@@ -393,6 +403,12 @@ struct PostCardView: View {
                 OtherUserProfileView(userId: userId)
             }
         }
+        .sheet(isPresented: $showingComments) {
+            CommentListView(post: post)
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.medium, .large])
+                .presentationCornerRadius(20)
+        }
     }
     
     private func timeAgoString(from date: Date) -> String {
@@ -413,9 +429,10 @@ struct CustomGridView: View {
     @State private var groupLoadStatus: [Int: Bool] = [:]
     
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVStack(spacing: 1.5) {
-            ForEach(0..<groupedPosts.count, id: \.self) { groupIndex in
+        GeometryReader { geometry in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 1.5) {
+                ForEach(0..<groupedPosts.count, id: \.self) { groupIndex in
                 let group = groupedPosts[groupIndex]
                 let isOddRow = groupIndex % 2 == 0
                 let showGroup = true // groupLoadStatus[groupIndex] ?? false
@@ -424,6 +441,7 @@ struct CustomGridView: View {
                     // 奇数段: 横長写真1枚 + 正方形写真1枚
                     OddRowView(
                         posts: group,
+                        availableWidth: geometry.size.width,
                         showContent: showGroup,
                         onImageLoaded: { postId in
                             loadedImages.insert(postId)
@@ -440,6 +458,7 @@ struct CustomGridView: View {
                     // 偶数段: 正方形写真6枚
                     EvenRowView(
                         posts: group,
+                        availableWidth: geometry.size.width,
                         showContent: showGroup,
                         onImageLoaded: { postId in
                             loadedImages.insert(postId)
@@ -453,10 +472,11 @@ struct CustomGridView: View {
                         print("🔍 Grid - navigateToSingleView set to: \(navigateToSingleView)")
                     }
                 }
+                }
+                }
             }
-            }
+            .background(MinimalDesign.Colors.background)
         }
-        .background(MinimalDesign.Colors.background)
     }
     
     private var groupedPosts: [[Post]] {
@@ -563,6 +583,7 @@ struct CustomGridView: View {
 
 struct OddRowView: View {
     let posts: [Post]
+    let availableWidth: CGFloat
     let showContent: Bool
     let onImageLoaded: (String) -> Void
     let onPostTapped: (Post) -> Void
@@ -619,16 +640,10 @@ struct OddRowView: View {
         .frame(height: squareSize)
     }
     
-    private var screenWidth: CGFloat {
-        UIScreen.main.bounds.width
-    }
+    // Remove screenWidth dependency on UIScreen.main
     
     private var spacing: CGFloat {
         1.5
-    }
-    
-    private var availableWidth: CGFloat {
-        screenWidth // 画面全体の幅を使用
     }
     
     private var squareSize: CGFloat {
@@ -646,6 +661,7 @@ struct OddRowView: View {
 
 struct EvenRowView: View {
     let posts: [Post]
+    let availableWidth: CGFloat
     let showContent: Bool
     let onImageLoaded: (String) -> Void
     let onPostTapped: (Post) -> Void
@@ -699,16 +715,10 @@ struct EvenRowView: View {
         .frame(height: totalHeight)
     }
     
-    private var screenWidth: CGFloat {
-        UIScreen.main.bounds.width
-    }
+    // Remove screenWidth dependency on UIScreen.main
     
     private var spacing: CGFloat {
         1.5
-    }
-    
-    private var availableWidth: CGFloat {
-        screenWidth // 画面全体の幅を使用
     }
     
     private var squareSize: CGFloat {

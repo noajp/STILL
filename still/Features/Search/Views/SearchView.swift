@@ -40,7 +40,8 @@ struct SearchView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
                 // Unified Header
                 UnifiedHeader(title: "SEARCH")
                 
@@ -85,7 +86,7 @@ struct SearchView: View {
                     Rectangle()
                         .fill(Color.blue)
                         .frame(height: 2)
-                        .offset(x: selectedTab == .posts ? -UIScreen.main.bounds.width/4 : UIScreen.main.bounds.width/4)
+                        .offset(x: selectedTab == .posts ? -geometry.size.width/4 : geometry.size.width/4)
                         .animation(.easeInOut(duration: 0.2), value: selectedTab)
                     , alignment: .bottom
                 )
@@ -162,10 +163,11 @@ struct SearchView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
+                }
+                .background(MinimalDesign.Colors.background)
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.large)
             }
-            .background(MinimalDesign.Colors.background)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.large)
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }

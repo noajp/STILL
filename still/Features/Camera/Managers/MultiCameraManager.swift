@@ -3,7 +3,7 @@
 // Purpose: Manages multiple camera sessions and simultaneous capture
 // Path: still/Features/Camera/Managers/MultiCameraManager.swift
 //======================================================================
-import AVFoundation
+@preconcurrency import AVFoundation
 import UIKit
 import Combine
 import Photos

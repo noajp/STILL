@@ -50,26 +50,27 @@ struct ArticleRowView: View {
     @Environment(\.colorScheme) var colorScheme
     
     // Feed画面の正方形写真の高さと同じサイズを計算
-    private var squareSize: CGFloat {
+    private func squareSize(for geometry: GeometryProxy) -> CGFloat {
         // 画面幅から余白を引いて3等分したサイズ（Feed画面のグリッドと同じ）
-        (UIScreen.main.bounds.width - 4) / 3
+        (geometry.size.width - 4) / 3
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+        GeometryReader { geometry in
+            HStack(spacing: 12) {
             // Left: Photo
             if let coverImageUrl = article.coverImageUrl {
                 AsyncImage(url: URL(string: coverImageUrl)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: squareSize, height: squareSize)
+                        .frame(width: squareSize(for: geometry), height: squareSize(for: geometry))
                         .clipped()
                         .cornerRadius(8)
                 } placeholder: {
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
-                        .frame(width: squareSize, height: squareSize)
+                        .frame(width: squareSize(for: geometry), height: squareSize(for: geometry))
                         .cornerRadius(8)
                         .overlay(
                             ProgressView()
@@ -78,7 +79,7 @@ struct ArticleRowView: View {
             } else {
                 Rectangle()
                     .fill(Color(.tertiarySystemBackground))
-                    .frame(width: squareSize, height: squareSize)
+                    .frame(width: squareSize(for: geometry), height: squareSize(for: geometry))
                     .cornerRadius(8)
                     .overlay(
                         Image(systemName: "photo")
@@ -107,10 +108,11 @@ struct ArticleRowView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: squareSize)
+            .frame(height: squareSize(for: geometry))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 }
 

@@ -246,6 +246,7 @@ struct SignUpView: View {
                 Spacer()
             }
             .background(MinimalDesign.Colors.background)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarHidden(true)
             .alert(isSuccessMessage ? "Success" : "Error", isPresented: $showError) {
                 Button("OK") { }

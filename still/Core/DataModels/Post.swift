@@ -51,6 +51,9 @@ struct Post: Identifiable, Codable, Hashable, Transferable {
     /// Timestamp when the post was created
     let createdAt: Date
     
+    /// Timestamp when the post was last updated (optional for backward compatibility)
+    let updatedAt: Date?
+    
     // MARK: - Statistics
     
     /// Number of likes this post has received (mutable for real-time updates)
@@ -91,6 +94,7 @@ struct Post: Identifiable, Codable, Hashable, Transferable {
         case likeCount = "like_count"
         case commentCount = "comment_count"
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
     
     // MARK: - Initializers
@@ -109,6 +113,7 @@ struct Post: Identifiable, Codable, Hashable, Transferable {
         longitude: Double? = nil,
         isPublic: Bool = true,
         createdAt: Date = Date(),
+        updatedAt: Date? = nil,
         likeCount: Int = 0,
         commentCount: Int = 0,
         user: UserProfile? = nil,
@@ -128,6 +133,7 @@ struct Post: Identifiable, Codable, Hashable, Transferable {
         self.longitude = longitude
         self.isPublic = isPublic
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
         self.likeCount = likeCount
         self.commentCount = commentCount
         self.user = user
