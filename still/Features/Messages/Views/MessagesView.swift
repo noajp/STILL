@@ -214,6 +214,8 @@ struct MessagesView: View {
                 }
             }
         .accentColor(MinimalDesign.Colors.accentRed)
+        .background(MinimalDesign.Colors.background)
+        .navigationBarHidden(true)
     }
     
     @ViewBuilder

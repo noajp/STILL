@@ -12,11 +12,11 @@ struct SinglePostCard: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // ユーザー情報ヘッダー
-            userHeader
-            
-            // 画像部分
+            // 画像部分のみ
             imageSection
+            
+            // ユーザー情報セクション
+            userInfoSection
             
             // アクション部分
             actionSection
@@ -26,7 +26,7 @@ struct SinglePostCard: View {
                 captionSection(caption: caption)
             }
         }
-        .background(MinimalDesign.Colors.background)
+        .background(Color(hex: "121212"))
         .onAppear {
             print("🔍 SinglePostCard - Post ID: \(post.id)")
             print("🔍 SinglePostCard - User ID: \(post.userId)")
@@ -44,63 +44,51 @@ struct SinglePostCard: View {
                     Group {
                         if let avatarUrl = post.user?.avatarUrl {
                             RemoteImageView(imageURL: avatarUrl)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 0)
-                                        .fill(Color(white: 0.15))
-                                )
                         } else {
                             RoundedRectangle(cornerRadius: 0)
-                                .fill(Color(white: 0.15))
+                                .fill(Color(hex: "1e1e1e")) // 少し明るくして区別
                         }
                     }
                     .frame(width: 36, height: 36)
                     .clipShape(RoundedRectangle(cornerRadius: 0))
                 }
                 .buttonStyle(PlainButtonStyle())
-            } else {
-                // ユーザー情報がない場合のプレースホルダー
-                RoundedRectangle(cornerRadius: 0)
-                    .fill(Color(white: 0.15))
-                    .frame(width: 36, height: 36)
             }
             
-            VStack(alignment: .leading, spacing: 2) {
-                // ユーザー名とロケーション
-                HStack(alignment: .center, spacing: 6) {
-                    if let displayName = post.user?.displayName, !displayName.isEmpty {
-                        Text(displayName)
-                            .font(.system(size: 12, weight: .medium))
+            if let user = post.user {
+                VStack(alignment: .leading, spacing: 2) {
+                    // ユーザー名とロケーション
+                    HStack(alignment: .center, spacing: 6) {
+                        if let displayName = user.displayName, !displayName.isEmpty {
+                            Text(displayName)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 0)
+                                        .fill(Color(hex: "1e1e1e"))
+                                )
+                        }
+                        
+                        Text("@\(user.username)")
+                            .font(.system(size: 11, weight: .regular))
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(
                                 RoundedRectangle(cornerRadius: 0)
-                                    .fill(Color(white: 0.15))
+                                    .fill(Color(hex: "1e1e1e"))
                             )
-                    } else {
-                        // 表示名のプレースホルダー
-                        RoundedRectangle(cornerRadius: 0)
-                            .fill(Color(white: 0.15))
-                            .frame(width: 60, height: 20)
                     }
                     
-                    Text("@\(post.user?.username ?? "unknown")")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 0)
-                                .fill(Color(white: 0.15))
-                        )
-                }
-                
-                // ロケーション
-                if let locationName = post.locationName, !locationName.isEmpty {
-                    Text(locationName)
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                    // ロケーション
+                    if let locationName = post.locationName, !locationName.isEmpty {
+                        Text(locationName)
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                    }
                 }
             }
             
@@ -111,54 +99,93 @@ struct SinglePostCard: View {
                 .font(.system(size: 10, weight: .regular))
                 .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+    }
+    
+    // MARK: - ユーザー情報セクション
+    private var userInfoSection: some View {
+        ZStack {
+            // プレースホルダー背景（常に表示）
+            HStack(spacing: 8) {
+                // プロフィールアイコン用の正方形背景
+                Rectangle()
+                    .fill(Color(hex: "121212"))
+                    .frame(width: 36, height: 36)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    // ユーザー名用の長方形背景
+                    Rectangle()
+                        .fill(Color(hex: "121212"))
+                        .frame(width: 120, height: 16)
+                    
+                    // ユーザーID用の長方形背景
+                    Rectangle()
+                        .fill(Color(hex: "121212"))
+                        .frame(width: 80, height: 14)
+                }
+                
+                Spacer()
+                
+                // 時間表示用の背景
+                Rectangle()
+                    .fill(Color(hex: "121212"))
+                    .frame(width: 40, height: 12)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            
+            // 実際のユーザー情報（データがロードされたら表示）
+            if post.user != nil {
+                userHeader
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+            }
+        }
+        .background(Color(hex: "121212"))
     }
     
     // MARK: - 画像セクション
     private var imageSection: some View {
-        Group {
-            if let _ = URL(string: post.mediaUrl) {
-                // 画像のアスペクト比を維持するための背景
+        VStack(spacing: 0) {
+            // メイン画像エリア - 常に背景を表示
+            ZStack {
+                // 常に表示される背景
                 Rectangle()
-                    .fill(Color(white: 0.15))
+                    .fill(Color(hex: "121212"))
                     .frame(maxWidth: .infinity)
-                    .aspectRatio(1.0, contentMode: .fit) // デフォルトで正方形の背景
-                    .overlay(
-                        OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            case .failure(_):
-                                Image(systemName: "photo")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.white)
-                            case .empty:
-                                ProgressView()
-                                    .scaleEffect(1.2)
-                                    .tint(.white)
-                            @unknown default:
-                                EmptyView()
-                            }
+                    .aspectRatio(1.0, contentMode: .fit)
+                
+                // 画像がある場合のみオーバーレイ
+                if let _ = URL(string: post.mediaUrl) {
+                    OptimizedAsyncImage(urlString: post.mediaUrl) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        case .failure(_):
+                            Image(systemName: "photo")
+                                .font(.largeTitle)
+                                .foregroundColor(.white)
+                        case .empty:
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .tint(.white)
+                        @unknown default:
+                            EmptyView()
                         }
-                    )
-                    .background(MinimalDesign.Colors.background)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 0)
-                            .stroke(Color.black, lineWidth: 10)
-                    )
-            } else {
-                RoundedRectangle(cornerRadius: 0)
-                    .fill(Color(white: 0.15))
-                    .frame(height: 300)
-                    .overlay(
-                        Image(systemName: "photo")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                    )
+                    }
+                } else {
+                    // URLがない場合は写真アイコンを表示
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundColor(.white)
+                }
             }
+            .background(Color(hex: "121212"))
+            .overlay(
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(Color.black, lineWidth: 10)
+            )
         }
     }
     

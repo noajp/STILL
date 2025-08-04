@@ -76,7 +76,7 @@ struct AdjustmentView: View {
             }
         }
         .padding(.horizontal, 16)
-        .background(Color(white: 0.15))
+        .background(Color(hex: "121212"))
     }
     
     private var basicAdjustmentView: some View {
@@ -260,7 +260,7 @@ struct ToneCurveEditor: View {
                     }
                 }
             }
-            .background(Color(white: 0.1))
+            .background(Color(hex: "121212"))
             .cornerRadius(8)
         }
     }

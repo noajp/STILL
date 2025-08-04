@@ -82,7 +82,7 @@ struct HomeGridView: View {
                         // Thin progress bar
                         ZStack(alignment: .leading) {
                             Rectangle()
-                                .fill(Color(white: 0.15))
+                                .fill(Color(hex: "121212"))
                                 .frame(height: 2)
                             
                             Rectangle()
@@ -291,7 +291,7 @@ struct PostCardView: View {
                             quality: .low
                         ) {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color(white: 0.15))
+                                .fill(Color(hex: "121212"))
                                 .overlay(
                                     Text(post.user?.username.prefix(1).uppercased() ?? "?")
                                         .font(.caption)
@@ -306,7 +306,7 @@ struct PostCardView: View {
                         )
                     } else {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(white: 0.15))
+                            .fill(Color(hex: "121212"))
                             .overlay(
                                 Text(post.user?.username.prefix(1).uppercased() ?? "?")
                                     .font(.caption)
@@ -386,7 +386,7 @@ struct PostCardView: View {
             Color.clear
                 .frame(height: 50)
         }
-        .background(Color.black)
+        .background(Color(hex: "121212"))
         .fullScreenCover(isPresented: $showProfile) {
             if let userId = post.user?.id, userId != authManager.currentUser?.id {
                 OtherUserProfileView(userId: userId)
@@ -661,7 +661,7 @@ struct EvenRowView: View {
                         .aspectRatio(1, contentMode: .fill)
                     } else {
                         Rectangle()
-                            .fill(Color(white: 0.15))
+                            .fill(Color(hex: "121212"))
                             .frame(width: squareSize, height: squareSize)
                     }
                 }
@@ -683,7 +683,7 @@ struct EvenRowView: View {
                         .aspectRatio(1, contentMode: .fill)
                     } else {
                         Rectangle()
-                            .fill(Color(white: 0.15))
+                            .fill(Color(hex: "121212"))
                             .frame(width: squareSize, height: squareSize)
                     }
                 }
@@ -748,10 +748,10 @@ struct GridImageView: View {
                 } else {
                     // Content not ready to show - display skeleton
                     Rectangle()
-                        .fill(Color(white: 0.15))
+                        .fill(Color(hex: "121212"))
                         .overlay(
                             Rectangle()
-                                .fill(Color(white: 0.2))
+                                .fill(Color(hex: "1e1e1e"))
                                 .opacity(0.5)
                         )
                 }
@@ -775,7 +775,7 @@ struct GridOptimizedImageView: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 Rectangle()
-                    .fill(Color(white: 0.15))
+                    .fill(Color(hex: "121212"))
                     .overlay(
                         ProgressView()
                             .scaleEffect(0.7)

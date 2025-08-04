@@ -73,7 +73,7 @@ struct SinglePostView: View {
             }
             .zIndex(1000)
         }
-        .background(Color(.systemBackground))
+        .background(Color(hex: "121212"))
         .navigationBarHidden(true)
         .ignoresSafeArea(.all, edges: .top)
     }

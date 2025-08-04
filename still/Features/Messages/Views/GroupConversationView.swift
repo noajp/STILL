@@ -212,6 +212,7 @@ struct GroupConversationView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .background(MinimalDesign.Colors.background)
         .accentColor(MinimalDesign.Colors.accentRed)
         .toolbar {
             // Custom back button with group name

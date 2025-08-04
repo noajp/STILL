@@ -287,6 +287,7 @@ struct ConversationView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         )
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .background(MinimalDesign.Colors.background)
         .onAppear {
             // Debug navigation
             if let conversation = viewModel.conversation,
@@ -386,7 +387,7 @@ struct MessageInputView: View {
                 .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(MinimalDesign.Colors.background)
             
             // Spacer to account for custom tab bar
             Rectangle()

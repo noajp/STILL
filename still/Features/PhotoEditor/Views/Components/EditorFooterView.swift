@@ -49,7 +49,7 @@ struct EditorFooterView: View {
         .padding(.bottom, 8) // Home Indicatorのためのパディング
         .background(
             Rectangle()
-                .fill(Color(white: 0.23))
+                .fill(Color(hex: "1e1e1e"))
                 .frame(height: 1),
             alignment: .top
         )

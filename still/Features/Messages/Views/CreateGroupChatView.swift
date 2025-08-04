@@ -156,6 +156,7 @@ struct CreateGroupChatView: View {
                 .foregroundColor(MinimalDesign.Colors.accentRed)
             }
         }
+        .background(MinimalDesign.Colors.background)
     }
     
     private func createGroup() {

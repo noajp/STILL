@@ -180,7 +180,7 @@ struct PresetThumbnailItemView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                     } else {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(white: 0.2))
+                            .fill(Color(hex: "1e1e1e"))
                             .frame(width: 56, height: 56)
                             .overlay(
                                 ProgressView()
