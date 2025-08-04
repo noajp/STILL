@@ -282,7 +282,7 @@ struct PostCardView: View {
             )
             
             // User Header (moved below image)
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 // Avatar - タップ可能 (compressed for performance)
                 Button(action: {
                     if post.user?.id != authManager.currentUser?.id {
@@ -306,7 +306,7 @@ struct PostCardView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.white, lineWidth: 2)
+                                .stroke(Color.white, lineWidth: 1.5)
                         )
                     } else {
                         RoundedRectangle(cornerRadius: 6)
@@ -319,7 +319,7 @@ struct PostCardView: View {
                             .frame(width: 32, height: 32)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6)
-                                    .stroke(Color.white, lineWidth: 2)
+                                    .stroke(Color.white, lineWidth: 1.5)
                             )
                     }
                 }
@@ -333,7 +333,7 @@ struct PostCardView: View {
                 }) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(post.user?.username ?? "unknown")
-                            .font(.body)
+                            .font(.system(size: 14))
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                         
@@ -382,6 +382,12 @@ struct PostCardView: View {
             
         }
         .background(Color(hex: "121212"))
+        .overlay(
+            Rectangle()
+                .fill(Color.white.opacity(0.2))
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
         .fullScreenCover(isPresented: $showProfile) {
             if let userId = post.user?.id, userId != authManager.currentUser?.id {
                 OtherUserProfileView(userId: userId)

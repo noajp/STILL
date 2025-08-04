@@ -29,7 +29,7 @@ struct SinglePostCard: View {
         .background(Color(hex: "121212"))
         .overlay(
             Rectangle()
-                .fill(Color.white.opacity(0.1))
+                .fill(Color.white.opacity(0.2))
                 .frame(height: 0.5),
             alignment: .bottom
         )

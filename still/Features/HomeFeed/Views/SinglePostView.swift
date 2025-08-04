@@ -23,7 +23,7 @@ struct SinglePostView: View {
         ScrollableHeaderView(
             title: "STILL"
         ) {
-            VStack(spacing: 40) {
+            VStack(spacing: 120) {
                 // 選択された投稿を最初に表示
                 PostCardView(post: initialPost) { post in
                     Task {
