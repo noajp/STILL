@@ -1,7 +1,16 @@
 //======================================================================
 // MARK: - SinglePostView.swift
-// Purpose: Individual post display view with media rendering, user interactions, aspect ratio handling, and action button integration (メディアレンダリング、ユーザーインタラクション、アスペクト比処理、アクションボタン統合を持つ個別投稿表示ビュー)
+// Purpose: Individual post display view with media rendering, user interactions, aspect ratio handling, and action button integration
 // Path: still/Features/HomeFeed/Views/SinglePostView.swift
+//
+// Features:
+// - Displays a selected post at the top followed by other posts in chronological order
+// - Handles like state updates by using the updated post from viewModel.posts
+// - Provides smooth scrolling experience with proper spacing
+// - Integrates with HomeFeedViewModel for real-time state management
+//
+// Recent fixes:
+// - Fixed like button not updating UI by using viewModel.posts instead of static initialPost
 //======================================================================
 import SwiftUI
 
@@ -24,13 +33,26 @@ struct SinglePostView: View {
             title: "STILL"
         ) {
             VStack(spacing: 120) {
-                // 選択された投稿を最初に表示
-                PostCardView(post: initialPost) { post in
-                    Task {
-                        await viewModel.toggleLike(for: post)
+                // MARK: - Initial Post Display
+                // Display the selected post first
+                // Use the updated post from viewModel.posts to ensure UI reflects like state changes
+                // This fixes the issue where likes weren't updating in SinglePostView
+                if let updatedPost = viewModel.posts.first(where: { $0.id == initialPost.id }) {
+                    PostCardView(post: updatedPost) { post in
+                        Task {
+                            await viewModel.toggleLike(for: post)
+                        }
                     }
+                    .id(updatedPost.id)
+                } else {
+                    // Fallback to initialPost if not found in viewModel.posts yet
+                    PostCardView(post: initialPost) { post in
+                        Task {
+                            await viewModel.toggleLike(for: post)
+                        }
+                    }
+                    .id(initialPost.id)
                 }
-                .id(initialPost.id)
                 
                 // 全ユーザーの投稿を時系列順で表示（初期投稿以外）
                 ForEach(allPostsExceptInitial) { post in

@@ -58,42 +58,10 @@ class ConversationViewModel: ObservableObject {
         }
     }
     
-    private func refreshMessages() async {
-        // Only refresh if we haven't loaded recently to avoid excessive API calls
-        let now = Date()
-        if now.timeIntervalSince(lastRefresh) > 3.0 { // Minimum 3 seconds between refreshes
-            lastRefresh = now
-            await forceLoadMessages()
-        }
-    }
-    
-    func forceLoadMessages() async {
-        
-        isLoading = true
-        
-        do {
-            let fetchedMessages = try await messageService.fetchMessages(for: conversationId)
-            // Filter out deleted messages as a safety check
-            messages = fetchedMessages.filter { !$0.isDeleted }
-        } catch {
-            errorMessage = "Failed to load messages: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
-    }
-    
     private var lastRefresh = Date.distantPast
     
-    func loadMessages() async {
-        
-        // Skip reload if already loaded to preserve local changes (like deletions)
-        guard !hasLoadedInitialMessages else {
-            print("📱 ConversationViewModel - Skipping message reload (already loaded)")
-            return
-        }
-        
+    func forceLoadMessages() async {
         isLoading = true
-        print("📱 ConversationViewModel - Loading messages for: \(conversationId)")
         
         do {
             let fetchedMessages = try await messageService.fetchMessages(for: conversationId)
@@ -107,6 +75,26 @@ class ConversationViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+    
+    func loadMessages() async {
+        // Skip reload if already loaded to preserve local changes (like deletions)
+        guard !hasLoadedInitialMessages else {
+            print("📱 ConversationViewModel - Skipping message reload (already loaded)")
+            return
+        }
+        
+        await forceLoadMessages()
+    }
+    
+    func refreshMessages() async {
+        // Only refresh if we haven't loaded recently to avoid excessive API calls
+        let now = Date()
+        if now.timeIntervalSince(lastRefresh) > 2.0 { // Minimum 2 seconds between refreshes
+            lastRefresh = now
+            hasLoadedInitialMessages = false
+            await forceLoadMessages()
+        }
     }
     
     func sendMessage(_ content: String) async {
@@ -187,6 +175,9 @@ struct ConversationView: View {
                     }
                     .padding()
                 }
+                .refreshable {
+                    await viewModel.refreshMessages()
+                }
                 .onChange(of: viewModel.messages.count) { oldCount, newCount in
                     // Only scroll to bottom when a new message is added, not when loading
                     if newCount > oldCount && !viewModel.isLoading {
@@ -207,13 +198,13 @@ struct ConversationView: View {
                     }
                 }
                 
-                // Bottom padding for input area
+                // Bottom padding for input area and tab bar
                 Spacer()
-                    .frame(height: 80)
+                    .frame(height: 160)
             }
         }
             
-            // Message input - positioned at bottom
+            // Message input - positioned at bottom with tab bar padding
             VStack {
                 Spacer()
                 MessageInputView(
@@ -228,6 +219,7 @@ struct ConversationView: View {
                         }
                     }
                 )
+                .padding(.bottom, 80) // Add padding for tab bar
             }
         }
         .navigationTitle("")
@@ -314,6 +306,8 @@ struct ConversationView: View {
             
             Task {
                 await viewModel.markAsRead()
+                // Force refresh messages when view appears
+                await viewModel.refreshMessages()
             }
         }
     }

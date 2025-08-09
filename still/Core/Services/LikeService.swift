@@ -64,7 +64,7 @@ class LikeService: ObservableObject, @unchecked Sendable {
             print("🔔 Fetching post details...")
             let posts: [Post] = try await client
                 .from("posts")
-                .select("user_id")
+                .select("id, user_id, media_url, media_type, is_public, like_count, comment_count, created_at")
                 .eq("id", value: postId)
                 .execute()
                 .value

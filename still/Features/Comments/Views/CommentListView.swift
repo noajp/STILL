@@ -34,18 +34,20 @@ struct CommentListView: View {
     // MARK: - Body
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Comments List
-                commentsListView
-                
-                // Comment Input
-                commentInputView
-            }
-            .background(Color(hex: "121212"))
-            .navigationTitle("Comments")
-            .navigationBarTitleDisplayMode(.inline)
+        VStack(spacing: 0) {
+            // Header with close button
+            headerView
+            
+            // Comments List
+            commentsListView
+            
+            // Comment Input with keyboard handling
+            commentInputView
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear.frame(height: 0)
+                }
         }
+        .background(Color(hex: "121212"))
         .alert("Error", isPresented: $viewModel.hasError) {
             Button("OK") {
                 viewModel.clearError()
@@ -58,8 +60,49 @@ struct CommentListView: View {
                 await viewModel.loadComments()
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .keyboard) {
+                HStack {
+                    Spacer()
+                    Button("Done") {
+                        isTextFieldFocused = false
+                    }
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(MinimalDesign.Colors.accentRed)
+                }
+            }
+        }
     }
     
+    
+    // MARK: - Header View
+    
+    private var headerView: some View {
+        HStack {
+            Text("Comments")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.white)
+            
+            Spacer()
+            
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.8))
+                    .padding(8)
+                    .background(Circle().fill(Color.white.opacity(0.1)))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(hex: "121212"))
+        .overlay(
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
+    }
     
     // MARK: - Comments List View
     
@@ -90,6 +133,9 @@ struct CommentListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+        }
+        .onTapGesture {
+            isTextFieldFocused = false
         }
     }
     
@@ -183,6 +229,7 @@ struct CommentListView: View {
             .padding(.vertical, 12)
             .background(Color(hex: "121212"))
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
     
     // MARK: - Actions

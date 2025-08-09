@@ -39,7 +39,7 @@ struct MessagesView: View {
         let headerIcon = isGroupChatMode ? "person.2.fill" : "square.and.pencil"
         let headerAction: () -> Void = {
             if isGroupChatMode {
-                // グループチャット作成画面へ
+                // Navigate to group chat creation
                 isNavigatingToCreateGroup = true
             } else {
                 isNavigatingToNewMessage = true 
@@ -54,81 +54,22 @@ struct MessagesView: View {
             )
         ) {
             if viewModel.isLoading {
-                VStack(spacing: 16) {
-                    ProgressView()
-                    Text("Loading conversations...")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, 100)
-            } else if viewModel.conversations.isEmpty {
-                if isGroupChatMode {
-                    GroupChatEmptyStateView()
-                } else {
-                    MessagesEmptyStateView()
-                }
+                LoadingStateView()
             } else {
-                VStack(spacing: 0) {
-                    ForEach(filteredConversations) { conversation in
-                        let destinationView = getDestinationView(for: conversation)
-                        NavigationLink(destination: destinationView) {
-                            if isGroupChatMode {
-                                // GroupConversationを取得
-                                if let groupConv = viewModel.groupConversations.first(where: { $0.id == conversation.id }) {
-                                    GroupConversationRow(
-                                        groupConversation: groupConv,
-                                        timestamp: viewModel.formatTimestamp(conversation.lastMessageAt)
-                                    )
-                                } else {
-                                    GroupConversationRow(
-                                        groupConversation: GroupConversation(
-                                            id: conversation.id,
-                                            isGroup: true,
-                                            groupName: "Group Chat",
-                                            groupDescription: nil,
-                                            groupAvatarUrl: nil,
-                                            createdBy: "",
-                                            createdAt: conversation.createdAt,
-                                            updatedAt: conversation.updatedAt,
-                                            lastMessageAt: conversation.lastMessageAt,
-                                            lastMessageContent: conversation.lastMessagePreview,
-                                            lastMessageSenderId: nil,
-                                            lastMessageSenderUsername: nil,
-                                            unreadCount: conversation.unreadCount
-                                        ),
-                                        timestamp: viewModel.formatTimestamp(conversation.lastMessageAt)
-                                    )
-                                }
-                            } else {
-                                ConversationRow(
-                                    conversation: conversation,
-                                    timestamp: viewModel.formatTimestamp(conversation.lastMessageAt)
-                                )
-                            }
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .contextMenu {
-                            Button("Delete", role: .destructive) {
-                                Task {
-                                    await viewModel.deleteConversation(conversation.id)
-                                }
-                            }
-                        } preview: {
-                            ConversationPreviewFullScreen(conversation: conversation)
-                                .environmentObject(authManager)
-                        }
-                        
-                        if conversation.id != filteredConversations.last?.id {
-                            Divider()
-                                .padding(.leading, 70)
-                        }
+                MessageListSection(
+                    conversations: viewModel.conversations,
+                    groupConversations: viewModel.groupConversations,
+                    isGroupChatMode: isGroupChatMode,
+                    authManager: authManager,
+                    viewModel: viewModel,
+                    formatTimestamp: viewModel.formatTimestamp,
+                    onConversationTap: { conversation in
+                        AnyView(getDestinationView(for: conversation))
+                    },
+                    onDeleteConversation: { conversationId in
+                        await viewModel.deleteConversation(conversationId)
                     }
-                    
-                    // タブバー用の下部余白
-                    Color.clear
-                        .frame(height: 110)
-                }
+                )
             }
         }
         .onAppear {
@@ -233,193 +174,25 @@ struct MessagesView: View {
         }
     }
     
-    private var filteredConversations: [Conversation] {
-        if isGroupChatMode {
-            // グループチャットモードでは、GroupConversationをConversationに変換して表示
-            return viewModel.groupConversations.map { groupConv in
-                var conversation = Conversation(
-                    id: groupConv.id,
-                    createdAt: groupConv.createdAt,
-                    updatedAt: groupConv.updatedAt,
-                    lastMessageAt: groupConv.lastMessageAt,
-                    lastMessagePreview: groupConv.lastMessageContent
-                )
-                conversation.participants = [] // グループメンバーは別途取得
-                conversation.unreadCount = groupConv.unreadCount
-                return conversation
-            }
-        } else {
-            // 個人チャットのみ表示
-            return viewModel.conversations
-        }
-    }
 }
 
-struct ConversationRow: View {
-    let conversation: Conversation
-    let timestamp: String
-    @EnvironmentObject var authManager: AuthManager
-    
-    private var hasUnread: Bool {
-        (conversation.unreadCount ?? 0) > 0
-    }
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // プロフィール画像
-            Group {
-                if let avatarUrl = conversation.displayAvatar(currentUserId: authManager.currentUser?.id) {
-                    RemoteImageView(imageURL: avatarUrl)
-                        .frame(width: 50, height: 50)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .foregroundColor(.white)
-                        )
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.white, lineWidth: 2)
-            )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text({
-                        conversation.displayName(currentUserId: authManager.currentUser?.id)
-                    }())
-                        .font(.system(size: 16, weight: hasUnread ? .semibold : .regular))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Text(timestamp)
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
-                }
-                
-                Text(conversation.displayLastMessagePreview)
-                    .font(.system(size: 14))
-                    .foregroundColor(hasUnread ? MinimalDesign.Colors.primary : MinimalDesign.Colors.secondary)
-                    .lineLimit(1)
-            }
-            
-            if hasUnread {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.red)
-                        .frame(width: 20, height: 20)
-                    
-                    Text("\(conversation.unreadCount ?? 0)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(MinimalDesign.Colors.background)
-    }
-}
+// MARK: - Loading State View
 
-struct MessagesEmptyStateView: View {
-    var body: some View {
-        VStack {
-            Spacer()
-            Spacer()
-            Text("Start a conversation with someone")
-                .font(.body)
-                .foregroundColor(.gray)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-struct GroupChatEmptyStateView: View {
+struct LoadingStateView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "person.3")
-                .font(.system(size: 60))
-                .foregroundColor(.gray.opacity(0.6))
-            Text("No group chats yet")
-                .font(.title3)
-                .fontWeight(.medium)
+            ProgressView()
+            Text("Loading conversations...")
+                .font(.system(size: 16))
                 .foregroundColor(.white)
-            Text("Create a group chat to start\nchatting with multiple people")
-                .font(.body)
-                .foregroundColor(.gray)
-                .multilineTextAlignment(.center)
-            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 100)
     }
 }
 
-struct GroupConversationRow: View {
-    let groupConversation: GroupConversation
-    let timestamp: String
-    @EnvironmentObject var authManager: AuthManager
-    
-    private var hasUnread: Bool {
-        (groupConversation.unreadCount ?? 0) > 0
-    }
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // グループチャット用のアイコン（とりあえずシンプルに）
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.1))
-                    .frame(width: 50, height: 50)
-                
-                Image(systemName: "person.3.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(.blue)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(groupConversation.displayName)
-                        .font(.system(size: 16, weight: hasUnread ? .semibold : .regular))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Text(timestamp)
-                        .font(.system(size: 14))
-                        .foregroundColor(.white)
-                }
-                
-                // displayLastMessagePreviewを使用（既に送信者名が含まれている）
-                Text(groupConversation.displayLastMessagePreview)
-                    .font(.system(size: 14))
-                    .foregroundColor(hasUnread ? MinimalDesign.Colors.primary : MinimalDesign.Colors.secondary)
-                    .lineLimit(1)
-            }
-            
-            if hasUnread {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.red)
-                        .frame(width: 20, height: 20)
-                    
-                    Text("\(groupConversation.unreadCount ?? 0)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(MinimalDesign.Colors.background)
-    }
-}
+// MARK: - New Message View
+
 
 struct NewMessageView: View {
     @Environment(\.dismiss) var dismiss
@@ -437,6 +210,7 @@ struct NewMessageView: View {
                 
                 TextField("Search users", text: $searchText)
                     .font(.system(size: 16))
+                    .foregroundColor(.white)
                     .onChange(of: searchText) { _, newValue in
                         Task {
                             await viewModel.searchUsers(query: newValue)
@@ -453,7 +227,7 @@ struct NewMessageView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.gray.opacity(0.2))
+            .background(Color.gray.opacity(0.3))
             .cornerRadius(12)
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -514,6 +288,8 @@ struct NewMessageView: View {
         .navigationTitle("New Message")
         .navigationBarTitleDisplayMode(.inline)
         .accentColor(MinimalDesign.Colors.accentRed)
+        .background(MinimalDesign.Colors.background)
+        .navigationBarHidden(false)
     }
 }
 
@@ -568,330 +344,21 @@ struct UserRowView: View {
     }
 }
 
-// MARK: - Conversation Preview
+// MARK: - Conversation Preview is now in ConversationPreview.swift
 
-struct ConversationPreviewFullScreen: View {
-    let conversation: Conversation
-    @StateObject private var previewModel = ConversationPreviewModel()
-    @EnvironmentObject var authManager: AuthManager
-    
-    private var currentUserId: String? {
-        authManager.currentUser?.id
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Navigation bar
-            HStack {
-                HStack(spacing: 8) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(MinimalDesign.Colors.accentRed)
-                    
-                    if let avatarUrl = conversation.displayAvatar(currentUserId: currentUserId) {
-                        RemoteImageView(imageURL: avatarUrl)
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    
-                    Text(conversation.displayName(currentUserId: currentUserId))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                MinimalDesign.Colors.background
-                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-            )
-            
-            // Messages area
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 20) {
-                        if previewModel.isLoading {
-                            ProgressView()
-                                .padding()
-                        } else {
-                            // Add spacer at top to push messages to bottom
-                            Spacer()
-                                .frame(minHeight: 80)
-                            
-                            ForEach(previewModel.messages.suffix(20)) { message in
-                                MessageBubblePreview(
-                                    message: message,
-                                    isCurrentUser: isCurrentUserMessage(message)
-                                )
-                                .id(message.id)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                }
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            MinimalDesign.Colors.background.opacity(0.3),
-                            MinimalDesign.Colors.background
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .defaultScrollAnchor(.bottom)
-                .onChange(of: previewModel.messages.count) { _, newCount in
-                    // Only scroll to bottom once when messages are first loaded, not during loading
-                    if newCount > 0 && !previewModel.hasScrolledToBottom && !previewModel.isLoading {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            if let lastMessage = previewModel.messages.last {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                                previewModel.hasScrolledToBottom = true
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Message input area
-            HStack(spacing: 12) {
-                TextField("Type a message...", text: .constant(""))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .disabled(true)
-                
-                Button(action: {}) {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(MinimalDesign.Colors.accentRed)
-                }
-                .disabled(true)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(MinimalDesign.Colors.background)
-            
-            // Bottom spacer
-            Rectangle()
-                .fill(Color.clear)
-                .frame(height: 60)
-        }
-        .onAppear {
-            Task {
-                await previewModel.loadMessages(for: conversation.id)
-            }
-        }
-    }
-    
-    private func isCurrentUserMessage(_ message: Message) -> Bool {
-        guard let currentUserId = currentUserId else { return false }
-        return message.senderId.lowercased() == currentUserId.lowercased()
-    }
-}
+// MARK: - Message Bubble Preview
 
 struct MessageBubblePreview: View {
     let message: Message
     let isCurrentUser: Bool
     
     var body: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            if isCurrentUser { 
-                Spacer(minLength: 40) 
-            }
-            
-            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 6) {
-                Text(message.decryptedContent)
-                    .font(.system(size: 16))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
-                    .background(
-                        Group {
-                            if isCurrentUser {
-                                MinimalDesign.Colors.accentRed
-                            } else {
-                                Color.gray
-                                    .opacity(0.9)
-                            }
-                        }
-                    )
-                    .foregroundColor(
-                        isCurrentUser ? 
-                        MinimalDesign.Colors.background : 
-                        .white
-                    )
-                    .cornerRadius(20)
-                    .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 2)
-                
-                if message.isEdited {
-                    Text("Edited")
-                        .font(.caption)
-                        .foregroundColor(.white)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: isCurrentUser ? .trailing : .leading)
-            
-            if !isCurrentUser { 
-                Spacer(minLength: 40) 
-            }
-        }
+        MessageBubbleView(
+            message: message,
+            isCurrentUser: isCurrentUser,
+            showTimestamp: false
+        )
+        .padding(.horizontal, 20)
     }
 }
 
-struct ConversationPreview: View {
-    let conversation: Conversation
-    @StateObject private var previewModel = ConversationPreviewModel()
-    @EnvironmentObject var authManager: AuthManager
-    
-    private var currentUserId: String? {
-        authManager.currentUser?.id
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
-            messagesView
-        }
-        .background(MinimalDesign.Colors.background)
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-        .onAppear {
-            Task {
-                await previewModel.loadMessages(for: conversation.id)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var headerView: some View {
-        HStack {
-            // Avatar
-            Group {
-                if let avatarUrl = conversation.displayAvatar(currentUserId: currentUserId) {
-                    RemoteImageView(imageURL: avatarUrl)
-                        .frame(width: 32, height: 32)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                } else {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.white)
-                        )
-                }
-            }
-            
-            // Name and time
-            VStack(alignment: .leading, spacing: 2) {
-                Text(conversation.displayName(currentUserId: currentUserId))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(MinimalDesign.Colors.primary)
-                
-                if let lastMessageAt = conversation.lastMessageAt {
-                    Text(lastMessageAt.timeAgoDisplay())
-                        .font(.system(size: 11))
-                        .foregroundColor(.white)
-                }
-            }
-            
-            Spacer()
-        }
-        .padding(12)
-        .background(MinimalDesign.Colors.background)
-    }
-    
-    @ViewBuilder
-    private var messagesView: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 8) {
-                    if previewModel.isLoading {
-                        ProgressView()
-                            .padding()
-                    } else {
-                        ForEach(previewModel.messages.suffix(10)) { message in
-                            MessagePreviewRow(
-                                message: message,
-                                isCurrentUser: isCurrentUserMessage(message)
-                            )
-                            .id(message.id)
-                        }
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            .background(MinimalDesign.Colors.background)
-            .onAppear {
-                // Scroll to the last message when preview appears
-                if let lastMessage = previewModel.messages.last {
-                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                }
-            }
-            .onChange(of: previewModel.messages.count) { _, _ in
-                // Scroll to the last message when messages are loaded
-                if let lastMessage = previewModel.messages.last {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func isCurrentUserMessage(_ message: Message) -> Bool {
-        guard let currentUserId = currentUserId else { return false }
-        return message.senderId.lowercased() == currentUserId.lowercased()
-    }
-}
-
-struct MessagePreviewRow: View {
-    let message: Message
-    let isCurrentUser: Bool
-    
-    var body: some View {
-        HStack {
-            if isCurrentUser {
-                Spacer()
-            }
-            
-            Text(message.decryptedContent)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .font(.system(size: 14))
-                .foregroundColor(isCurrentUser ? MinimalDesign.Colors.background : MinimalDesign.Colors.primary)
-                .frame(maxWidth: 200, alignment: isCurrentUser ? .trailing : .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(isCurrentUser ? MinimalDesign.Colors.primary : Color.gray.opacity(0.2))
-                )
-            
-            if !isCurrentUser {
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 12)
-    }
-}
-
-// Preview用のシンプルなViewModel
-@MainActor
-class ConversationPreviewModel: ObservableObject {
-    @Published var messages: [Message] = []
-    @Published var isLoading = false
-    var hasScrolledToBottom = false
-    
-    private let messageService = MessageService.shared
-    
-    func loadMessages(for conversationId: String) async {
-        isLoading = true
-        hasScrolledToBottom = false
-        do {
-            messages = try await messageService.fetchMessages(for: conversationId, limit: 10)
-        } catch {
-            print("❌ Error loading preview messages: \(error)")
-        }
-        isLoading = false
-    }
-}
