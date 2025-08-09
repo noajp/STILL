@@ -159,7 +159,7 @@ class MessagesViewModel: ObservableObject {
     private func updateConversationWithNewMessage(_ message: Message) {
         if let index = conversations.firstIndex(where: { $0.id == message.conversationId }) {
             // Update last message preview and timestamp with decrypted content
-            conversations[index].lastMessagePreview = message.decryptedContent
+            conversations[index].lastMessagePreview = message.content
             conversations[index].lastMessageAt = message.createdAt
             
             // Move conversation to top of list for recency
@@ -412,13 +412,22 @@ class MessagesViewModel: ObservableObject {
      */
     func deleteConversation(_ conversationId: String) async {
         do {
-            try await messageService.deleteConversation(conversationId)
-            // Remove from local lists immediately
+            // Hide conversation from current user's view (soft delete from user perspective)
+            try await MessageSystemFacade.shared.conversationService.leaveConversation(
+                conversationId: conversationId,
+                userId: await getCurrentUserId()
+            )
+            
+            // Remove from local lists immediately for better UX
             conversations.removeAll { $0.id == conversationId }
             groupConversations.removeAll { $0.id == conversationId }
         } catch {
             errorMessage = "Failed to delete conversation: \(error.localizedDescription)"
         }
+    }
+    
+    private func getCurrentUserId() async -> String {
+        return await DependencyContainer.shared.authManager.currentUser?.id ?? ""
     }
     
     // MARK: - Group Chat Functions

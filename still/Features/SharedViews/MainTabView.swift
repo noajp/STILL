@@ -31,16 +31,9 @@ struct MainTabView: View {
     
     var body: some View {
         ZStack {
-            // Top-level TabView for swipe navigation between camera and main feed
-            TabView(selection: $viewModel.navigationState.pageSelection) {
-                // Camera view for photo capture
-                CameraView()
-                    .tag(0)
-                    .ignoresSafeArea()
-                
-                // Main content area with horizontal swipe navigation
-                // Navigation order: Home → Articles → Messages → Profile
-                TabView(selection: $viewModel.selectedTab) {
+            // Main content area with horizontal swipe navigation
+            // Navigation order: Home → Articles → Messages → Profile
+            TabView(selection: $viewModel.selectedTab) {
                     // Home feed tab (0) - Main photo grid and feed view
                     NavigationStack {
                         HomeGridView(
@@ -69,21 +62,16 @@ struct MainTabView: View {
                         isUserSearchMode: $viewModel.uiState.isUserSearchMode
                     )
                     .tag(3)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .background(Color(hex: "121212"))
-                .ignoresSafeArea(.all)
-                .tag(1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .background(Color(hex: "121212"))
+            .ignoresSafeArea(.all)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             
             // Note: Status bar handling moved to HomeGridView
             
-            // Hide tab bar when camera view is active
-            if viewModel.navigationState.pageSelection == 1 {
-                // Custom tab bar (footer navigation)
-                VStack {
+            // Custom tab bar (footer navigation)
+            VStack {
                     Spacer()
                     CustomTabBar(
                         selectedTab: $viewModel.selectedTab,
@@ -108,11 +96,10 @@ struct MainTabView: View {
                         },
                         isGroupChatMode: $viewModel.uiState.isGroupChatMode
                     )
-                }
-                .offset(y: viewModel.animationState.tabBarOffset)
-                .animation(.easeInOut(duration: 0.5), value: viewModel.animationState.tabBarOffset)
-                .clipped() // Clip to completely hide background when offset
             }
+            .offset(y: viewModel.animationState.tabBarOffset)
+            .animation(.easeInOut(duration: 0.5), value: viewModel.animationState.tabBarOffset)
+            .clipped() // Clip to completely hide background when offset
             
             // Post type selection popup
             if viewModel.navigationState.showingPostTypeSelection {

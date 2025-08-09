@@ -116,6 +116,7 @@ protocol DependencyInjectable {
  * Extension providing a convenience initializer for dependency injectable objects
  * that uses the default container when no specific container is provided.
  */
+@MainActor
 extension DependencyInjectable where Container == DependencyContainer {
     /// Initialize with the default dependency container
     init() {

@@ -92,15 +92,15 @@ final class ImageCacheManagerAdapter: ImageCacheManagerProtocol {
     private let manager = ImageCacheManager.shared
     
     func cache(image: UIImage, forKey key: String) {
-        manager.setObject(image, forKey: key as NSString)
+        manager.cache.setObject(image, forKey: key as NSString)
     }
     
     func image(forKey key: String) -> UIImage? {
-        return manager.object(forKey: key as NSString)
+        return manager.cache.object(forKey: key as NSString)
     }
     
     func removeImage(forKey key: String) {
-        manager.removeObject(forKey: key as NSString)
+        manager.cache.removeObject(forKey: key as NSString)
     }
     
     func clearCache() {
@@ -108,7 +108,7 @@ final class ImageCacheManagerAdapter: ImageCacheManagerProtocol {
     }
     
     func clearMemoryCache() {
-        manager.removeAllObjects()
+        manager.cache.removeAllObjects()
     }
     
     func clearDiskCache() async {

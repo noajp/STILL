@@ -86,7 +86,7 @@ struct InputValidator {
         let sanitizedEmail = sanitizeText(email, maxLength: 254)
         
         // 基本的な形式チェック
-        let emailRegex = "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+        let emailRegex = #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"#
         let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
         
         guard emailPredicate.evaluate(with: sanitizedEmail) else {
@@ -103,67 +103,38 @@ struct InputValidator {
         
         return .valid(sanitizedEmail)
     }
+
+    // MARK: - Username Validation
+    
+    /// ユーザー名の検証
+    static func validateUsername(_ username: String) -> ValidationResult {
+        let sanitizedUsername = sanitizeText(username, maxLength: 20)
+        
+        let usernameRegex = #"^[a-zA-Z0-9_]{3,20}$"#
+        let usernamePredicate = NSPredicate(format: "SELF MATCHES %@", usernameRegex)
+        
+        guard usernamePredicate.evaluate(with: sanitizedUsername) else {
+            return .invalid("Username must be 3-20 characters long and can only contain letters, numbers, and underscores.")
+        }
+        
+        return .valid(sanitizedUsername)
+    }
     
     // MARK: - Password Validation
     
-    /// パスワードの検証（軽量版：6文字以上、文字と数字があればOK）
-    static func validatePassword(_ password: String) -> PasswordValidationResult {
-        var errors: [String] = []
-        var strength: PasswordStrength = .weak
+    /// パスワードの検証
+    static func validatePassword(_ password: String) -> ValidationResult {
+        let passwordRegex = #"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$"#
+        let passwordPredicate = NSPredicate(format: "SELF MATCHES %@", passwordRegex)
         
-        // 長さチェック（6文字以上に変更）
-        if password.count < 6 {
-            errors.append("Password must be at least 6 characters long")
-        }
-        
-        if password.count > 128 {
-            errors.append("Password must be less than 128 characters")
-        }
-        
-        // 簡易文字種チェック（文字と数字があればOK）
-        let hasLetter = password.contains { $0.isLetter }
-        let hasDigit = password.contains { $0.isNumber }
-        
-        if !hasLetter {
-            errors.append("Password must contain at least one letter")
-        }
-        
-        if !hasDigit {
-            errors.append("Password must contain at least one number")
-        }
-        
-        // 強度判定（簡易版）
-        if password.count >= 8 && hasLetter && hasDigit {
-            strength = .strong
-        } else if password.count >= 6 && hasLetter && hasDigit {
-            strength = .medium
+        if passwordPredicate.evaluate(with: password) {
+            return .valid(password)
         } else {
-            strength = .weak
+            return .invalid("Password must be at least 8 characters long and contain at least one letter and one number.")
         }
-        
-        // 一般的な脆弱パスワードチェック
-        if isCommonPassword(password) {
-            errors.append("Password is too common. Please choose a more unique password")
-            strength = .weak
-        }
-        
-        return PasswordValidationResult(
-            isValid: errors.isEmpty,
-            errors: errors,
-            strength: strength
-        )
     }
     
-    private static func isCommonPassword(_ password: String) -> Bool {
-        let commonPasswords = [
-            "password", "123456", "123456789", "qwerty", "abc123",
-            "password123", "admin", "letmein", "welcome", "monkey"
-        ]
-        
-        return commonPasswords.contains(password.lowercased())
-    }
     
-    // MARK: - URL Validation
     
     /// URL の検証
     static func validateURL(_ urlString: String) -> ValidationResult {
@@ -243,29 +214,7 @@ enum ValidationResult {
     }
 }
 
-struct PasswordValidationResult {
-    let isValid: Bool
-    let errors: [String]
-    let strength: PasswordStrength
-}
 
-enum PasswordStrength: String, CaseIterable {
-    case veryWeak = "Very Weak"
-    case weak = "Weak"
-    case medium = "Medium"
-    case strong = "Strong"
-    case veryStrong = "Very Strong"
-    
-    var color: String {
-        switch self {
-        case .veryWeak: return "red"
-        case .weak: return "orange"
-        case .medium: return "yellow"
-        case .strong: return "lightgreen"
-        case .veryStrong: return "green"
-        }
-    }
-}
 
 // MARK: - Content Validation
 

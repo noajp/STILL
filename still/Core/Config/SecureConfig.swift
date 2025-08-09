@@ -31,7 +31,12 @@ struct SecureConfig {
         
         // Development fallback
         #if DEBUG
-        return "https://yccjlkcxqybxqewzchen.supabase.co"
+        guard let url = Bundle.main.object(forInfoDictionaryKey: "SupabaseURL") as? String, 
+              !url.isEmpty, 
+              url != "YOUR_SUPABASE_URL_HERE" else {
+            fatalError("Debug build: SupabaseURL not configured in Info.plist. Please replace 'YOUR_SUPABASE_URL_HERE' with your actual Supabase project URL.")
+        }
+        return url
         #else
         fatalError("SUPABASE_URL not configured. Please set environment variable or Keychain value.")
         #endif
@@ -49,8 +54,13 @@ struct SecureConfig {
         
         // Development fallback - このキーは開発用のプレースホルダーです
         #if DEBUG
-        print("⚠️ Using placeholder Supabase key. Please set SUPABASE_ANON_KEY environment variable.")
-        return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljY2psa2N4cXlieHFld3pjaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4NzUzMjUsImV4cCI6MjA2NDQ1MTMyNX0.sKAfALsKR6wzYfhu3HybrWVl3Pi5qttL6ychxg7L05Q"
+        print("⚠️ Using Supabase key from Info.plist. For production, use environment variables.")
+        guard let key = Bundle.main.object(forInfoDictionaryKey: "SupabaseAnonKey") as? String, 
+              !key.isEmpty, 
+              key != "YOUR_SUPABASE_ANON_KEY_HERE" else {
+            fatalError("Debug build: SupabaseAnonKey not configured in Info.plist. Please replace 'YOUR_SUPABASE_ANON_KEY_HERE' with your actual Supabase anonymous key.")
+        }
+        return key
         #else
         fatalError("SUPABASE_ANON_KEY not configured. Please set environment variable or Keychain value.")
         #endif

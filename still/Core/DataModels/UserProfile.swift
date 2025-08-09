@@ -38,6 +38,9 @@ struct UserProfile: Identifiable, Codable {
     /// Account creation timestamp
     let createdAt: Date?
     
+    /// User's public key for end-to-end encryption (Base64 encoded P256 public key)
+    var publicKey: String?
+    
     // MARK: - JSON Coding Keys
     
     /// Coding keys for JSON serialization/deserialization with database column names
@@ -49,6 +52,7 @@ struct UserProfile: Identifiable, Codable {
         case followingCount = "following_count"
         case isPrivate = "is_private"
         case createdAt = "created_at"
+        case publicKey = "public_key"
     }
     
     // MARK: - Display Helper Methods

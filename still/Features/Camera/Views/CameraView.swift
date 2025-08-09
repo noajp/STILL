@@ -15,6 +15,10 @@ struct CameraView: View {
     @State private var previewLayer: AVCaptureVideoPreviewLayer?
     @State private var isSplitScreenMode = false
     
+    // Story mode parameter
+    var isForStory: Bool = false
+    @Environment(\.dismiss) private var dismiss
+    
     let films: [Film] = [
         Film(id: "1", name: "Classic", color: Color.orange),
         Film(id: "2", name: "Noir", color: Color.gray),
@@ -59,17 +63,31 @@ struct CameraView: View {
             VStack {
                 // 上部コントロール
                 HStack {
-                    // Split screen toggle button
-                    Button(action: { isSplitScreenMode.toggle() }) {
-                        Image(systemName: isSplitScreenMode ? "rectangle" : "rectangle.split.2x1")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.6))
-                            .cornerRadius(22)
+                    // Close button for story mode OR Split screen toggle for regular mode
+                    if isForStory {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.black.opacity(0.6))
+                                .cornerRadius(22)
+                        }
+                        .padding(.top, 50)
+                        .padding(.leading, 20)
+                    } else {
+                        // Split screen toggle button
+                        Button(action: { isSplitScreenMode.toggle() }) {
+                            Image(systemName: isSplitScreenMode ? "rectangle" : "rectangle.split.2x1")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.black.opacity(0.6))
+                                .cornerRadius(22)
+                        }
+                        .padding(.top, 50)
+                        .padding(.leading, 20)
                     }
-                    .padding(.top, 50)
-                    .padding(.leading, 20)
                     
                     Spacer()
                     

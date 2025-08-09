@@ -302,7 +302,7 @@ struct MessagePreviewRow: View {
                 Spacer()
             }
             
-            Text(message.decryptedContent)
+            Text(message.content)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .font(.system(size: 14))
@@ -338,7 +338,7 @@ class ConversationPreviewModel: ObservableObject {
         isLoading = true
         hasScrolledToBottom = false
         do {
-            messages = try await messageService.fetchMessages(for: conversationId, limit: 10)
+            messages = try await messageService.fetchMessages(for: conversationId)
         } catch {
             print("❌ Error loading preview messages: \(error)")
         }

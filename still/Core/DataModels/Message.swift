@@ -9,29 +9,14 @@ struct Message: Identifiable, Codable {
     let id: String
     let conversationId: String
     let senderId: String
-    let content: String  // 暗号化されたコンテンツ
+    let content: String  // Content (decrypted at service layer)
     let createdAt: Date
     let updatedAt: Date
     let isEdited: Bool
     let isDeleted: Bool
     
-    // Relationships
+    // Relationships - excluded from Codable synthesis
     var sender: UserProfile?
-    
-    // 復号化されたコンテンツを取得
-    var decryptedContent: String {
-        // Base64エンコードされた暗号化データをデコード
-        do {
-            let keyData = try KeychainManager.shared.getUserKey()
-            let key = CryptoManager.shared.dataToKey(keyData)
-            let decrypted = try CryptoManager.shared.decryptFromBase64(base64String: content, using: key)
-            return decrypted
-        } catch {
-            // 復号化に失敗した場合（古いメッセージなど）はそのまま表示
-            print("❌ Failed to decrypt message \(id): \(error)")
-            return content
-        }
-    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -42,7 +27,7 @@ struct Message: Identifiable, Codable {
         case updatedAt = "updated_at"
         case isEdited = "is_edited"
         case isDeleted = "is_deleted"
-        case sender
+        // sender excluded - set manually at service layer
     }
 }
 
@@ -153,37 +138,24 @@ struct Conversation: Identifiable, Codable {
             return "Start a conversation"
         }
         
-        // プレビューが暗号化されている可能性があるため、復号化を試みる
-        var displayText = preview
-        
-        // Base64エンコードされた暗号化データかどうかを簡単にチェック
-        if preview.count > 20 && preview.contains(where: { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=".contains($0) }) {
-            do {
-                let keyData = try KeychainManager.shared.getUserKey()
-                let key = CryptoManager.shared.dataToKey(keyData)
-                displayText = try CryptoManager.shared.decryptFromBase64(base64String: preview, using: key)
-            } catch {
-                // 復号化に失敗した場合はそのまま表示
-                displayText = preview
-            }
-        }
-        
-        if displayText.count <= 15 {
-            return displayText
+        // Preview should already be stored as decrypted text
+        if preview.count <= 15 {
+            return preview
         } else {
-            return String(displayText.prefix(15)) + "..."
+            return String(preview.prefix(15)) + "..."
         }
     }
 }
 
-struct ConversationParticipant: Codable {
+struct ConversationParticipant: Identifiable, Codable {
     let id: String
     let conversationId: String
     let userId: String
     let joinedAt: Date
     let lastReadAt: Date?
+    let hiddenForUser: Bool?
     
-    // Relationships
+    // Relationships - excluded from Codable synthesis
     var user: UserProfile?
     
     enum CodingKeys: String, CodingKey {
@@ -192,7 +164,8 @@ struct ConversationParticipant: Codable {
         case userId = "user_id"
         case joinedAt = "joined_at"
         case lastReadAt = "last_read_at"
-        case user
+        case hiddenForUser = "hidden_for_user"
+        // user excluded - set manually at service layer
     }
 }
 

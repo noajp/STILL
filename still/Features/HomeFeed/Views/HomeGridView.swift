@@ -53,6 +53,11 @@ struct HomeGridView: View {
     @State private var searchText = ""
     @State private var showFilters = false
     
+    // MARK: - Story State
+    
+    @State private var showingCamera = false
+    @State private var storyGroups: [StoryGroup] = []
+    
     // MARK: - Body
     
     var body: some View {
@@ -60,6 +65,20 @@ struct HomeGridView: View {
             title: "STILL"
         ) {
             VStack(spacing: 0) {
+                // Stories bar
+                StoriesBarView(
+                    storyGroups: storyGroups,
+                    currentUserId: getCurrentUserId(),
+                    onAddStory: {
+                        showingCamera = true
+                    },
+                    onViewStory: { storyGroup in
+                        // TODO: Navigate to story viewer
+                        print("View story for: \(storyGroup.user.username)")
+                    }
+                )
+                .padding(.vertical, 8)
+                
                 // Upload status header
                 GridHeaderView()
                 
@@ -97,6 +116,10 @@ struct HomeGridView: View {
         }
         .onChange(of: isInSingleView) { _, newValue in
             handleSingleViewChange(newValue)
+        }
+        .fullScreenCover(isPresented: $showingCamera) {
+            CameraView(isForStory: true)
+                .ignoresSafeArea()
         }
     }
     
@@ -236,6 +259,12 @@ struct HomeGridView: View {
         gridViewModel.updateFilter(selectedFilter)
         gridViewModel.updateSort(selectedSort)
         gridViewModel.searchText = searchText
+    }
+    
+    private func getCurrentUserId() -> String? {
+        // TODO: Get from AuthManager when available
+        // return AuthManager.shared.currentUser?.id
+        return "current_user_id"
     }
 }
 

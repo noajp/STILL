@@ -57,7 +57,7 @@ struct MessageBubbleView: View {
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
                 // Message bubble
-                Text(message.decryptedContent)
+                Text(message.content)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(bubbleBackground)
@@ -115,7 +115,7 @@ struct MessageBubbleView: View {
     @ViewBuilder
     private var contextMenuItems: some View {
         Button(action: {
-            UIPasteboard.general.string = message.decryptedContent
+            UIPasteboard.general.string = message.content
         }) {
             Label("Copy", systemImage: "doc.on.doc")
         }
@@ -166,7 +166,7 @@ struct CompactMessageBubbleView: View {
                 Spacer()
             }
             
-            Text(message.decryptedContent)
+            Text(message.content)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .font(.system(size: 14))

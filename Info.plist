@@ -49,13 +49,13 @@
 		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>料理の写真を撮影し、フィルターを適用するためにカメラを使用します。</string>
+	<string>写真を撮影して投稿するためにカメラを使用します。</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>近くのレストランや投稿を検索するために現在地を使用します。</string>
+	<string>近くの投稿や場所を検索するために現在地を使用します。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>編集した写真をフォトライブラリに保存します。</string>
+	<string>編集した写真や作成したコンテンツをフォトライブラリに保存します。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>料理の写真を選択して投稿するためにフォトライブラリにアクセスします。</string>
+	<string>写真を選択して投稿・共有するためにフォトライブラリにアクセスします。</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -88,6 +88,10 @@
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>SupabaseURL</key>
+	<string>https://yccjlkcxqybxqewzchen.supabase.co</string>
+	<key>SupabaseAnonKey</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljY2psa2N4cXlieHFld3pjaGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4NzUzMjUsImV4cCI6MjA2NDQ1MTMyNX0.sKAfALsKR6wzYfhu3HybrWVl3Pi5qttL6ychxg7L05Q</string>
 	<key>UIStatusBarStyle</key>
 	<string></string>
 	<key>UISupportedInterfaceOrientations</key>

@@ -104,7 +104,7 @@ class GroupConversationViewModel: ObservableObject {
         isSending = true
         
         do {
-            let newMessage = try await messageService.sendMessage(to: conversationId, content: content)
+            let newMessage = try await messageService.sendMessage(conversationId: conversationId, content: content)
             // Only add message if it's not already in the list (prevent duplicates)
             if !messages.contains(where: { $0.id == newMessage.id }) {
                 messages.append(newMessage)
@@ -344,7 +344,7 @@ struct GroupMessageBubble: View {
                     }
                     
                     VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                        Text(message.decryptedContent)
+                        Text(message.content)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(isCurrentUser ? MinimalDesign.Colors.accentRed : Color.gray.opacity(0.2))

@@ -52,7 +52,7 @@ final class MyPageViewModel: BaseViewModelClass {
         postService: PostServiceProtocol? = nil
     ) {
         self.userRepository = userRepository ?? UserRepository()
-        self.authManager = authManager ?? (DependencyContainer.shared.resolve((any AuthManagerProtocol).self) ?? AuthManager.shared)
+        self.authManager = authManager ?? DependencyContainer.shared.authManager
         self.postService = postService ?? PostService()
         super.init()
         

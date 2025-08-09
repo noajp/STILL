@@ -19,6 +19,7 @@ protocol MessageDataAccessProtocol {
     func updateMessage(id: String, content: String) async throws -> MessageRecord
     func deleteMessage(id: String) async throws
     func markAsRead(messageId: String) async throws
+    func updateConversationPreview(conversationId: String, lastMessagePreview: String, lastMessageAt: Date) async throws
 }
 
 /**
@@ -33,6 +34,8 @@ protocol ConversationDataAccessProtocol {
     func deleteConversation(id: String) async throws
     func addParticipant(conversationId: String, userId: String) async throws
     func removeParticipant(conversationId: String, userId: String) async throws
+    func fetchConversationParticipants(conversationId: String) async throws -> [ConversationParticipant]
+    func hideConversationForUser(conversationId: String, userId: String) async throws
 }
 
 /**
@@ -131,6 +134,7 @@ struct MessageRecord: Codable {
     let isEdited: Bool
     let isDeleted: Bool
     let metadata: [String: String]?
+    let encryptionType: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -142,6 +146,7 @@ struct MessageRecord: Codable {
         case isEdited = "is_edited"
         case isDeleted = "is_deleted"
         case metadata
+        case encryptionType = "encryption_type"
     }
 }
 
@@ -158,7 +163,7 @@ struct ConversationRecord: Codable {
     let groupName: String?
     let groupDescription: String?
     let groupAvatarUrl: String?
-    let createdBy: String
+    let createdBy: String?
     let settings: [String: String]?
     
     enum CodingKeys: String, CodingKey {

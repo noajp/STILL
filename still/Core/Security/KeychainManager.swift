@@ -87,6 +87,108 @@ class KeychainManager: @unchecked Sendable {
             return false
         }
     }
+    
+    // MARK: - P256 Private Key Storage for E2EE
+    
+    private let privateKeyAccount = "userP256PrivateKey"
+    
+    /**
+     * Save P256 private key to keychain
+     * - Parameter keyData: Serialized private key data
+     */
+    func savePrivateKey(_ keyData: Data) throws {
+        print("🔐 Saving P256 private key to keychain")
+        
+        // Delete existing key if present
+        try? deletePrivateKey()
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: "com.takanorinakano.still.p256.private".data(using: .utf8)!,
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+            kSecValueData as String: keyData,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecAttrSynchronizable as String: false // Don't sync to iCloud Keychain
+        ]
+        
+        let status = SecItemAdd(query as CFDictionary, nil)
+        
+        guard status == errSecSuccess else {
+            print("❌ Failed to save private key. Status: \(status)")
+            throw KeychainError.unableToSave
+        }
+        
+        print("✅ P256 private key saved successfully")
+    }
+    
+    /**
+     * Retrieve P256 private key from keychain
+     * - Returns: Serialized private key data
+     */
+    func getPrivateKey() throws -> Data {
+        print("🔑 Retrieving P256 private key from keychain")
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: "com.takanorinakano.still.p256.private".data(using: .utf8)!,
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        guard status == errSecSuccess,
+              let keyData = result as? Data else {
+            print("❌ Failed to retrieve private key. Status: \(status)")
+            throw KeychainError.keyNotFound
+        }
+        
+        print("✅ P256 private key retrieved successfully")
+        return keyData
+    }
+    
+    /**
+     * Delete P256 private key from keychain
+     */
+    func deletePrivateKey() throws {
+        print("🗑️ Deleting P256 private key from keychain")
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: "com.takanorinakano.still.p256.private".data(using: .utf8)!,
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPrivate
+        ]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        
+        if status != errSecSuccess && status != errSecItemNotFound {
+            print("❌ Failed to delete private key. Status: \(status)")
+            throw KeychainError.unableToDelete
+        }
+        
+        print("✅ P256 private key deleted")
+    }
+    
+    /**
+     * Check if P256 private key exists in keychain
+     */
+    func hasPrivateKey() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: "com.takanorinakano.still.p256.private".data(using: .utf8)!,
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        return status == errSecSuccess
+    }
 }
 
 enum KeychainError: LocalizedError {

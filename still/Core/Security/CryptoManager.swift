@@ -97,6 +97,129 @@ class CryptoManager: @unchecked Sendable {
     }
 }
 
+// MARK: - P256 Key Management for E2EE
+
+extension CryptoManager {
+    
+    /**
+     * Generate a new P256 key pair for end-to-end encryption
+     * Returns: A tuple containing the private key and public key (Base64 encoded)
+     */
+    func generateP256KeyPair() throws -> (privateKey: P256.KeyAgreement.PrivateKey, publicKeyBase64: String) {
+        print("🔑 Generating new P256 key pair for E2EE")
+        
+        // Generate new private key
+        let privateKey = P256.KeyAgreement.PrivateKey()
+        
+        // Get public key and encode as Base64
+        let publicKeyData = privateKey.publicKey.x963Representation
+        let publicKeyBase64 = publicKeyData.base64EncodedString()
+        
+        print("✅ Generated P256 key pair. Public key length: \(publicKeyBase64.count)")
+        return (privateKey, publicKeyBase64)
+    }
+    
+    /**
+     * Serialize private key for secure storage
+     */
+    func serializePrivateKey(_ privateKey: P256.KeyAgreement.PrivateKey) throws -> Data {
+        return privateKey.x963Representation
+    }
+    
+    /**
+     * Deserialize private key from stored data
+     */
+    func deserializePrivateKey(from data: Data) throws -> P256.KeyAgreement.PrivateKey {
+        return try P256.KeyAgreement.PrivateKey(x963Representation: data)
+    }
+    
+    /**
+     * Deserialize public key from Base64 string
+     */
+    func deserializePublicKey(from base64String: String) throws -> P256.KeyAgreement.PublicKey {
+        guard let data = Data(base64Encoded: base64String) else {
+            throw CryptoError.invalidInput
+        }
+        return try P256.KeyAgreement.PublicKey(x963Representation: data)
+    }
+    
+    /**
+     * Derive shared symmetric key using ECDH
+     * - Parameters:
+     *   - privateKey: Your private key
+     *   - publicKeyBase64: Other party's public key as Base64 string
+     * - Returns: Shared symmetric key for AES encryption
+     */
+    func deriveSharedKey(privateKey: P256.KeyAgreement.PrivateKey, publicKeyBase64: String) throws -> SymmetricKey {
+        print("🔐 Deriving shared key using ECDH")
+        
+        // Deserialize the public key
+        let publicKey = try deserializePublicKey(from: publicKeyBase64)
+        
+        // Perform key agreement
+        let sharedSecret = try privateKey.sharedSecretFromKeyAgreement(with: publicKey)
+        
+        // Derive symmetric key from shared secret using HKDF
+        let symmetricKey = sharedSecret.hkdfDerivedSymmetricKey(
+            using: SHA256.self,
+            salt: "STILL-E2EE-v1".data(using: .utf8)!,
+            sharedInfo: Data(),
+            outputByteCount: 32
+        )
+        
+        print("✅ Successfully derived shared symmetric key")
+        return symmetricKey
+    }
+    
+    /**
+     * Encrypt message using hybrid encryption (ECDH + AES-GCM)
+     * - Parameters:
+     *   - message: Plain text message to encrypt
+     *   - senderPrivateKey: Sender's private key
+     *   - recipientPublicKeyBase64: Recipient's public key as Base64 string
+     * - Returns: Encrypted message as Base64 string
+     */
+    func encryptMessage(_ message: String, senderPrivateKey: P256.KeyAgreement.PrivateKey, recipientPublicKeyBase64: String) throws -> String {
+        print("🔒 Encrypting message with hybrid encryption")
+        
+        // Derive shared key
+        let sharedKey = try deriveSharedKey(privateKey: senderPrivateKey, publicKeyBase64: recipientPublicKeyBase64)
+        
+        // Encrypt message with derived key
+        let encryptedData = try encrypt(text: message, using: sharedKey)
+        
+        // Return as Base64
+        let encryptedBase64 = encryptedData.base64EncodedString()
+        print("✅ Message encrypted. Length: \(encryptedBase64.count)")
+        return encryptedBase64
+    }
+    
+    /**
+     * Decrypt message using hybrid encryption (ECDH + AES-GCM)
+     * - Parameters:
+     *   - encryptedBase64: Encrypted message as Base64 string
+     *   - recipientPrivateKey: Recipient's private key
+     *   - senderPublicKeyBase64: Sender's public key as Base64 string
+     * - Returns: Decrypted plain text message
+     */
+    func decryptMessage(_ encryptedBase64: String, recipientPrivateKey: P256.KeyAgreement.PrivateKey, senderPublicKeyBase64: String) throws -> String {
+        print("🔓 Decrypting message with hybrid encryption")
+        
+        // Decode from Base64
+        guard let encryptedData = Data(base64Encoded: encryptedBase64) else {
+            throw CryptoError.invalidInput
+        }
+        
+        // Derive shared key
+        let sharedKey = try deriveSharedKey(privateKey: recipientPrivateKey, publicKeyBase64: senderPublicKeyBase64)
+        
+        // Decrypt message with derived key
+        let decryptedMessage = try decrypt(data: encryptedData, using: sharedKey)
+        
+        print("✅ Message decrypted successfully")
+        return decryptedMessage
+    }
+}
 enum CryptoError: LocalizedError {
     case invalidInput
     case encryptionFailed

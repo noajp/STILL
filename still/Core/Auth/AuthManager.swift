@@ -6,6 +6,7 @@
 import Foundation
 import Supabase
 import AuthenticationServices
+import CryptoKit
 
 // MARK: - Notification Extensions
 
@@ -34,6 +35,9 @@ enum AuthError: LocalizedError {
     /// Unknown authentication error
     case unknown(String)
     
+    /// User not authenticated
+    case userNotAuthenticated
+    
     /// Localized error description for user display
     var errorDescription: String? {
         switch self {
@@ -47,6 +51,8 @@ enum AuthError: LocalizedError {
             return "Password requirements not met: \(errors.joined(separator: ", "))"
         case .unknown(let message):
             return "Authentication error: \(message)"
+        case .userNotAuthenticated:
+            return "User not authenticated"
         }
     }
 }
@@ -217,6 +223,9 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
             // Ensure user profile exists
             await ensureUserProfileExists(for: user)
             
+            // Initialize E2EE for user
+            try await initializeE2EEForUser()
+            
             secureLogger.authEvent("Sign in successful", userID: user.id.uuidString)
         } catch {
             print("❌ Sign in failed: \(error)")
@@ -272,7 +281,7 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
         let passwordValidation = InputValidator.validatePassword(password)
         guard passwordValidation.isValid else {
             secureLogger.securityEvent("Weak password during sign up")
-            throw AuthError.weakPassword(passwordValidation.errors)
+            throw AuthError.weakPassword(["Password validation failed"])
         }
         
         print("🔵 Attempting sign up with email: \(validEmail)")
@@ -318,6 +327,9 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
             
             // Ensure user profile exists after sign up
             await ensureUserProfileExists(for: user)
+            
+            // Initialize E2EE for new user
+            try await initializeE2EEForUser()
             
             secureLogger.authEvent("Sign up successful", userID: user.id.uuidString)
             return user.id.uuidString
@@ -675,6 +687,87 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
             print("❌ Error ensuring user profile exists: \(error)")
             // Don't throw error here - authentication should still succeed even if profile creation fails
         }
+    }
+
+    
+    // MARK: - E2EE Key Management
+    
+    /**
+     * Initialize E2EE for user after successful authentication
+     * This generates a key pair and uploads the public key to the server
+     */
+    private func initializeE2EEForUser() async throws {
+        print("🔐 Initializing E2EE for authenticated user")
+        
+        // Check if user already has E2EE set up
+        if KeychainManager.shared.hasPrivateKey() {
+            print("✅ User already has E2EE key pair")
+            return
+        }
+        
+        // Generate new key pair
+        let (privateKey, publicKeyBase64) = try CryptoManager.shared.generateP256KeyPair()
+        
+        // Save private key to keychain
+        let privateKeyData = try CryptoManager.shared.serializePrivateKey(privateKey)
+        try KeychainManager.shared.savePrivateKey(privateKeyData)
+        
+        // Upload public key to server
+        try await uploadPublicKey(publicKeyBase64)
+        
+        print("✅ E2EE initialization completed for user")
+    }
+    
+    /**
+     * Upload user's public key to the server
+     */
+    private func uploadPublicKey(_ publicKeyBase64: String) async throws {
+        guard let userId = currentUser?.id else {
+            throw AuthError.userNotAuthenticated
+        }
+        
+        print("📤 Uploading public key to server for user: \(userId)")
+        
+        // Update user's profile with public key
+        let updateData: [String: AnyJSON] = [
+            "public_key": AnyJSON.string(publicKeyBase64)
+        ]
+        
+        try await client
+            .from("profiles")
+            .update(updateData)
+            .eq("id", value: userId)
+            .execute()
+        
+        print("✅ Public key uploaded successfully")
+    }
+    
+    /**
+     * Retrieve public key for a specific user
+     */
+    func getPublicKey(for userId: String) async throws -> String? {
+        print("🔍 Retrieving public key for user: \(userId)")
+        
+        let response = try await client
+            .from("profiles")
+            .select("public_key")
+            .eq("id", value: userId)
+            .single()
+            .execute()
+        
+        struct PublicKeyResponse: Codable {
+            let publicKey: String?
+            
+            enum CodingKeys: String, CodingKey {
+                case publicKey = "public_key"
+            }
+        }
+        
+        let decoder = JSONDecoder()
+        let keyData = try decoder.decode(PublicKeyResponse.self, from: response.data)
+        
+        print("✅ Retrieved public key for user (length: \(keyData.publicKey?.count ?? 0))")
+        return keyData.publicKey
     }
     
     // MARK: - Database Schema Management

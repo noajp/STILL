@@ -103,7 +103,7 @@ class ConversationViewModel: ObservableObject {
         isSending = true
         
         do {
-            let newMessage = try await messageService.sendMessage(to: conversationId, content: content)
+            let newMessage = try await messageService.sendMessage(conversationId: conversationId, content: content)
             // Only add message if it's not already in the list (prevent duplicates)
             if !messages.contains(where: { $0.id == newMessage.id }) {
                 messages.append(newMessage)
@@ -131,6 +131,9 @@ struct ConversationView: View {
     @FocusState private var isTextFieldFocused: Bool
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var authManager: AuthManager
+    
+    // Keyboard handling
+    @State private var keyboardHeight: CGFloat = 0
     
     init(conversationId: String, conversation: Conversation? = nil) {
         _viewModel = StateObject(wrappedValue: ConversationViewModel(conversationId: conversationId, conversation: conversation))
@@ -188,6 +191,16 @@ struct ConversationView: View {
                         }
                     }
                 }
+                .onChange(of: keyboardHeight) { oldHeight, newHeight in
+                    // Scroll to bottom when keyboard appears to keep latest message visible
+                    if newHeight > 0 && !viewModel.messages.isEmpty {
+                        if let lastMessage = viewModel.messages.last {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
                 .onAppear {
                     // Scroll to bottom only on first load, not on every appear
                     if !viewModel.hasScrolledOnce && !viewModel.messages.isEmpty {
@@ -198,13 +211,13 @@ struct ConversationView: View {
                     }
                 }
                 
-                // Bottom padding for input area and tab bar
+                // Dynamic bottom padding based on keyboard height
                 Spacer()
-                    .frame(height: 160)
+                    .frame(height: max(160, keyboardHeight + 80))
             }
         }
             
-            // Message input - positioned at bottom with tab bar padding
+            // Message input - positioned at bottom with dynamic keyboard padding
             VStack {
                 Spacer()
                 MessageInputView(
@@ -219,7 +232,7 @@ struct ConversationView: View {
                         }
                     }
                 )
-                .padding(.bottom, 80) // Add padding for tab bar
+                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight : 80) // Dynamic padding
             }
         }
         .navigationTitle("")
@@ -287,8 +300,24 @@ struct ConversationView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         )
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .background(MinimalDesign.Colors.background)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            withAnimation(.easeInOut(duration: 0.25)) {
+                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    let keyboardHeight = keyboardFrame.height
+                    // Subtract safe area bottom to avoid double-counting
+                    let safeAreaBottom = UIApplication.shared.connectedScenes
+                        .compactMap { $0 as? UIWindowScene }
+                        .first?.windows.first?.safeAreaInsets.bottom ?? 0
+                    self.keyboardHeight = keyboardHeight - safeAreaBottom
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.25)) {
+                self.keyboardHeight = 0
+            }
+        }
         .onAppear {
             // Debug navigation
             if let conversation = viewModel.conversation,
@@ -338,7 +367,7 @@ struct MessageBubble: View {
             }
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                Text(message.decryptedContent)
+                Text(message.content)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(isCurrentUser ? MinimalDesign.Colors.accentRed : Color.gray.opacity(0.2))

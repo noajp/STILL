@@ -61,7 +61,6 @@ final class MessageSystemFacade {
         
         self.conversationBusinessLogic = ConversationBusinessLogic(
             conversationDataAccess: conversationDataAccess,
-            messageDataAccess: messageDataAccess,
             userRepository: DependencyContainer.shared.userRepository
         )
     }
@@ -96,12 +95,12 @@ final class MessageEncryptionServiceAdapter: EncryptionServiceProtocol {
     
     func encrypt(content: String, conversationId: String) async throws -> String {
         // Adapt to existing encryption logic
-        return try await legacyService.encryptMessage(content, conversationId: conversationId)
+        return try legacyService.encryptMessage(content)
     }
     
     func decrypt(encryptedContent: String, conversationId: String) async throws -> String {
         // Adapt to existing decryption logic
-        return try await legacyService.decryptMessage(encryptedContent, conversationId: conversationId)
+        return try legacyService.decryptMessage(encryptedContent)
     }
     
     func generateKeys(conversationId: String) async throws -> EncryptionKeys {

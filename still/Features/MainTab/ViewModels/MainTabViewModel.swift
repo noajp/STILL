@@ -72,8 +72,7 @@ class MainTabViewModel: BaseViewModelClass {
         /// Controls display of post type selection popup
         var showingPostTypeSelection = false
         
-        /// Top-level page selection (0: Camera, 1: Main Feed)
-        var pageSelection = 1
+        // pageSelection removed - camera is now accessed via story mode
     }
     
     /**

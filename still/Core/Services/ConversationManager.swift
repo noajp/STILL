@@ -70,6 +70,7 @@ class ConversationManager: ObservableObject {
                     userId: participantUserId,
                     joinedAt: participantJoinedAt,
                     lastReadAt: data.participantLastReadAt,
+                    hiddenForUser: nil,
                     user: userProfile
                 )
                 
