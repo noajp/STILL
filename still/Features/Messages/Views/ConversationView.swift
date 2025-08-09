@@ -17,7 +17,7 @@ class ConversationViewModel: ObservableObject {
     
     let conversationId: String
     let conversation: Conversation?
-    private let messageService = MessageService.shared
+    private let messageService = MessageServiceReplacement.shared
     private var cancellables = Set<AnyCancellable>()
     private var hasLoadedInitialMessages = false
     @Published var hasScrolledOnce = false

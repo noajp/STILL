@@ -7,8 +7,14 @@
 import Foundation
 import Combine
 
-/// Main coordinator service that provides a unified interface for messaging operations
-/// Orchestrates interactions between specialized messaging services
+/// DEPRECATED: Legacy MessageServiceCoordinator - DO NOT USE
+/// This service contains circular dependencies and is being phased out.
+/// Use MessageSystemFacade.shared instead for coordinated messaging operations.
+/// 
+/// Migration Path:
+/// - MessageServiceCoordinator.shared → MessageSystemFacade.shared
+/// - All messaging operations should go through the new layered architecture
+@available(*, deprecated, message: "Use MessageSystemFacade.shared instead")
 @MainActor
 class MessageServiceCoordinator: ObservableObject {
     

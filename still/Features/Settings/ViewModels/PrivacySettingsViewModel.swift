@@ -7,23 +7,8 @@
 import Foundation
 import Supabase
 
-/// Represents a follow request between users
-/// Contains the relationship data and optional profile information for the follower
-struct FollowRequest: Identifiable, Codable {
-    /// Unique identifier for the follow request
-    let id: String
-    /// ID of the user who sent the follow request
-    let follower_id: String
-    /// ID of the user who received the follow request
-    let following_id: String
-    /// Status of the request (pending, accepted, rejected)
-    let status: String
-    /// When the follow request was created
-    let created_at: Date
-    
-    /// Profile information of the user who sent the follow request
-    var followerProfile: UserProfile?
-}
+// FollowRequest is defined in Core/DependencyInjection/ServiceProtocols.swift
+// Using the shared FollowRequest model from ServiceProtocols
 
 /// ViewModel for managing privacy settings and follow request handling
 /// Handles private account toggle and automatic follow request management

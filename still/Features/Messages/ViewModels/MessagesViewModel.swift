@@ -54,7 +54,7 @@ class MessagesViewModel: ObservableObject {
     // MARK: - Private Properties
     
     /// Service for message and conversation operations
-    private let messageService = MessageService.shared
+    private let messageService = MessageServiceReplacement.shared
     
     /// Flag to prevent redundant initial loads
     private var hasLoadedInitially = false

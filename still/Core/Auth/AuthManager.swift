@@ -31,6 +31,9 @@ enum AuthError: LocalizedError {
     /// Password doesn't meet security requirements
     case weakPassword([String])
     
+    /// Unknown authentication error
+    case unknown(String)
+    
     /// Localized error description for user display
     var errorDescription: String? {
         switch self {
@@ -42,6 +45,8 @@ enum AuthError: LocalizedError {
             return "Account temporarily locked due to multiple failed login attempts."
         case .weakPassword(let errors):
             return "Password requirements not met: \(errors.joined(separator: ", "))"
+        case .unknown(let message):
+            return "Authentication error: \(message)"
         }
     }
 }
@@ -162,8 +167,12 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
     
     // MARK: - Email Authentication
     
-    func signIn(email: String, password: String) async throws {
+    func signIn(email: String, password: String) async throws -> AppUser {
         try await signInWithEmail(email: email, password: password)
+        guard let user = currentUser else {
+            throw AuthError.unknown("Failed to retrieve user after sign in")
+        }
+        return user
     }
     
     func signInWithEmail(email: String, password: String) async throws {
@@ -242,9 +251,13 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
         isLoading = false
     }
     
-    func signUp(email: String, password: String, username: String) async throws {
+    func signUp(email: String, password: String, username: String) async throws -> AppUser {
         // Use existing signUpWithEmail method and ignore the return value for protocol compliance
         _ = try await signUpWithEmail(email: email, password: password)
+        guard let user = currentUser else {
+            throw AuthError.unknown("Failed to retrieve user after sign up")
+        }
+        return user
     }
     
     func signUpWithEmail(email: String, password: String) async throws -> String {
@@ -462,6 +475,32 @@ class AuthManager: ObservableObject, AuthManagerProtocol {
             secureLogger.authEvent("Sign out successful", userID: userID)
         } catch {
             secureLogger.securityEvent("Sign out failed", details: ["error": error.localizedDescription])
+            throw error
+        }
+        
+        isLoading = false
+    }
+    
+    func refreshSession() async throws {
+        isLoading = true
+        
+        do {
+            let session = try await client.auth.refreshSession()
+            let user = session.user
+            
+            self.currentUser = AppUser(
+                id: user.id.uuidString,
+                email: user.email,
+                createdAt: user.createdAt.ISO8601Format()
+            )
+            self.isAuthenticated = true
+            NotificationCenter.default.post(name: .authStateChanged, object: nil)
+            
+            secureLogger.authEvent("Session refreshed successfully", userID: user.id.uuidString)
+        } catch {
+            self.currentUser = nil
+            self.isAuthenticated = false
+            secureLogger.securityEvent("Session refresh failed", details: ["error": error.localizedDescription])
             throw error
         }
         

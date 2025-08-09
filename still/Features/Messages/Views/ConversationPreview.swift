@@ -332,7 +332,7 @@ class ConversationPreviewModel: ObservableObject {
     @Published var isLoading = false
     var hasScrolledToBottom = false
     
-    private let messageService = MessageService.shared
+    private let messageService = MessageServiceReplacement.shared
     
     func loadMessages(for conversationId: String) async {
         isLoading = true

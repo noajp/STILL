@@ -22,59 +22,17 @@ import PhotosUI
  * - Post type selection and creation flow coordination
  */
 struct MainTabView: View {
-    // MARK: - State Properties
+    // MARK: - View Model
     
-    /// Currently selected tab in the main navigation (0: Home, 1: Articles, 2: Messages, 3: Profile)
-    @State private var selectedTab = 0
-    
-    /// Controls the display of the photo creation modal
-    @State private var showingCreatePost = false
-    
-    /// Controls the display of the photo editor modal
-    @State private var showingPhotoEditor = false
-    
-    /// Data passed to the photo editor containing image and metadata
-    @State private var editorData: PhotoEditorData?
-    
-    /// Controls whether the home feed displays in grid or list mode (default: Following View)
-    @State private var showGridMode = false
-    
-    /// Top-level page selection (0: Camera, 1: Main Feed)
-    @State private var pageSelection = 1
-    
-    /// Indicates if a single post view is currently displayed
-    @State private var isInSingleView = false
-    
-    /// Indicates if a single post view is displayed in the profile section
-    @State private var isInProfileSingleView = false
-    
-    /// Vertical offset for tab bar animation (hide/show on scroll)
-    @State private var tabBarOffset: CGFloat = 0
-    
-    /// Vertical offset for header animation
-    @State private var headerOffset: CGFloat = 0
-    
-    /// Tracks the last scroll position for animation calculations
-    @State private var lastScrollOffset: CGFloat = 0
-    
-    /// Indicates if user search mode is active in the profile section
-    @State private var isUserSearchMode = false
-    
-    /// Indicates if group chat mode is active in the messages section
-    @State private var isGroupChatMode = false
-    
-    /// Controls the display of the post type selection popup
-    @State private var showingPostTypeSelection = false
-    
-    /// Controls the display of the article creation modal
-    @State private var showingCreateArticle = false
+    /// Centralized state management for the main tab view
+    @StateObject private var viewModel = MainTabViewModel()
     
     // MARK: - Body
     
     var body: some View {
         ZStack {
             // Top-level TabView for swipe navigation between camera and main feed
-            TabView(selection: $pageSelection) {
+            TabView(selection: $viewModel.navigationState.pageSelection) {
                 // Camera view for photo capture
                 CameraView()
                     .tag(0)
@@ -82,13 +40,13 @@ struct MainTabView: View {
                 
                 // Main content area with horizontal swipe navigation
                 // Navigation order: Home → Articles → Messages → Profile
-                TabView(selection: $selectedTab) {
+                TabView(selection: $viewModel.selectedTab) {
                     // Home feed tab (0) - Main photo grid and feed view
                     NavigationStack {
                         HomeGridView(
-                            showGridMode: $showGridMode, 
-                            showingCreatePost: $showingCreatePost,
-                            isInSingleView: $isInSingleView
+                            showGridMode: $viewModel.uiState.showGridMode, 
+                            showingCreatePost: $viewModel.navigationState.showingCreatePost,
+                            isInSingleView: $viewModel.uiState.isInSingleView
                         )
                     }
                     .tag(0)
@@ -101,14 +59,14 @@ struct MainTabView: View {
                     
                     // Messages tab (2) - Chat and messaging interface
                     NavigationStack {
-                        MessagesView(isGroupChatMode: $isGroupChatMode)
+                        MessagesView(isGroupChatMode: $viewModel.uiState.isGroupChatMode)
                     }
                     .tag(2)
                     
                     // Profile tab (3) - User profile and settings
                     MyPageView(
-                        isInProfileSingleView: $isInProfileSingleView,
-                        isUserSearchMode: $isUserSearchMode
+                        isInProfileSingleView: $viewModel.uiState.isInProfileSingleView,
+                        isUserSearchMode: $viewModel.uiState.isUserSearchMode
                     )
                     .tag(3)
                 }
@@ -123,57 +81,48 @@ struct MainTabView: View {
             // Note: Status bar handling moved to HomeGridView
             
             // Hide tab bar when camera view is active
-            if pageSelection == 1 {
+            if viewModel.navigationState.pageSelection == 1 {
                 // Custom tab bar (footer navigation)
                 VStack {
                     Spacer()
                     CustomTabBar(
-                        selectedTab: $selectedTab,
-                        showGridMode: $showGridMode,
-                        unreadMessageCount: 0,
+                        selectedTab: $viewModel.selectedTab,
+                        showGridMode: $viewModel.uiState.showGridMode,
+                        unreadMessageCount: viewModel.presentationState.unreadMessageCount,
                         onCreatePost: {
-                            showingPostTypeSelection = true
+                            viewModel.handleCreatePost()
                         },
-                        isInSingleView: isInSingleView,
+                        isInSingleView: viewModel.uiState.isInSingleView,
                         onBackToGrid: {
-                            // Return from single view to grid view
-                            if isInSingleView {
-                                isInSingleView = false
-                                showGridMode = true
-                            }
+                            viewModel.handleBackToGrid()
                         },
                         onBackFromProfileSingleView: {
-                            // Return from profile single view
-                            if isInProfileSingleView {
-                                isInProfileSingleView = false
-                            }
+                            viewModel.handleBackFromProfileSingleView()
                         },
                         onProfileDoubleTap: {
-                            // Toggle user search mode on profile button tap
-                            isUserSearchMode.toggle()
+                            viewModel.toggleUserSearchMode()
                         },
-                        isUserSearchMode: $isUserSearchMode,
+                        isUserSearchMode: $viewModel.uiState.isUserSearchMode,
                         onMessageDoubleTap: {
-                            // Toggle group chat mode on message button tap
-                            isGroupChatMode.toggle()
+                            viewModel.toggleGroupChatMode()
                         },
-                        isGroupChatMode: $isGroupChatMode
+                        isGroupChatMode: $viewModel.uiState.isGroupChatMode
                     )
                 }
-                .offset(y: tabBarOffset)
-                .animation(.easeInOut(duration: 0.5), value: tabBarOffset)
+                .offset(y: viewModel.animationState.tabBarOffset)
+                .animation(.easeInOut(duration: 0.5), value: viewModel.animationState.tabBarOffset)
                 .clipped() // Clip to completely hide background when offset
             }
             
             // Post type selection popup
-            if showingPostTypeSelection {
+            if viewModel.navigationState.showingPostTypeSelection {
                 PostTypeSelectionPopup(
-                    isPresented: $showingPostTypeSelection,
+                    isPresented: $viewModel.navigationState.showingPostTypeSelection,
                     onPictureSelected: {
-                        showingCreatePost = true
+                        viewModel.handlePictureSelected()
                     },
                     onArticleSelected: {
-                        showingCreateArticle = true
+                        viewModel.handleArticleSelected()
                     }
                 )
                 .zIndex(999) // Display on top of all other views
@@ -185,33 +134,27 @@ struct MainTabView: View {
         // MARK: - Modal Presentations
         
         // Photo picker modal for creating new posts
-        .fullScreenCover(isPresented: $showingCreatePost) {
+        .fullScreenCover(isPresented: $viewModel.navigationState.showingCreatePost) {
             NavigationStack {
                 PhotoPickerView { editorData in
                     print("📸 Image received in MainTabView")
-                    self.editorData = editorData
-                    self.showingCreatePost = false
-                    self.showingPhotoEditor = true
+                    viewModel.handleImageSelected(editorData)
                 }
             }
             .transition(.move(edge: .bottom))
         }
         
         // Photo editor modal for editing selected images
-        .fullScreenCover(isPresented: $showingPhotoEditor) {
-            if let editorData = editorData {
+        .fullScreenCover(isPresented: $viewModel.navigationState.showingPhotoEditor) {
+            if let editorData = viewModel.presentationState.editorData {
                 NavigationStack {
                     ModernPhotoEditorView(
                         editorData: editorData,
                         onComplete: { editedImage in
-                            print("✅ Photo editing completed")
-                            showingPhotoEditor = false
-                            self.editorData = nil
+                            viewModel.handlePhotoEditingComplete(editedImage)
                         },
                         onCancel: {
-                            print("❌ Photo editing cancelled")
-                            showingPhotoEditor = false
-                            self.editorData = nil
+                            viewModel.handlePhotoEditingCancelled()
                         }
                     )
                 }
@@ -219,53 +162,10 @@ struct MainTabView: View {
         }
         
         // Article editor modal for creating new articles
-        .fullScreenCover(isPresented: $showingCreateArticle) {
+        .fullScreenCover(isPresented: $viewModel.navigationState.showingCreateArticle) {
             ArticleEditorView()
         }
     }
     
-    // MARK: - Private Methods
-    
-    /**
-     * Updates the UI elements based on scroll position to provide smooth animations.
-     * 
-     * This method handles the show/hide animation of the tab bar based on scroll direction
-     * and position, creating a more immersive browsing experience.
-     *
-     * - Parameter scrollOffset: The current vertical scroll offset
-     */
-    private func updateUIForScroll(scrollOffset: CGFloat) {
-        let deltaY = lastScrollOffset - scrollOffset
-        lastScrollOffset = scrollOffset
-        
-        // Tab bar height including icon, padding, and safe area considerations
-        let tabBarHeight: CGFloat = 120 // Extra height to completely hide background
-        
-        // Scrolling up (even slight upward movement)
-        if deltaY < -0.5 {
-            // Show tab bar on upward scroll
-            if tabBarOffset != 0 {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    tabBarOffset = 0
-                }
-            }
-        }
-        // Scrolling down significantly
-        else if deltaY > 3 {
-            // Hide tab bar on downward scroll
-            if tabBarOffset != tabBarHeight {
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    tabBarOffset = tabBarHeight
-                }
-            }
-        }
-        // Near the top of the content - always show tab bar
-        else if scrollOffset > -50 {
-            if tabBarOffset != 0 {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    tabBarOffset = 0
-                }
-            }
-        }
-    }
+    // Note: updateUIForScroll method has been moved to MainTabViewModel
 }

@@ -35,7 +35,7 @@ final class HomeFeedViewModel: BaseViewModelClass {
         authManager: (any AuthManagerProtocol)? = nil
     ) {
         self.postService = postService ?? PostService()
-        self.authManager = authManager ?? (DependencyContainer.shared.resolve((any AuthManagerProtocol).self) ?? AuthManager.shared)
+        self.authManager = authManager ?? DependencyContainer.shared.authManager
         super.init()
         
         Task {

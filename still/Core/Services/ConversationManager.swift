@@ -6,10 +6,17 @@
 
 import Foundation
 
-/// Manages conversation business logic and coordinates with other services
-/// Handles conversation transformation, validation, and state management
+/// DEPRECATED: Legacy ConversationManager - DO NOT USE
+/// This service contains circular dependencies and is being phased out.
+/// Use ConversationManagerReplacement.shared or MessageSystemFacade.shared instead.
+/// 
+/// Migration Path:
+/// - ConversationManager.shared → ConversationManagerReplacement.shared
+/// - Or use MessageSystemFacade.shared.conversationService for new architecture
+@available(*, deprecated, message: "Use ConversationManagerReplacement.shared or MessageSystemFacade.shared instead")
 @MainActor
 class ConversationManager: ObservableObject {
+    // DEPRECATED: These create circular dependencies
     private let repository = MessageRepository()
     private let encryption = MessageEncryptionService()
     

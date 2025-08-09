@@ -7,16 +7,22 @@ import Foundation
 import Supabase
 import Combine
 
-/// DEPRECATED: Legacy MessageService maintained for backward compatibility
-/// Use MessageServiceCoordinator.shared instead for new implementations
+/// DEPRECATED: Legacy MessageService - DO NOT USE
+/// This service contains circular dependencies and is being phased out.
+/// Use MessageServiceReplacement.shared or MessageSystemFacade.shared instead.
+/// 
+/// Migration Path:
+/// - MessageService.shared → MessageServiceReplacement.shared
+/// - Or use MessageSystemFacade.shared.messageService for new architecture
+@available(*, deprecated, message: "Use MessageServiceReplacement.shared or MessageSystemFacade.shared instead")
 @MainActor
 class MessageService: ObservableObject {
     static let shared = MessageService()
     
     // MARK: - Migration to New Architecture
     
-    /// New coordinator-based service (preferred)
-    private let coordinator = MessageServiceCoordinator.shared
+    // Use the replacement instead of coordinator to avoid circular dependency
+    private let replacement = MessageServiceReplacement.shared
     
     // MARK: - Legacy Properties (Forwarded to Coordinator)
     
@@ -33,10 +39,10 @@ class MessageService: ObservableObject {
         setupAuthenticationListener()
     }
     
-    /// Setup binding to forward coordinator properties
+    /// Setup binding to forward replacement properties
     private func setupCoordinatorBinding() {
-        // Forward unread count from coordinator
-        coordinator.$unreadConversationsCount
+        // Forward unread count from replacement
+        replacement.$unreadConversationsCount
             .receive(on: DispatchQueue.main)
             .assign(to: &$unreadConversationsCount)
     }
@@ -67,7 +73,7 @@ class MessageService: ObservableObject {
     }
     
     private func cleanupUserSession() {
-        coordinator.cleanupUserSession()
+        replacement.cleanupUserSession()
         updateTimer?.invalidate()
         updateTimer = nil
         unreadConversationsCount = 0
@@ -81,7 +87,7 @@ class MessageService: ObservableObject {
     // MARK: - Realtime Setup (Forwarded to Coordinator)
     
     private func setupRealtimeSubscriptions() {
-        coordinator.startRealtimeSubscriptions()
+        replacement.startRealtimeSubscriptions()
         startPollingForUpdates()
     }
     
@@ -90,11 +96,11 @@ class MessageService: ObservableObject {
         
         updateTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.coordinator.refreshUnreadCount()
+                self?.replacement.refreshUnreadCount()
             }
         }
         
-        coordinator.refreshUnreadCount()
+        replacement.refreshUnreadCount()
     }
     
     private func setupSupabaseRealtime() {
@@ -102,7 +108,7 @@ class MessageService: ObservableObject {
     }
     
     private func checkForUpdates() async {
-        coordinator.refreshUnreadCount()
+        replacement.refreshUnreadCount()
     }
     
     // MARK: - Legacy API Methods (Forwarded to Coordinator)
@@ -110,43 +116,43 @@ class MessageService: ObservableObject {
     /// Fetch all conversations for the current user
     /// DEPRECATED: Use MessageServiceCoordinator.shared.fetchConversations() instead
     func fetchConversations() async throws -> [Conversation] {
-        return try await coordinator.fetchConversations()
+        return try await replacement.fetchConversations()
     }
     
     /// Get or create a direct conversation with another user
     /// DEPRECATED: Use MessageServiceCoordinator.shared.getOrCreateDirectConversation() instead
     func getOrCreateDirectConversation(with userId: String) async throws -> String {
-        return try await coordinator.getOrCreateDirectConversation(with: userId)
+        return try await replacement.getOrCreateDirectConversation(with: userId)
     }
     
     /// Fetch messages for a conversation
     /// DEPRECATED: Use MessageServiceCoordinator.shared.fetchMessages() instead
     func fetchMessages(for conversationId: String, limit: Int = 50, before: Date? = nil) async throws -> [Message] {
-        return try await coordinator.fetchMessages(for: conversationId, limit: limit, before: before)
+        return try await replacement.fetchMessages(for: conversationId)
     }
     
     /// Send a message
     /// DEPRECATED: Use MessageServiceCoordinator.shared.sendMessage() instead
     func sendMessage(to conversationId: String, content: String) async throws -> Message {
-        return try await coordinator.sendMessage(to: conversationId, content: content)
+        return try await replacement.sendMessage(conversationId: conversationId, content: content)
     }
     
     /// Mark a conversation as read
     /// DEPRECATED: Use MessageServiceCoordinator.shared.markConversationAsRead() instead
     func markConversationAsRead(_ conversationId: String) async throws {
-        try await coordinator.markConversationAsRead(conversationId)
+        try await replacement.markConversationAsRead(conversationId)
     }
     
     /// Edit a message
     /// DEPRECATED: Use MessageServiceCoordinator.shared.editMessage() instead
     func editMessage(_ messageId: String, newContent: String) async throws {
-        try await coordinator.editMessage(messageId, newContent: newContent)
+        try await replacement.editMessage(messageId, newContent: newContent)
     }
     
     /// Delete a conversation from current user's view only (soft delete)
     /// DEPRECATED: Use MessageServiceCoordinator.shared.deleteConversation() instead
     func deleteConversation(_ conversationId: String) async throws {
-        try await coordinator.deleteConversation(conversationId)
+        try await replacement.deleteConversation(conversationId)
     }
     
     // MARK: - Group Chat Functions (Forwarded to Coordinator)
@@ -154,30 +160,30 @@ class MessageService: ObservableObject {
     /// Create a new group chat
     /// DEPRECATED: Use MessageServiceCoordinator.shared.createGroupChat() instead
     func createGroupChat(name: String, description: String? = nil, memberIds: [String] = []) async throws -> String {
-        return try await coordinator.createGroupChat(name: name, description: description, memberIds: memberIds)
+        return try await replacement.createGroupChat(name: name, description: description, memberIds: memberIds)
     }
     
     /// Fetch group conversations for current user
     /// DEPRECATED: Use MessageServiceCoordinator.shared.fetchGroupConversations() instead
     func fetchGroupConversations() async throws -> [GroupConversation] {
-        return try await coordinator.fetchGroupConversations()
+        return try await replacement.fetchGroupConversations()
     }
     
     /// Add member to group chat
     /// DEPRECATED: Use MessageServiceCoordinator.shared.addGroupMember() instead
     func addGroupMember(conversationId: String, userId: String) async throws -> Bool {
-        return try await coordinator.addGroupMember(conversationId: conversationId, userId: userId)
+        return try await replacement.addGroupMember(conversationId: conversationId, userId: userId)
     }
     
     /// Remove member from group chat
     /// DEPRECATED: Use MessageServiceCoordinator.shared.removeGroupMember() instead
     func removeGroupMember(conversationId: String, userId: String) async throws -> Bool {
-        return try await coordinator.removeGroupMember(conversationId: conversationId, userId: userId)
+        return try await replacement.removeGroupMember(conversationId: conversationId, userId: userId)
     }
     
     /// Get group members
     /// DEPRECATED: Use MessageServiceCoordinator.shared.getGroupMembers() instead
     func getGroupMembers(conversationId: String) async throws -> [GroupMember] {
-        return try await coordinator.getGroupMembers(conversationId: conversationId)
+        return try await replacement.getGroupMembers(conversationId: conversationId)
     }
 }

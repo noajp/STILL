@@ -17,18 +17,24 @@ import UniformTypeIdentifiers
 import UIKit
 
 // MARK: - Photo Editor Data
-struct PhotoEditorData: Hashable {
-    let asset: PHAsset
-    let rawInfo: RAWImageInfo
-    let previewImage: UIImage?
+public struct PhotoEditorData: Hashable {
+    public let asset: PHAsset
+    public let rawInfo: RAWImageInfo
+    public let previewImage: UIImage?
     
-    func hash(into hasher: inout Hasher) {
+    public init(asset: PHAsset, rawInfo: RAWImageInfo, previewImage: UIImage?) {
+        self.asset = asset
+        self.rawInfo = rawInfo
+        self.previewImage = previewImage
+    }
+    
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(asset.localIdentifier)
         hasher.combine(rawInfo.isRAW)
         hasher.combine(rawInfo.format)
     }
     
-    static func == (lhs: PhotoEditorData, rhs: PhotoEditorData) -> Bool {
+    public static func == (lhs: PhotoEditorData, rhs: PhotoEditorData) -> Bool {
         return lhs.asset.localIdentifier == rhs.asset.localIdentifier &&
                lhs.rawInfo.isRAW == rhs.rawInfo.isRAW &&
                lhs.rawInfo.format == rhs.rawInfo.format
@@ -36,28 +42,36 @@ struct PhotoEditorData: Hashable {
 }
 
 // MARK: - RAW Image Info
-struct RAWImageInfo: Hashable {
-    let isRAW: Bool
-    let format: String?
-    let fileSize: Int64
-    let dimensions: CGSize
-    let asset: PHAsset
+public struct RAWImageInfo: Hashable {
+    public let isRAW: Bool
+    public let format: String?
+    public let fileSize: Int64
+    public let dimensions: CGSize
+    public let asset: PHAsset
     
-    var displayFormat: String {
+    public init(isRAW: Bool, format: String?, fileSize: Int64, dimensions: CGSize, asset: PHAsset) {
+        self.isRAW = isRAW
+        self.format = format
+        self.fileSize = fileSize
+        self.dimensions = dimensions
+        self.asset = asset
+    }
+    
+    public var displayFormat: String {
         if isRAW {
             return format?.uppercased() ?? "RAW"
         }
         return "JPEG"
     }
     
-    func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(isRAW)
         hasher.combine(format)
         hasher.combine(fileSize)
         hasher.combine(asset.localIdentifier)
     }
     
-    static func == (lhs: RAWImageInfo, rhs: RAWImageInfo) -> Bool {
+    public static func == (lhs: RAWImageInfo, rhs: RAWImageInfo) -> Bool {
         return lhs.isRAW == rhs.isRAW &&
                lhs.format == rhs.format &&
                lhs.fileSize == rhs.fileSize &&
