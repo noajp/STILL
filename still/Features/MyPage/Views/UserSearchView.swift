@@ -21,16 +21,29 @@ struct UserSearchView: View {
     
     // MARK: - Body
     var body: some View {
-        VStack(spacing: MinimalDesign.Spacing.md) {
-            // Search field
-            searchField
-            
-            Divider()
-                .padding(.horizontal, MinimalDesign.Spacing.md)
-            
-            // Search results area
-            searchResultsArea
+        ScrollableHeaderView(
+            title: "USER SEARCH",
+            showBackButton: true,
+            onBack: {
+                isUserSearchMode = false
+            }
+        ) {
+            VStack(spacing: MinimalDesign.Spacing.md) {
+                // Search field
+                searchField
+                
+                Divider()
+                    .padding(.horizontal, MinimalDesign.Spacing.md)
+                
+                // Search results area
+                searchResultsArea
+                
+                Spacer()
+            }
+            .padding(.top, MinimalDesign.Spacing.md)
         }
+        .background(MinimalDesign.Colors.background)
+        .navigationBarHidden(true)
     }
     
     // MARK: - Search Field
@@ -43,6 +56,7 @@ struct UserSearchView: View {
             TextField("Search by user ID", text: $searchText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 16))
+                .foregroundColor(.white)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .onSubmit {
@@ -267,12 +281,12 @@ struct UserSearchResultRow: View {
                 
                 Text(user.userIdWithAt)
                     .font(.system(size: 14))
-                    .foregroundColor(.white)
+                    .foregroundColor(.gray.opacity(0.8))
                 
                 if let bio = user.bio, !bio.isEmpty {
                     Text(bio)
                         .font(.system(size: 12))
-                        .foregroundColor(.white)
+                        .foregroundColor(.gray.opacity(0.7))
                         .lineLimit(2)
                 }
             }

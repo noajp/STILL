@@ -205,6 +205,7 @@ class ConversationManager: ObservableObject {
                     groupName: groupConversation.groupName,
                     groupDescription: groupConversation.groupDescription,
                     groupAvatarUrl: groupConversation.groupAvatarUrl,
+                    groupEmoji: groupConversation.groupEmoji,
                     createdBy: groupConversation.createdBy,
                     createdAt: groupConversation.createdAt,
                     updatedAt: groupConversation.updatedAt,

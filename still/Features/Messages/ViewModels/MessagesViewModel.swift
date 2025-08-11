@@ -385,7 +385,7 @@ class MessagesViewModel: ObservableObject {
      *   - memberIds: Array of user IDs to include in the group
      * - Returns: Conversation ID if successful, nil otherwise
      */
-    func createGroupChat(name: String, with memberIds: [String]) async -> String? {
+    func createGroupChat(name: String, emoji: String = "👥", with memberIds: [String]) async -> String? {
         do {
             // Create the group chat
             let conversationId = try await messageService.createGroupChat(

@@ -176,9 +176,14 @@ struct GroupConversationRow: View {
                 .fill(Color.blue.opacity(0.1))
                 .frame(width: 50, height: 50)
             
-            Image(systemName: "person.3.fill")
-                .font(.system(size: 20))
-                .foregroundColor(.blue)
+            if let emoji = groupConversation.groupEmoji, !emoji.isEmpty {
+                Text(emoji)
+                    .font(.system(size: 24))
+            } else {
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.blue)
+            }
         }
     }
     

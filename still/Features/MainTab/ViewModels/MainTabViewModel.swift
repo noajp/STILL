@@ -104,11 +104,7 @@ class MainTabViewModel: BaseViewModelClass {
         /// Indicates if single post view is active in profile
         var isInProfileSingleView = false
         
-        /// Controls user search mode in profile section
-        var isUserSearchMode = false
         
-        /// Controls group chat mode in messages section
-        var isGroupChatMode = false
     }
     
     /**
@@ -175,10 +171,6 @@ class MainTabViewModel: BaseViewModelClass {
         }
         if tab != 3 { // Not profile tab
             uiState.isInProfileSingleView = false
-            uiState.isUserSearchMode = false
-        }
-        if tab != 2 { // Not messages tab
-            uiState.isGroupChatMode = false
         }
         
         // Log tab change for analytics
@@ -281,19 +273,7 @@ class MainTabViewModel: BaseViewModelClass {
         }
     }
     
-    /**
-     * Toggles user search mode in profile section.
-     */
-    func toggleUserSearchMode() {
-        uiState.isUserSearchMode.toggle()
-    }
     
-    /**
-     * Toggles group chat mode in messages section.
-     */
-    func toggleGroupChatMode() {
-        uiState.isGroupChatMode.toggle()
-    }
     
     /**
      * Handles image selection from photo picker.

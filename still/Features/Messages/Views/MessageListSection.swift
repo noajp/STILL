@@ -22,7 +22,6 @@ struct MessageListSection: View {
     
     let conversations: [Conversation]
     let groupConversations: [GroupConversation]
-    let isGroupChatMode: Bool
     let authManager: AuthManager
     let viewModel: MessagesViewModel
     let formatTimestamp: (Date?) -> String
@@ -32,23 +31,28 @@ struct MessageListSection: View {
     // MARK: - Computed Properties
     
     private var filteredConversations: [Conversation] {
-        if isGroupChatMode {
-            // Convert GroupConversation to Conversation for unified display
-            return groupConversations.map { groupConv in
-                var conversation = Conversation(
-                    id: groupConv.id,
-                    createdAt: groupConv.createdAt,
-                    updatedAt: groupConv.updatedAt,
-                    lastMessageAt: groupConv.lastMessageAt,
-                    lastMessagePreview: groupConv.lastMessageContent
-                )
-                conversation.participants = [] // Group members are handled separately
-                conversation.unreadCount = groupConv.unreadCount
-                return conversation
-            }
-        } else {
-            // Return only direct message conversations
-            return conversations
+        // Merge both direct messages and group conversations
+        var allConversations = conversations
+        
+        // Convert GroupConversation to Conversation for unified display
+        let convertedGroupConversations = groupConversations.map { groupConv in
+            var conversation = Conversation(
+                id: groupConv.id,
+                createdAt: groupConv.createdAt,
+                updatedAt: groupConv.updatedAt,
+                lastMessageAt: groupConv.lastMessageAt,
+                lastMessagePreview: groupConv.lastMessageContent
+            )
+            conversation.participants = [] // Group members are handled separately
+            conversation.unreadCount = groupConv.unreadCount
+            return conversation
+        }
+        
+        allConversations.append(contentsOf: convertedGroupConversations)
+        
+        // Sort by last message time (most recent first)
+        return allConversations.sorted { 
+            ($0.lastMessageAt ?? $0.updatedAt) > ($1.lastMessageAt ?? $1.updatedAt)
         }
     }
     
@@ -56,12 +60,8 @@ struct MessageListSection: View {
     
     var body: some View {
         if filteredConversations.isEmpty {
-            // Show appropriate empty state
-            if isGroupChatMode {
-                GroupChatEmptyStateView()
-            } else {
-                MessagesEmptyStateView()
-            }
+            // Show unified empty state
+            MessagesEmptyStateView()
         } else {
             // Display conversation list
             VStack(spacing: 0) {
@@ -104,34 +104,34 @@ struct MessageListSection: View {
     
     @ViewBuilder
     private func conversationRow(for conversation: Conversation) -> some View {
-        if isGroupChatMode {
+        // Check if this is a group conversation by looking for it in the group conversations
+        if let groupConv = groupConversations.first(where: { $0.id == conversation.id }) {
             // Display group conversation row
-            if let groupConv = groupConversations.first(where: { $0.id == conversation.id }) {
-                GroupConversationRow(
-                    groupConversation: groupConv,
-                    timestamp: formatTimestamp(conversation.lastMessageAt)
-                )
-            } else {
-                // Fallback group conversation row
-                GroupConversationRow(
-                    groupConversation: GroupConversation(
-                        id: conversation.id,
-                        isGroup: true,
-                        groupName: "Group Chat",
-                        groupDescription: nil,
-                        groupAvatarUrl: nil,
-                        createdBy: "",
-                        createdAt: conversation.createdAt,
-                        updatedAt: conversation.updatedAt,
-                        lastMessageAt: conversation.lastMessageAt,
-                        lastMessageContent: conversation.lastMessagePreview,
-                        lastMessageSenderId: nil,
-                        lastMessageSenderUsername: nil,
-                        unreadCount: conversation.unreadCount
-                    ),
-                    timestamp: formatTimestamp(conversation.lastMessageAt)
-                )
-            }
+            GroupConversationRow(
+                groupConversation: groupConv,
+                timestamp: formatTimestamp(conversation.lastMessageAt)
+            )
+        } else if let participants = conversation.participants, participants.count > 2 {
+            // Multi-participant direct conversation - treat as group
+            GroupConversationRow(
+                groupConversation: GroupConversation(
+                    id: conversation.id,
+                    isGroup: true,
+                    groupName: "Group Chat",
+                    groupDescription: nil,
+                    groupAvatarUrl: nil,
+                    groupEmoji: "👥",
+                    createdBy: "",
+                    createdAt: conversation.createdAt,
+                    updatedAt: conversation.updatedAt,
+                    lastMessageAt: conversation.lastMessageAt,
+                    lastMessageContent: conversation.lastMessagePreview,
+                    lastMessageSenderId: nil,
+                    lastMessageSenderUsername: nil,
+                    unreadCount: conversation.unreadCount
+                ),
+                timestamp: formatTimestamp(conversation.lastMessageAt)
+            )
         } else {
             // Display direct message conversation row
             ConversationRow(

@@ -52,14 +52,14 @@ struct MainTabView: View {
                     
                     // Messages tab (2) - Chat and messaging interface
                     NavigationStack {
-                        MessagesView(isGroupChatMode: $viewModel.uiState.isGroupChatMode)
+                        MessagesView()
                     }
                     .tag(2)
                     
                     // Profile tab (3) - User profile and settings
                     MyPageView(
                         isInProfileSingleView: $viewModel.uiState.isInProfileSingleView,
-                        isUserSearchMode: $viewModel.uiState.isUserSearchMode
+                        isUserSearchMode: .constant(false)
                     )
                     .tag(3)
             }
@@ -88,13 +88,12 @@ struct MainTabView: View {
                             viewModel.handleBackFromProfileSingleView()
                         },
                         onProfileDoubleTap: {
-                            viewModel.toggleUserSearchMode()
+                            // Profile double tap - no action needed
                         },
-                        isUserSearchMode: $viewModel.uiState.isUserSearchMode,
+                        isUserSearchMode: .constant(false),
                         onMessageDoubleTap: {
-                            viewModel.toggleGroupChatMode()
-                        },
-                        isGroupChatMode: $viewModel.uiState.isGroupChatMode
+                            // Unified messaging - no mode toggle needed
+                        }
                     )
             }
             .offset(y: viewModel.animationState.tabBarOffset)

@@ -310,6 +310,7 @@ final class MessageServiceReplacement: ObservableObject {
                 groupName: nil,
                 groupDescription: nil,
                 groupAvatarUrl: nil,
+                groupEmoji: "👥",
                 createdBy: userId,
                 createdAt: conv.createdAt,
                 updatedAt: conv.updatedAt,

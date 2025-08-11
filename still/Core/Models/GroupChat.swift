@@ -12,6 +12,7 @@ struct GroupConversation: Codable, Identifiable {
     let groupName: String?
     let groupDescription: String?
     let groupAvatarUrl: String?
+    let groupEmoji: String?
     let createdBy: String
     let createdAt: Date
     let updatedAt: Date
@@ -27,6 +28,7 @@ struct GroupConversation: Codable, Identifiable {
         case groupName = "group_name"
         case groupDescription = "group_description"
         case groupAvatarUrl = "group_avatar_url"
+        case groupEmoji = "group_emoji"
         case createdBy = "created_by"
         case createdAt = "created_at"
         case updatedAt = "updated_at"

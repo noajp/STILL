@@ -12,10 +12,64 @@ struct CreateGroupChatView: View {
     @State private var selectedUsers: Set<String> = []
     @State private var selectedUserProfiles: [UserProfile] = []
     @State private var isCreating = false
-    let onCreateGroup: ([String]) -> Void
+    @State private var groupName = ""
+    @State private var selectedEmoji = "👥"
+
+    let onCreateGroup: (String, String, [String]) -> Void // (name, emoji, userIds)
     
     var body: some View {
         VStack(spacing: 0) {
+            // グループ情報入力セクション
+            VStack(spacing: 16) {
+                // グループアイコンとグループ名
+                HStack(spacing: 16) {
+                    // 絵文字アイコン入力
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Group Icon")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.gray)
+                        
+                        TextField("🎉", text: $selectedEmoji)
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                            .frame(width: 60, height: 60)
+                            .multilineTextAlignment(.center)
+                            .background(Color.gray.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .keyboardType(.default)
+                            .onReceive(selectedEmoji.publisher.collect()) { characters in
+                                // 絵文字のみ許可し、1文字に制限
+                                let text = String(characters)
+                                let filtered = String(text.prefix(1).filter { $0.unicodeScalars.allSatisfy { $0.properties.isEmoji } })
+                                if filtered != selectedEmoji {
+                                    selectedEmoji = filtered.isEmpty ? "👥" : filtered
+                                }
+                            }
+                    }
+                    
+                    // グループ名入力
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Group Name")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.gray)
+                        
+                        TextField("Enter group name", text: $groupName)
+                            .font(.system(size: 16))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(8)
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                Divider()
+                    .background(Color.gray.opacity(0.3))
+                    .padding(.horizontal, 20)
+            }
+            .padding(.top, 16)
+            
             // 選択されたユーザーの表示
             if !selectedUserProfiles.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -139,12 +193,12 @@ struct CreateGroupChatView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 48)
-            .background(selectedUsers.isEmpty ? Color.gray.opacity(0.3) : MinimalDesign.Colors.accentRed)
+            .background(selectedUsers.isEmpty || groupName.isEmpty ? Color.gray.opacity(0.3) : MinimalDesign.Colors.accentRed)
             .foregroundColor(.white)
             .cornerRadius(12)
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .disabled(selectedUsers.isEmpty || isCreating)
+            .disabled(selectedUsers.isEmpty || groupName.isEmpty || isCreating)
         }
         .navigationTitle("New Group")
         .navigationBarTitleDisplayMode(.inline)
@@ -157,13 +211,14 @@ struct CreateGroupChatView: View {
             }
         }
         .background(MinimalDesign.Colors.background)
+
     }
     
     private func createGroup() {
-        guard !selectedUsers.isEmpty else { return }
+        guard !selectedUsers.isEmpty, !groupName.isEmpty else { return }
         
         isCreating = true
-        onCreateGroup(Array(selectedUsers))
+        onCreateGroup(groupName, selectedEmoji, Array(selectedUsers))
         dismiss()
     }
 }
@@ -239,55 +294,14 @@ struct GroupUserRowView: View {
     }
 }
 
-struct SelectedUserChip: View {
-    let user: UserProfile
-    let onRemove: () -> Void
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            // ユーザーアバター
-            Group {
-                if let avatarUrl = user.avatarUrl {
-                    RemoteImageView(imageURL: avatarUrl)
-                        .frame(width: 28, height: 28)
-                        .clipShape(Circle())
-                } else {
-                    Circle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Text(String(user.profileDisplayName.prefix(1)).uppercased())
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white)
-                        )
-                }
-            }
-            .overlay(
-                Circle()
-                    .stroke(Color.white, lineWidth: 2)
-            )
-            
-            Text(user.profileDisplayName)
-                .font(.system(size: 14))
-                .foregroundColor(.white)
-            
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(16)
-    }
-}
+
+
+
 
 #Preview {
     NavigationView {
-        CreateGroupChatView { selectedUserIds in
-            print("Selected users: \(selectedUserIds)")
+        CreateGroupChatView { groupName, emoji, selectedUserIds in
+            print("Group name: \(groupName), emoji: \(emoji), users: \(selectedUserIds)")
         }
     }
 }

@@ -16,26 +16,17 @@ struct CustomTabBar: View {
     let onProfileDoubleTap: (() -> Void)?
     @Binding var isUserSearchMode: Bool
     let onMessageDoubleTap: (() -> Void)?
-    @Binding var isGroupChatMode: Bool
     
     @Environment(\.colorScheme) var colorScheme
     
     // プロフィールアイコンの名前を計算
     private var profileIconName: String {
-        if selectedTab == 3 {
-            return isUserSearchMode ? "person.2.fill" : "person.fill"
-        } else {
-            return isUserSearchMode ? "person.2" : "person"
-        }
+        return selectedTab == 3 ? "person.fill" : "person"
     }
     
-    // メッセージアイコンの名前を計算（グループチャット用は独自デザイン）
+    // メッセージアイコンの名前を計算
     private var messageIconName: String {
-        if isGroupChatMode {
-            return "" // グループチャット時は独自デザイン
-        } else {
-            return selectedTab == 2 ? "message.fill" : "message"
-        }
+        return selectedTab == 2 ? "message.fill" : "message"
     }
     
     var body: some View {
@@ -104,31 +95,11 @@ struct CustomTabBar: View {
                         .fill(Color.clear)
                         .frame(width: 24, height: 20)
                     
-                    Group {
-                        if isGroupChatMode {
-                            // グループチャット: 2つのメッセージボタンが向かい合う
-                            HStack(alignment: .center, spacing: 4) {
-                                // 左側のメッセージ（右向き、水平反転、小さい）
-                                Image(systemName: selectedTab == 2 ? "message.fill" : "message")
-                                    .font(.system(size: 12, weight: .light))
-                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
-                                    .scaleEffect(x: -1, y: 1) // 水平反転で右向きに
-                                    .frame(width: 12, height: 20, alignment: .center) // 固定フレーム
-                                
-                                // 右側のメッセージ（左向き、通常、大きい）
-                                Image(systemName: selectedTab == 2 ? "message.fill" : "message")
-                                    .font(.system(size: 18, weight: .light))
-                                    .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
-                                    .frame(width: 18, height: 20, alignment: .center) // 固定フレーム
-                            }
-                        } else {
-                            // 個人メッセージ: 通常のメッセージアイコン
-                            Image(systemName: messageIconName)
-                                .font(.system(size: 20, weight: .light))
-                                .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
-                                .frame(width: 20, height: 20, alignment: .center) // 固定フレーム
-                        }
-                    }
+                    // 統合されたメッセージアイコン
+                    Image(systemName: messageIconName)
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundColor(selectedTab == 2 ? MinimalDesign.Colors.accentRed : .white)
+                        .frame(width: 20, height: 20, alignment: .center)
                     
                     // 未読メッセージバッジ
                     if unreadMessageCount > 0 {
@@ -142,13 +113,7 @@ struct CustomTabBar: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
-                if selectedTab == 2 {
-                    // 既にメッセージタブが選択されている場合はグループチャットモードを切り替え
-                    onMessageDoubleTap?()
-                } else {
-                    // メッセージタブに切り替え
-                    selectedTab = 2
-                }
+                selectedTab = 2
             }
             
             // アカウントボタン（シングルタップで検索モード切り替え）
@@ -160,13 +125,7 @@ struct CustomTabBar: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
-                if selectedTab == 3 {
-                    // 既にプロフィールタブが選択されている場合は検索モードを切り替え
-                    onProfileDoubleTap?()
-                } else {
-                    // プロフィールタブに切り替え
-                    selectedTab = 3
-                }
+                selectedTab = 3
             }
         }
         .padding(.horizontal, 20)

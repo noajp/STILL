@@ -30,20 +30,14 @@ struct MessagesView: View {
     @State private var showNewMessage = false
     @State private var selectedConversation: ConversationNavigation?
     @State private var isNavigatingToNewMessage = false
-    @State private var isNavigatingToCreateGroup = false
+
     @EnvironmentObject var authManager: AuthManager
-    @Binding var isGroupChatMode: Bool
     
     var body: some View {
-        let headerTitle = isGroupChatMode ? "GROUP CHATS" : "MESSAGES"
-        let headerIcon = isGroupChatMode ? "person.2.fill" : "square.and.pencil"
+        let headerTitle = "MESSAGES"
+        let headerIcon = "square.and.pencil"
         let headerAction: () -> Void = {
-            if isGroupChatMode {
-                // Navigate to group chat creation
-                isNavigatingToCreateGroup = true
-            } else {
-                isNavigatingToNewMessage = true 
-            }
+            isNavigatingToNewMessage = true 
         }
         
         return ScrollableHeaderView(
@@ -59,7 +53,6 @@ struct MessagesView: View {
                 MessageListSection(
                     conversations: viewModel.conversations,
                     groupConversations: viewModel.groupConversations,
-                    isGroupChatMode: isGroupChatMode,
                     authManager: authManager,
                     viewModel: viewModel,
                     formatTimestamp: viewModel.formatTimestamp,
@@ -78,39 +71,34 @@ struct MessagesView: View {
                 await viewModel.refreshConversations()
             }
         }
-        .navigationDestination(isPresented: $isNavigatingToNewMessage) {
-                NewMessageView { userId in
+                .navigationDestination(isPresented: $isNavigatingToNewMessage) {
+                NewMessageView { userIds in
                     Task {
-                        print("🔄 Starting conversation creation with user: \(userId)")
-                        print("🔍 Debug: Current conversations count before creation: \(viewModel.conversations.count)")
+                        print("🔄 Starting conversation creation with users: \(userIds)")
                         
-                        if let conversationId = await viewModel.createNewConversation(with: userId) {
-                            print("✅ Conversation created with ID: \(conversationId)")
-                            print("🔍 Debug: Current conversations count after creation: \(viewModel.conversations.count)")
-                            
-                            // 会話リストを強制更新してUIに反映
+                        let conversationId: String?
+                        
+                        if userIds.count == 1 {
+                            // Direct message with single user
+                            conversationId = await viewModel.createNewConversation(with: userIds[0])
+                            print("✅ Direct conversation created with ID: \(conversationId ?? "nil")")
+                        } else {
+                            // Group chat with multiple users
+                            conversationId = await viewModel.createGroupChat(name: "Group Chat", emoji: "👥", with: userIds)
+                            print("✅ Group conversation created with ID: \(conversationId ?? "nil")")
+                        }
+                        
+                        if let conversationId = conversationId {
+                            // Refresh conversations list
                             await viewModel.refreshConversations()
-                            print("🔍 Debug: Current conversations count after refresh: \(viewModel.conversations.count)")
                             
-                            // 少し待ってから最終確認
-                            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                            print("🔍 Debug: Final conversations list:")
-                            for (index, conv) in viewModel.conversations.enumerated() {
-                                print("   [\(index)] ID: \(conv.id)")
-                                conv.participants?.forEach { participant in
-                                    print("       - \(participant.user?.username ?? "unknown") (\(participant.userId))")
-                                }
-                            }
-                            
-                            // 会話作成が完了してから画面遷移
+                            // Navigate to the created conversation
                             await MainActor.run {
-                                print("🎯 Setting selectedConversation to: \(conversationId)")
                                 selectedConversation = ConversationNavigation(id: conversationId)
                                 isNavigatingToNewMessage = false
                             }
                         } else {
-                            print("❌ Failed to create conversation with user: \(userId)")
-                            print("🔍 Error message: \(viewModel.errorMessage ?? "No error message available")")
+                            print("❌ Failed to create conversation")
                             await MainActor.run {
                                 isNavigatingToNewMessage = false
                             }
@@ -138,22 +126,7 @@ struct MessagesView: View {
                     }
                 }
             }
-            .navigationDestination(isPresented: $isNavigatingToCreateGroup) {
-                CreateGroupChatView { selectedUserIds in
-                    Task {
-                        print("🔄 Creating group chat with users: \(selectedUserIds)")
-                        if let conversationId = await viewModel.createGroupChat(name: "Group Chat", with: selectedUserIds) {
-                            print("✅ Group chat created with ID: \(conversationId)")
-                            await MainActor.run {
-                                selectedConversation = ConversationNavigation(id: conversationId)
-                                isNavigatingToCreateGroup = false
-                            }
-                        } else {
-                            print("❌ Failed to create group chat")
-                        }
-                    }
-                }
-            }
+
         .accentColor(MinimalDesign.Colors.accentRed)
         .background(MinimalDesign.Colors.background)
         .navigationBarHidden(true)
@@ -161,15 +134,16 @@ struct MessagesView: View {
     
     @ViewBuilder
     private func getDestinationView(for conversation: Conversation) -> some View {
-        if isGroupChatMode {
-            // グループチャットの場合はGroupConversationViewを使用
+        // Determine if this is a group conversation by checking participant count
+        if let participants = conversation.participants, participants.count > 2 {
+            // Group conversation - use GroupConversationView
             if let groupConv = viewModel.groupConversations.first(where: { $0.id == conversation.id }) {
                 GroupConversationView(conversationId: conversation.id, groupConversation: groupConv)
             } else {
                 GroupConversationView(conversationId: conversation.id, groupConversation: nil)
             }
         } else {
-            // 通常のチャットの場合はConversationViewを使用
+            // Direct message - use ConversationView
             ConversationView(conversationId: conversation.id, conversation: conversation)
         }
     }
@@ -198,11 +172,18 @@ struct NewMessageView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel = UserSearchViewModel()
     @State private var searchText = ""
-    let onSelectUser: (String) -> Void
+    @State private var selectedUserIds: Set<String> = []
+    @State private var selectedUserProfiles: [UserProfile] = []
+    let onCreateConversation: ([String]) -> Void
     
     var body: some View {
         VStack(spacing: 0) {
-            // ミニマルな検索バー
+            // Selected users bar
+            if !selectedUserProfiles.isEmpty {
+                selectedUsersDisplayBar
+            }
+            
+            // Search bar
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray.opacity(0.6))
@@ -270,9 +251,11 @@ struct NewMessageView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(viewModel.users, id: \.id) { user in
-                            UserRowView(user: user) {
-                                onSelectUser(user.id)
-                                dismiss()
+                            MultiSelectUserRowView(
+                                user: user,
+                                isSelected: selectedUserIds.contains(user.id)
+                            ) {
+                                toggleUserSelection(user)
                             }
                             
                             if user.id != viewModel.users.last?.id {
@@ -290,6 +273,147 @@ struct NewMessageView: View {
         .accentColor(MinimalDesign.Colors.accentRed)
         .background(MinimalDesign.Colors.background)
         .navigationBarHidden(false)
+    }
+    
+    // MARK: - Selected Users Display Bar
+    private var selectedUsersDisplayBar: some View {
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(selectedUserProfiles, id: \.id) { user in
+                        SelectedUserChip(user: user) {
+                            removeUserSelection(user)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .frame(height: 60)
+            
+            HStack(spacing: 12) {
+                Text("\(selectedUserProfiles.count) selected")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button("Start Chat") {
+                    let selectedUserIdArray = Array(selectedUserIds)
+                    onCreateConversation(selectedUserIdArray)
+                    dismiss()
+                }
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(MinimalDesign.Colors.accentRed)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color.gray.opacity(0.1))
+            
+            Divider()
+                .background(Color.gray.opacity(0.3))
+        }
+    }
+    
+    // MARK: - Selected Users Bar (legacy)
+    private var selectedUsersBar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Text("\(selectedUserIds.count) selected")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button("Start Chat") {
+                    let selectedUserIdArray = Array(selectedUserIds)
+                    onCreateConversation(selectedUserIdArray)
+                    dismiss()
+                }
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(MinimalDesign.Colors.accentRed)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color.gray.opacity(0.1))
+            
+            Divider()
+                .background(Color.gray.opacity(0.3))
+        }
+    }
+    
+    // MARK: - Methods
+    private func toggleUserSelection(_ user: UserProfile) {
+        if selectedUserIds.contains(user.id) {
+            selectedUserIds.remove(user.id)
+            selectedUserProfiles.removeAll { $0.id == user.id }
+        } else {
+            selectedUserIds.insert(user.id)
+            if !selectedUserProfiles.contains(where: { $0.id == user.id }) {
+                selectedUserProfiles.append(user)
+            }
+        }
+    }
+    
+    private func removeUserSelection(_ user: UserProfile) {
+        selectedUserIds.remove(user.id)
+        selectedUserProfiles.removeAll { $0.id == user.id }
+    }
+}
+
+
+
+struct MultiSelectUserRowView: View {
+    let user: UserProfile
+    let isSelected: Bool
+    let onToggle: () -> Void
+    
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 16) {
+                // Profile image
+                if let avatarUrl = user.avatarUrl {
+                    RemoteImageView(imageURL: avatarUrl)
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 48, height: 48)
+                        .overlay(
+                            Text(String(user.profileDisplayName.prefix(1)).uppercased())
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white)
+                        )
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(user.profileDisplayName)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                    
+                    Text("@\(user.username)")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray.opacity(0.7))
+                    
+                    if let bio = user.bio, !bio.isEmpty {
+                        Text(bio)
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray.opacity(0.8))
+                            .lineLimit(1)
+                    }
+                }
+                
+                Spacer()
+                
+                // Selection indicator
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? MinimalDesign.Colors.accentRed : .gray.opacity(0.5))
+                    .font(.system(size: 20))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
