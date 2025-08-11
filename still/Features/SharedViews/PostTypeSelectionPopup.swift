@@ -8,7 +8,7 @@ import SwiftUI
 struct PostTypeSelectionPopup: View {
     @Binding var isPresented: Bool
     let onPictureSelected: () -> Void
-    let onArticleSelected: () -> Void
+
     @Environment(\.colorScheme) var colorScheme
     @State private var animationProgress: CGFloat = 0
     
@@ -40,58 +40,7 @@ struct PostTypeSelectionPopup: View {
                 // ボタンコンテナ
                 HStack(spacing: 40) {
                     // 写真投稿ボタン
-                    Button(action: {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            isPresented = false
-                        }
-                        // 少し遅延を入れてポップアップが閉じてから画面遷移
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            onPictureSelected()
-                        }
-                    }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "square.fill")
-                                .font(.system(size: 56, weight: .light))
-                                .foregroundColor(MinimalDesign.Colors.accentRed)
-                                .overlay(
-                                    Image(systemName: "photo")
-                                        .font(.system(size: 24, weight: .light))
-                                        .foregroundColor(.white)
-                                )
-                            
-                            Text("Pictures")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
-                        }
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    // 記事投稿ボタン
-                    Button(action: {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            isPresented = false
-                        }
-                        // 少し遅延を入れてポップアップが閉じてから画面遷移
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            onArticleSelected()
-                        }
-                    }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "square.fill")
-                                .font(.system(size: 56, weight: .light))
-                                .foregroundColor(MinimalDesign.Colors.accentRed)
-                                .overlay(
-                                    Image(systemName: "doc.text")
-                                        .font(.system(size: 24, weight: .light))
-                                        .foregroundColor(.white)
-                                )
-                            
-                            Text("Articles")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(colorScheme == .dark ? .white : .black)
-                        }
-                    }
-                    .buttonStyle(PlainButtonStyle())
+
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, 28)
@@ -128,7 +77,7 @@ struct PostTypeSelectionPopup_Previews: PreviewProvider {
             PostTypeSelectionPopup(
                 isPresented: .constant(true),
                 onPictureSelected: {},
-                onArticleSelected: {}
+
             )
         }
     }

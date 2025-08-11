@@ -88,13 +88,7 @@ protocol NotificationServiceProtocol {
  * Protocol for article repository
  */
 @MainActor
-protocol ArticleRepositoryProtocol {
-    func fetchArticles(page: Int, limit: Int) async throws -> [Article]
-    func fetchArticle(byId id: String) async throws -> Article?
-    func createArticle(_ article: Article) async throws -> Article
-    func updateArticle(_ article: Article) async throws
-    func deleteArticle(id: String) async throws
-}
+
 
 /**
  * Protocol for comment service

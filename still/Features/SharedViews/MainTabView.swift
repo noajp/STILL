@@ -32,7 +32,7 @@ struct MainTabView: View {
     var body: some View {
         ZStack {
             // Main content area with horizontal swipe navigation
-            // Navigation order: Home → Articles → Messages → Profile
+            // Navigation order: Home → Messages → Profile
             TabView(selection: $viewModel.selectedTab) {
                     // Home feed tab (0) - Main photo grid and feed view
                     NavigationStack {
@@ -44,24 +44,20 @@ struct MainTabView: View {
                     }
                     .tag(0)
                     
-                    // Articles tab (1) - Article browsing and reading
-                    NavigationStack {
-                        ArticleListView()
-                    }
-                    .tag(1)
+
                     
-                    // Messages tab (2) - Chat and messaging interface
+                    // Messages tab (1) - Chat and messaging interface
                     NavigationStack {
                         MessagesView()
                     }
-                    .tag(2)
+                    .tag(1)
                     
-                    // Profile tab (3) - User profile and settings
+                    // Profile tab (2) - User profile and settings
                     MyPageView(
                         isInProfileSingleView: $viewModel.uiState.isInProfileSingleView,
                         isUserSearchMode: .constant(false)
                     )
-                    .tag(3)
+                    .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .background(Color(hex: "121212"))
@@ -107,9 +103,7 @@ struct MainTabView: View {
                     onPictureSelected: {
                         viewModel.handlePictureSelected()
                     },
-                    onArticleSelected: {
-                        viewModel.handleArticleSelected()
-                    }
+
                 )
                 .zIndex(999) // Display on top of all other views
             }
@@ -147,10 +141,7 @@ struct MainTabView: View {
             }
         }
         
-        // Article editor modal for creating new articles
-        .fullScreenCover(isPresented: $viewModel.navigationState.showingCreateArticle) {
-            ArticleEditorView()
-        }
+
     }
     
     // Note: updateUIForScroll method has been moved to MainTabViewModel

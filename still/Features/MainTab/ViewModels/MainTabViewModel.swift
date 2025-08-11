@@ -32,7 +32,7 @@ class MainTabViewModel: BaseViewModelClass {
     
     // MARK: - Published Properties
     
-    /// Currently selected tab index (0: Home, 1: Articles, 2: Messages, 3: Profile)
+    /// Currently selected tab index (0: Home, 1: Messages, 2: Profile)
     @Published var selectedTab: Int = 0
     
     /// Navigation-related state grouped for better organization
@@ -67,7 +67,7 @@ class MainTabViewModel: BaseViewModelClass {
         var showingSettings = false
         
         /// Controls display of article creation modal
-        var showingCreateArticle = false
+
         
         /// Controls display of post type selection popup
         var showingPostTypeSelection = false
@@ -249,10 +249,7 @@ class MainTabViewModel: BaseViewModelClass {
     /**
      * Handles article selection from post type popup.
      */
-    func handleArticleSelected() {
-        navigationState.showingPostTypeSelection = false
-        navigationState.showingCreateArticle = true
-    }
+
     
     /**
      * Handles returning from single view to grid view.

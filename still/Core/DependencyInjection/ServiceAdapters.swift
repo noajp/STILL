@@ -197,34 +197,7 @@ final class UserRepositoryAdapter: UserRepositoryProtocol {
     }
 }
 
-// MARK: - Article Repository Adapter
 
-@MainActor
-final class ArticleRepositoryAdapter: ArticleRepositoryProtocol {
-    private let repository = ArticleRepository.shared
-    
-    func fetchArticles(page: Int, limit: Int) async throws -> [Article] {
-        // Stub implementation - method signature mismatch
-        return []
-    }
-    
-    func fetchArticle(byId id: String) async throws -> Article? {
-        // Stub implementation - method signature mismatch
-        return nil
-    }
-    
-    func createArticle(_ article: Article) async throws -> Article {
-        // Stub implementation - type mismatch
-        return article
-    }
-    
-    func updateArticle(_ article: Article) async throws {
-        // Stub implementation - method signature mismatch
-    }
-    
-    func deleteArticle(id: String) async throws {
-        try await repository.deleteArticle(id: id)
-    }
 }
 
 // MARK: - Comment Service Adapter

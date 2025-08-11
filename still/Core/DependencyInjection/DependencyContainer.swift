@@ -53,7 +53,7 @@ final class DependencyContainer: DependencyContainerProtocol {
     private lazy var _notificationService: NotificationServiceProtocol = NotificationServiceAdapter()
     
     private lazy var _userRepository: UserRepositoryProtocol = UserRepositoryAdapter()
-    private lazy var _articleRepository: ArticleRepositoryProtocol = ArticleRepositoryAdapter()
+
     private lazy var _commentService: CommentServiceProtocol = CommentServiceAdapter()
     private lazy var _followService: FollowServiceProtocol = FollowServiceAdapter()
     private lazy var _messageService: MessageServiceProtocol = MessageServiceAdapter()
@@ -109,9 +109,7 @@ final class DependencyContainer: DependencyContainerProtocol {
         return _userRepository
     }
     
-    var articleRepository: ArticleRepositoryProtocol {
-        return _articleRepository
-    }
+
     
     var commentService: CommentServiceProtocol {
         return _commentService
@@ -185,7 +183,7 @@ class MockableDependencyContainer: DependencyContainerProtocol {
     var logger: LoggerProtocol
     var notificationService: NotificationServiceProtocol
     var userRepository: UserRepositoryProtocol
-    var articleRepository: ArticleRepositoryProtocol
+
     var commentService: CommentServiceProtocol
     var followService: FollowServiceProtocol
     var messageService: MessageServiceProtocol
@@ -214,7 +212,7 @@ class MockableDependencyContainer: DependencyContainerProtocol {
         logger: LoggerProtocol? = nil,
         notificationService: NotificationServiceProtocol? = nil,
         userRepository: UserRepositoryProtocol? = nil,
-        articleRepository: ArticleRepositoryProtocol? = nil,
+
         commentService: CommentServiceProtocol? = nil,
         followService: FollowServiceProtocol? = nil,
         messageService: MessageServiceProtocol? = nil,
@@ -236,7 +234,7 @@ class MockableDependencyContainer: DependencyContainerProtocol {
         self.logger = logger ?? LoggerAdapter()
         self.notificationService = notificationService ?? NotificationServiceAdapter()
         self.userRepository = userRepository ?? UserRepositoryAdapter()
-        self.articleRepository = articleRepository ?? ArticleRepositoryAdapter()
+
         self.commentService = commentService ?? CommentServiceAdapter()
         self.followService = followService ?? FollowServiceAdapter()
         self.messageService = messageService ?? MessageServiceAdapter()

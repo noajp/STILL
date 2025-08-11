@@ -48,8 +48,7 @@ protocol DependencyContainerProtocol {
     /// User data repository
     var userRepository: UserRepositoryProtocol { get }
     
-    /// Article data repository
-    var articleRepository: ArticleRepositoryProtocol { get }
+
     
     /// Comment service for post interactions
     var commentService: CommentServiceProtocol { get }
