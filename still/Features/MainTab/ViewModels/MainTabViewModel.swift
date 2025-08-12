@@ -235,7 +235,8 @@ class MainTabViewModel: BaseViewModelClass {
      * Handles the create post action by showing post type selection.
      */
     func handleCreatePost() {
-        navigationState.showingPostTypeSelection = true
+        // 直接写真選択画面を開く
+        navigationState.showingCreatePost = true
     }
     
     /**
@@ -268,6 +269,33 @@ class MainTabViewModel: BaseViewModelClass {
         if uiState.isInProfileSingleView {
             uiState.isInProfileSingleView = false
         }
+    }
+
+    
+    /**
+     * Resets navigation to initial state for the current tab.
+     * This ensures that tapping a tab button returns to the root view of that tab.
+     */
+    func resetTabNavigation(resetPaths: @escaping () -> Void) {
+        // Call the path reset closure first
+        resetPaths()
+        // Reset UI states to initial values
+        uiState.isInSingleView = false
+        uiState.isInProfileSingleView = false
+        uiState.showGridMode = false
+        
+        // Close any open modals
+        navigationState.showingCreatePost = false
+        navigationState.showingPhotoEditor = false
+        navigationState.showingCamera = false
+        navigationState.showingSettings = false
+        navigationState.showingPostTypeSelection = false
+        
+        // Clear presentation data
+        presentationState.editorData = nil
+        presentationState.selectedImage = nil
+        
+        dependencies.logger.info("Tab navigation reset to initial state", file: #file, function: #function, line: #line)
     }
     
     

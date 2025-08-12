@@ -87,8 +87,6 @@ protocol NotificationServiceProtocol {
 /**
  * Protocol for article repository
  */
-@MainActor
-
 
 /**
  * Protocol for comment service

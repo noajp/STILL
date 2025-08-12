@@ -26,7 +26,7 @@ struct FollowRequestManagementView: View {
                 
                 Text("Follow Requests")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
@@ -37,7 +37,7 @@ struct FollowRequestManagementView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(Color(.systemBackground))
+            .background(MinimalDesign.Colors.background)
             
             // Content
             if viewModel.isLoading {
@@ -59,7 +59,7 @@ struct FollowRequestManagementView: View {
                     Text("No Follow Requests")
                         .font(.title3)
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                     Text("When people request to follow you, they\'ll appear here.")
                         .font(.body)
                         .foregroundColor(.gray)
@@ -87,7 +87,7 @@ struct FollowRequestManagementView: View {
                 }
             }
         }
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .navigationBarHidden(true)
         .task {
             if let currentUser = authManager.currentUser {
@@ -153,12 +153,12 @@ struct FollowRequestManagementRow: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(request.follower?.profileDisplayName ?? "Unknown")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .lineLimit(1)
                         
                         Text("@\(request.follower?.username ?? "unknown")")
                             .font(.system(size: 14))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.gray)
                             .lineLimit(1)
                     }
                 }
@@ -192,7 +192,7 @@ struct FollowRequestManagementRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(.systemBackground))
+        .background(MinimalDesign.Colors.background)
         .fullScreenCover(isPresented: $showProfile) {
             if let follower = request.follower {
                 OtherUserProfileView(userId: follower.id)

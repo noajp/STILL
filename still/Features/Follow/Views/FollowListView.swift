@@ -69,7 +69,7 @@ struct FollowListView: View {
                         .padding(.top, 8)
                     Spacer()
                 }
-            } else if viewModel.users.isEmpty && viewModel.pendingRequests.isEmpty {
+            } else if viewModel.users.isEmpty {
                 VStack(spacing: 16) {
                     Spacer()
                     Image(systemName: listType == .followers ? "person.crop.circle" : "person.crop.circle.badge.plus")
@@ -89,50 +89,8 @@ struct FollowListView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        // Show pending requests first (only for current user's followers)
-                        if listType == .followers && userId == authManager.currentUser?.id && !viewModel.pendingRequests.isEmpty {
-                            // Pending Requests Header
-                            HStack {
-                                Text("Follow Requests")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Text("\(viewModel.pendingRequests.count)")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(MinimalDesign.Colors.accentRed)
-                                    .cornerRadius(12)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(Color.gray.opacity(0.1))
-                            
-                            // Pending Requests List
-                            ForEach($viewModel.pendingRequests) { $request in
-                                FollowRequestManagementRow(
-                                    request: $request,
-                                    onAccept: { await viewModel.acceptFollowRequest(request) },
-                                    onDecline: { await viewModel.rejectFollowRequest(request) }
-                                )
-                                
-                                if request.id != viewModel.pendingRequests.last?.id {
-                                    Divider()
-                                        .padding(.leading, 70)
-                                }
-                            }
-                            
-                            // Separator if there are both pending requests and followers
-                            if !viewModel.users.isEmpty {
-                                Rectangle() // Use Rectangle for a solid separator
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 8)
-                                    .padding(.vertical, 8)
-                            }
-                        }
+                        // Follow requests are now handled only in the notifications screen
+                        // Removed follow request display from follower section to avoid duplication
                         
                         // Regular followers/following list
                         ForEach(viewModel.users, id: \.id) { user in
@@ -308,7 +266,6 @@ struct FollowUserRow: View {
 @MainActor
 class FollowListViewModel: ObservableObject {
     @Published var users: [UserProfile] = []
-    @Published var pendingRequests: [Follow] = [] // Re-introduce pendingRequests
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -320,10 +277,7 @@ class FollowListViewModel: ObservableObject {
             switch listType {
             case .followers:
                 users = try await FollowService.shared.fetchFollowers(userId: userId)
-                // Load pending follow requests for current user viewing their own followers
-                if userId == AuthManager.shared.currentUser?.id {
-                    await loadPendingRequests(for: userId)
-                }
+                // Follow requests are now handled only in the notifications screen
             case .following:
                 users = try await FollowService.shared.fetchFollowing(userId: userId)
             }
@@ -334,98 +288,6 @@ class FollowListViewModel: ObservableObject {
         }
         
         isLoading = false
-    }
-    
-    // Re-introduce loadPendingRequests
-    private func loadPendingRequests(for userId: String) async {
-        do {
-            let fetchedRequests: [Follow] = try await SupabaseManager.shared.client
-                .from("follows")
-                .select("*, follower:follower_id(*)")
-                .eq("following_id", value: userId)
-                .eq("status", value: "pending")
-                .order("created_at", ascending: false)
-                .execute()
-                .value
-            
-            self.pendingRequests = fetchedRequests
-        } catch {
-            print("❌ Error loading pending requests in FollowListViewModel: \(error)")
-        }
-    }
-    
-    // Re-introduce acceptFollowRequest for FollowListViewModel
-    func acceptFollowRequest(_ request: Follow) async {
-        _ = request.followingId // Use _ to ignore the value
-        do {
-            try await SupabaseManager.shared.client
-                .from("follows")
-                .update(["status": "accepted"])
-                .eq("id", value: request.id)
-                .execute()
-            
-            // Update the status of the specific request in the published array
-            if let index = pendingRequests.firstIndex(where: { $0.id == request.id }) {
-                pendingRequests[index].status = .accepted
-            }
-
-            // Mark the related follow request notification as read
-            await markFollowRequestNotificationAsRead(for: request.followerId, to: request.followingId)
-            
-            NotificationCenter.default.post(name: .followStatusChanged, object: nil)
-            
-            if let currentUser = AuthManager.shared.currentUser {
-                Task {
-                    if let approverProfile = try? await UserRepository.shared.fetchUserProfile(userId: currentUser.id) {
-                        await NotificationService.shared.createFollowRequestApprovedNotification(
-                            fromUserId: currentUser.id,
-                            toUserId: request.followerId,
-                            approverProfile: approverProfile
-                        )
-                    }
-                }
-            }
-        } catch {
-            print("❌ Error accepting follow request in FollowListViewModel: \(error)")
-            errorMessage = "Failed to accept request"
-            // Reload even on error to reset state
-            await loadPendingRequests(for: request.followingId)
-        }
-    }
-    
-    // Re-introduce rejectFollowRequest for FollowListViewModel
-    func rejectFollowRequest(_ request: Follow) async {
-        _ = request.followingId // Use _ to ignore the value
-        do {
-            try await SupabaseManager.shared.client
-                .from("follows")
-                .delete()
-                .eq("id", value: request.id)
-                .execute()
-            
-            // Mark the related follow request notification as read
-            await markFollowRequestNotificationAsRead(for: request.followerId, to: request.followingId)
-
-            pendingRequests.removeAll { $0.id == request.id }
-        } catch {
-            print("❌ Error declining follow request in FollowListViewModel: \(error)")
-            errorMessage = "Failed to decline request"
-        }
-    }
-
-    private func markFollowRequestNotificationAsRead(for fromUserId: String, to toUserId: String) async {
-        do {
-            try await SupabaseManager.shared.client
-                .from("notifications")
-                .update(["is_read": true])
-                .eq("user_id", value: toUserId)
-                .eq("type", value: "follow_request")
-                .eq("related_user_id", value: fromUserId)
-                .execute()
-            print("✅ Marked related follow request notification as read.")
-        } catch {
-            print("❌ Error marking related follow request notification as read: \(error)")
-        }
     }
 }
 

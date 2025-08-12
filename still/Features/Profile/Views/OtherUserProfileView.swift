@@ -26,7 +26,7 @@ struct OtherUserProfileView: View {
     private var buttonTextColor: Color {
         switch viewModel.followStatus {
         case .accepted:
-            return colorScheme == .dark ? .white : .black
+            return MinimalDesign.Colors.primary
         case .pending:
             return .gray
         case .declined, .none:
@@ -48,7 +48,7 @@ struct OtherUserProfileView: View {
     private var buttonBorderColor: Color {
         switch viewModel.followStatus {
         case .accepted:
-            return colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.3)
+            return MinimalDesign.Colors.primary.opacity(0.3)
         case .pending:
             return Color.gray.opacity(0.5)
         case .declined, .none:
@@ -72,7 +72,7 @@ struct OtherUserProfileView: View {
                     HStack(spacing: 4) {
                         Text("Profile")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(MinimalDesign.Colors.primary)
                         
                         // Lock icon for private accounts
                         if viewModel.userProfile?.isPrivate == true {
@@ -124,12 +124,12 @@ struct OtherUserProfileView: View {
                             if let displayName = viewModel.userProfile?.displayName, !displayName.isEmpty {
                                 Text(displayName)
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(MinimalDesign.Colors.primary)
                                     .lineLimit(1)
                             } else if let username = viewModel.userProfile?.username {
                                 Text(username)
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(MinimalDesign.Colors.primary)
                                     .lineLimit(1)
                             }
                             
@@ -206,7 +206,7 @@ struct OtherUserProfileView: View {
                     if let bio = viewModel.userProfile?.bio, !bio.isEmpty {
                         Text(bio)
                             .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(MinimalDesign.Colors.primary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(3)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -225,7 +225,7 @@ struct OtherUserProfileView: View {
                         
                         Text("This Account is Private")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(MinimalDesign.Colors.primary)
                         
                         Text("Follow this account to see their photos and articles")
                             .font(.system(size: 14))
@@ -242,7 +242,7 @@ struct OtherUserProfileView: View {
                         
                         Text("No Posts Yet")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
+                            .foregroundColor(MinimalDesign.Colors.primary)
                     }
                     .frame(height: 300)
                 } else {

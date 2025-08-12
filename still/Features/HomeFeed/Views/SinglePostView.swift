@@ -20,6 +20,8 @@ struct SinglePostView: View {
     @StateObject private var viewModel: HomeFeedViewModel
     @Binding var showGridMode: Bool
     @State private var scrollToTop = false
+    @State private var visiblePostCount = 2 // Start by showing initial + 2 more posts
+    @State private var isLoadingMore = false
     @Environment(\.dismiss) private var dismiss
     
     init(initialPost: Post, viewModel: HomeFeedViewModel, showGridMode: Binding<Bool>) {
@@ -54,13 +56,32 @@ struct SinglePostView: View {
                     .id(initialPost.id)
                 }
                 
-                // 全ユーザーの投稿を時系列順で表示（初期投稿以外）
-                ForEach(allPostsExceptInitial) { post in
+                // Progressive loading: Show only visible posts (3 at a time)
+                ForEach(visiblePosts) { post in
                     PostCardView(post: post) { post in
                         Task {
                             await viewModel.toggleLike(for: post)
                         }
                     }
+                    .onAppear {
+                        // When the last visible post appears, load more
+                        if post.id == visiblePosts.last?.id {
+                            loadMorePostsIfNeeded()
+                        }
+                    }
+                }
+                
+                // Loading indicator for next batch
+                if isLoadingMore && visiblePostCount < allPostsExceptInitial.count {
+                    HStack {
+                        ForEach(0..<3, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: "1A1A1A"))
+                                .frame(width: 100, height: 100)
+                                .shimmerEffect()
+                        }
+                    }
+                    .padding(.vertical, 20)
                 }
                 
                 // Bottom space for tab bar
@@ -79,5 +100,30 @@ struct SinglePostView: View {
         return viewModel.posts
             .filter { $0.id != initialPost.id }
             .sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    private var visiblePosts: [Post] {
+        // Return only the posts that should be visible based on progressive loading
+        let posts = allPostsExceptInitial
+        let endIndex = min(visiblePostCount, posts.count)
+        return Array(posts.prefix(endIndex))
+    }
+    
+    // MARK: - Private Methods
+    
+    private func loadMorePostsIfNeeded() {
+        guard !isLoadingMore else { return }
+        guard visiblePostCount < allPostsExceptInitial.count else { return }
+        
+        isLoadingMore = true
+        
+        // Simulate loading delay for better UX
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                // Load next 3 posts
+                visiblePostCount += 3
+                isLoadingMore = false
+            }
+        }
     }
 }

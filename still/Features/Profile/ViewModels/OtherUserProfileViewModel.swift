@@ -9,54 +9,7 @@ import Supabase
 
 /// Database article structure matching the articles table schema
 /// Used for direct database communication with Supabase articles table
-struct DatabaseArticle: Codable {
-    /// Unique article identifier
-    let id: String
-    /// ID of the article author
-    let userId: String?
-    /// Article title
-    let title: String
-    /// Article content/body
-    let content: String
-    /// Brief summary or excerpt
-    let summary: String?
-    /// Article category
-    let category: String?
-    /// Array of tags associated with the article
-    let tags: [String]?
-    /// Whether article requires premium access
-    let isPremium: Bool?
-    /// URL to the article's cover image
-    let coverImageUrl: String?
-    /// Publication status (draft, published, archived)
-    let status: String?
-    /// When the article was published
-    let publishedAt: Date?
-    /// When the article was created
-    let createdAt: Date?
-    /// When the article was last updated
-    let updatedAt: Date?
-    /// Number of views
-    let viewCount: Int?
-    /// Number of likes
-    let likeCount: Int?
-    /// Type of article content
-    let articleType: String?
-    
-    /// Mapping database column names to Swift property names
-    enum CodingKeys: String, CodingKey {
-        case id, title, content, summary, category, tags, status
-        case userId = "user_id"
-        case isPremium = "is_premium"
-        case coverImageUrl = "cover_image_url"
-        case publishedAt = "published_at"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case viewCount = "view_count"
-        case likeCount = "like_count"
-        case articleType = "article_type"
-    }
-}
+
 
 /// ViewModel for managing other user profile views with privacy restrictions and follow functionality
 /// Handles profile loading, follow requests, content visibility based on privacy settings
@@ -71,8 +24,7 @@ class OtherUserProfileViewModel: ObservableObject {
     /// Posts created by the viewed user
     @Published var userPosts: [Post] = []
     
-    /// Articles written by the viewed user
-    @Published var articles: [Article] = []
+
     
     /// Loading state indicator
     @Published var isLoading = false
@@ -194,7 +146,7 @@ class OtherUserProfileViewModel: ObservableObject {
             // Load content if user can view it based on privacy settings
             if canViewContent {
                 await loadPosts(userId: userId)
-                await loadArticles(userId: userId)
+
             }
             
         } catch {
@@ -340,36 +292,7 @@ class OtherUserProfileViewModel: ObservableObject {
     
     /// Loads published articles written by the specified user
     /// - Parameter userId: ID of the user whose articles should be loaded
-    private func loadArticles(userId: String) async {
-        do {
-            let loadedArticles: [DatabaseArticle] = try await SupabaseManager.shared.client
-                .from("articles")
-                .select("*")
-                .eq("user_id", value: userId)
-                .eq("status", value: "published")
-                .order("created_at", ascending: false)
-                .limit(10)
-                .execute()
-                .value
-            
-            // Convert DatabaseArticle to Article format for UI consumption
-            articles = loadedArticles.map { dbArticle in
-                Article(
-                    id: UUID(uuidString: dbArticle.id) ?? UUID(),
-                    title: dbArticle.title,
-                    blocks: [ArticleBlock(type: .text, content: dbArticle.content)], // Convert content to blocks
-                    createdAt: dbArticle.createdAt ?? Date(),
-                    updatedAt: dbArticle.updatedAt ?? Date(),
-                    isPublished: dbArticle.status == "published",
-                    tags: dbArticle.tags ?? [],
-                    category: dbArticle.category ?? ""
-                )
-            }
-            
-        } catch {
-            print("❌ Error loading articles: \(error)")
-        }
-    }
+
     
     // MARK: - Follow Actions
     

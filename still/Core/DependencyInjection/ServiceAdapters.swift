@@ -198,8 +198,6 @@ final class UserRepositoryAdapter: UserRepositoryProtocol {
 }
 
 
-}
-
 // MARK: - Comment Service Adapter
 
 @MainActor

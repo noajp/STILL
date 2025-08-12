@@ -26,6 +26,7 @@ struct PostCardView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var showProfile = false
     @State private var showingComments = false
+    @State private var isImageLoaded = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -35,38 +36,38 @@ struct PostCardView: View {
                 case .success(let image):
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
+                        .onAppear {
+                            isImageLoaded = true
+                        }
                 case .failure(_):
                     Rectangle()
-                        .fill(Color.gray)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .font(.title)
-                                .foregroundColor(.white)
-                        )
+                        .fill(Color(hex: "1A1A1A"))
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1.0, contentMode: .fit)
+                        .shimmerEffect()
                 case .empty:
                     Rectangle()
-                        .fill(Color.gray)
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(.white)
-                        )
+                        .fill(Color(hex: "1A1A1A"))
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1.0, contentMode: .fit)
+                        .shimmerEffect()
                 @unknown default:
                     Rectangle()
-                        .fill(Color.gray)
+                        .fill(Color(hex: "1A1A1A"))
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1.0, contentMode: .fit)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: 400)
+            .frame(maxWidth: .infinity)
             .clipped()
             .background(MinimalDesign.Colors.background)
-            .overlay(
-                RoundedRectangle(cornerRadius: 0)
-                    .stroke(Color(hex: "121212"), lineWidth: 10)
-            )
             
-            // User Header (moved below image)
-            HStack(alignment: .top, spacing: 12) {
+            // User Header (moved below image) - Only show when image is loaded
+            if isImageLoaded {
+                HStack(alignment: .top, spacing: 12) {
                 // Avatar - タップ可能 (compressed for performance)
                 Button(action: {
                     if post.user?.id != authManager.currentUser?.id {
@@ -86,7 +87,7 @@ struct PostCardView: View {
                                         .foregroundColor(.white)
                                 )
                         }
-                        .frame(width: 32, height: 32)
+                        .frame(width: 24, height: 24)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
@@ -100,7 +101,7 @@ struct PostCardView: View {
                                     .font(.caption)
                                     .foregroundColor(.white)
                             )
-                            .frame(width: 32, height: 32)
+                            .frame(width: 24, height: 24)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6)
                                     .stroke(Color.white, lineWidth: 1.5)
@@ -117,7 +118,7 @@ struct PostCardView: View {
                 }) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(post.user?.username ?? "unknown")
-                            .font(.system(size: 14))
+                            .font(.system(size: 12))
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                         
@@ -135,7 +136,7 @@ struct PostCardView: View {
                 // Like Button
                 Button(action: { onLikeTapped(post) }) {
                     Image(systemName: post.isLikedByMe ? "heart.fill" : "heart")
-                        .font(.system(size: 20, weight: .light))
+                        .font(.system(size: 16, weight: .light))
                         .foregroundColor(post.isLikedByMe ? .red : .white)
                 }
                 
@@ -143,23 +144,50 @@ struct PostCardView: View {
                 Button(action: { showingComments = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "message")
-                            .font(.system(size: 20, weight: .light))
+                            .font(.system(size: 16, weight: .light))
                             .foregroundColor(.white)
                         
                         if post.commentCount > 0 {
                             Text("\(post.commentCount)")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white)
                         }
                     }
                 }
                 
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+            } else {
+                // Placeholder while loading
+                HStack(spacing: 12) {
+                    // Avatar placeholder
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(hex: "1A1A1A"))
+                        .frame(width: 24, height: 24)
+                        .shimmerEffect()
+                    
+                    // Username placeholder
+                    VStack(alignment: .leading, spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(hex: "1A1A1A"))
+                            .frame(width: 100, height: 14)
+                            .shimmerEffect()
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(hex: "1A1A1A"))
+                            .frame(width: 60, height: 12)
+                            .shimmerEffect()
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+            }
             
-            // Caption
-            if let caption = post.caption, !caption.isEmpty {
+            // Caption - Only show when image is loaded
+            if isImageLoaded, let caption = post.caption, !caption.isEmpty {
                 HStack {
                     Text(caption)
                         .font(.body)
@@ -168,7 +196,7 @@ struct PostCardView: View {
                         .multilineTextAlignment(.leading)
                     Spacer()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
                 .padding(.bottom, 12)
             }
             

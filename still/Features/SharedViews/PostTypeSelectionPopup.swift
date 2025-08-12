@@ -9,7 +9,7 @@ struct PostTypeSelectionPopup: View {
     @Binding var isPresented: Bool
     let onPictureSelected: () -> Void
 
-    @Environment(\.colorScheme) var colorScheme
+    // Color scheme now handled by MinimalDesign
     @State private var animationProgress: CGFloat = 0
     
     var body: some View {
@@ -33,7 +33,7 @@ struct PostTypeSelectionPopup: View {
                 // ヘッダー
                 Text("Post")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .foregroundColor(MinimalDesign.Colors.primary)
                     .padding(.top, 20)
                     .padding(.bottom, 16)
                 
@@ -45,7 +45,7 @@ struct PostTypeSelectionPopup: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 28)
                     }
-                    .background(colorScheme == .dark ? Color.black : Color.white)
+                    .background(MinimalDesign.Colors.background)
                     .cornerRadius(20)
                     .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 8)
                     .frame(maxWidth: 280)

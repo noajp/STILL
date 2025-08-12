@@ -27,37 +27,48 @@ struct MainTabView: View {
     /// Centralized state management for the main tab view
     @StateObject private var viewModel = MainTabViewModel()
     
+    // Navigation paths for each tab to enable programmatic navigation reset
+    @State private var homePath = NavigationPath()
+    @State private var galleryPath = NavigationPath()
+    @State private var messagesPath = NavigationPath()
+    @State private var profilePath = NavigationPath()
+    
     // MARK: - Body
     
     var body: some View {
         ZStack {
             // Main content area with horizontal swipe navigation
-            // Navigation order: Home → Messages → Profile
+            // Navigation order: Home → Gallery → Messages → Profile
             TabView(selection: $viewModel.selectedTab) {
-                    // Home feed tab (0) - Main photo grid and feed view
-                    NavigationStack {
-                        HomeGridView(
-                            showGridMode: $viewModel.uiState.showGridMode, 
-                            showingCreatePost: $viewModel.navigationState.showingCreatePost,
-                            isInSingleView: $viewModel.uiState.isInSingleView
-                        )
-                    }
-                    .tag(0)
-                    
-
-                    
-                    // Messages tab (1) - Chat and messaging interface
-                    NavigationStack {
-                        MessagesView()
-                    }
-                    .tag(1)
-                    
-                    // Profile tab (2) - User profile and settings
-                    MyPageView(
-                        isInProfileSingleView: $viewModel.uiState.isInProfileSingleView,
-                        isUserSearchMode: .constant(false)
+                // Home feed tab (0) - Main photo grid and feed view
+                NavigationStack(path: $homePath) {
+                    HomeGridView(
+                        showGridMode: .constant(false),  // Always show feed mode
+                        showingCreatePost: $viewModel.navigationState.showingCreatePost,
+                        isInSingleView: $viewModel.uiState.isInSingleView
                     )
-                    .tag(2)
+                }
+                .tag(0)
+                
+                
+                // Gallery tab (1) - Grid view of all posts
+                NavigationStack(path: $galleryPath) {
+                    GalleryView()
+                }
+                .tag(1)
+                
+                // Messages tab (2) - Chat and messaging interface
+                NavigationStack(path: $messagesPath) {
+                    MessagesView()
+                }
+                .tag(2)
+                
+                // Profile tab (3) - User profile and settings
+                MyPageView(
+                    isInProfileSingleView: $viewModel.uiState.isInProfileSingleView,
+                    isUserSearchMode: .constant(false)
+                )
+                .tag(3)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .background(Color(hex: "121212"))
@@ -68,45 +79,41 @@ struct MainTabView: View {
             
             // Custom tab bar (footer navigation)
             VStack {
-                    Spacer()
-                    CustomTabBar(
-                        selectedTab: $viewModel.selectedTab,
-                        showGridMode: $viewModel.uiState.showGridMode,
-                        unreadMessageCount: viewModel.presentationState.unreadMessageCount,
-                        onCreatePost: {
-                            viewModel.handleCreatePost()
-                        },
-                        isInSingleView: viewModel.uiState.isInSingleView,
-                        onBackToGrid: {
-                            viewModel.handleBackToGrid()
-                        },
-                        onBackFromProfileSingleView: {
-                            viewModel.handleBackFromProfileSingleView()
-                        },
-                        onProfileDoubleTap: {
-                            // Profile double tap - no action needed
-                        },
-                        isUserSearchMode: .constant(false),
-                        onMessageDoubleTap: {
-                            // Unified messaging - no mode toggle needed
+                Spacer()
+                CustomTabBar(
+                    selectedTab: $viewModel.selectedTab,
+
+                    unreadMessageCount: viewModel.presentationState.unreadMessageCount,
+                    onCreatePost: {
+                        viewModel.handleCreatePost()
+                    },
+                    isInSingleView: viewModel.uiState.isInSingleView,
+                    onBackToGrid: {
+                        viewModel.handleBackToGrid()
+                    },
+                    onBackFromProfileSingleView: {
+                        viewModel.handleBackFromProfileSingleView()
+                    },
+                    onProfileDoubleTap: {
+                        // Profile double tap - no action needed
+                    },
+                    isUserSearchMode: .constant(false),
+                    onMessageDoubleTap: {
+                        // Unified messaging - no mode toggle needed
+                    },
+                    onTabReset: {
+                        viewModel.resetTabNavigation {
+                            homePath = NavigationPath()
+                            galleryPath = NavigationPath()
+                            messagesPath = NavigationPath()
+                            profilePath = NavigationPath()
                         }
-                    )
+                    }
+                )
             }
             .offset(y: viewModel.animationState.tabBarOffset)
             .animation(.easeInOut(duration: 0.5), value: viewModel.animationState.tabBarOffset)
             .clipped() // Clip to completely hide background when offset
-            
-            // Post type selection popup
-            if viewModel.navigationState.showingPostTypeSelection {
-                PostTypeSelectionPopup(
-                    isPresented: $viewModel.navigationState.showingPostTypeSelection,
-                    onPictureSelected: {
-                        viewModel.handlePictureSelected()
-                    },
-
-                )
-                .zIndex(999) // Display on top of all other views
-            }
         }
         .background(Color(hex: "121212"))
         .ignoresSafeArea(.all)
@@ -141,8 +148,9 @@ struct MainTabView: View {
             }
         }
         
-
+        
     }
     
     // Note: updateUIForScroll method has been moved to MainTabViewModel
+    
 }

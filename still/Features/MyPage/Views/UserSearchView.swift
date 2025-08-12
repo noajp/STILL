@@ -206,6 +206,57 @@ struct UserSearchView: View {
                 print("🔍 UserSearch - Searching for: \(searchText)")
                 let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
                 
+                // DEBUG: First get all profiles to see what exists
+                if query == "debug" {
+                    let allUsers = try await UserRepository.shared.debugGetAllProfiles()
+                    await MainActor.run {
+                        self.searchResults = allUsers
+                        self.isSearching = false
+                        print("🔍 DEBUG - Showing all \(allUsers.count) profiles")
+                    }
+                    return
+                }
+                
+                // DEBUG: Search by specific ID
+                if query.hasPrefix("id:") {
+                    let userId = String(query.dropFirst(3))
+                    print("🔍 DEBUG - Searching by ID: \(userId)")
+                    
+                    do {
+                        let response = try await SupabaseManager.shared.client
+                            .from("profiles")
+                            .select("id, username, display_name, avatar_url, bio, is_private, followers_count, following_count, created_at, public_key")
+                            .eq("id", value: userId)
+                            .execute()
+                        
+                        let decoder = JSONDecoder()
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                        decoder.dateDecodingStrategy = .formatted(formatter)
+                        
+                        let profiles: [UserProfile] = try decoder.decode([UserProfile].self, from: response.data)
+                        
+                        await MainActor.run {
+                            self.searchResults = profiles
+                            self.isSearching = false
+                            if let profile = profiles.first {
+                                print("🔍 DEBUG - Found profile by ID: \(profile.username)")
+                            } else {
+                                print("🔍 DEBUG - No profile found for ID: \(userId)")
+                            }
+                        }
+                    } catch {
+                        print("❌ DEBUG - Error searching by ID: \(error)")
+                        await MainActor.run {
+                            self.searchResults = []
+                            self.isSearching = false
+                        }
+                    }
+                    return
+                }
+                
                 let users = try await UserRepository.shared.searchUsersByUsername(query)
                 
                 await MainActor.run {
@@ -216,7 +267,7 @@ struct UserSearchView: View {
             } catch {
                 print("❌ UserSearch - Search error: \(error)")
                 await MainActor.run {
-                    self.searchError = "Failed to search users"
+                    self.searchError = "Failed to search users: \(error.localizedDescription)"
                     self.isSearching = false
                 }
             }
@@ -275,9 +326,18 @@ struct UserSearchResultRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(user.profileDisplayName)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Text(user.profileDisplayName)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                    
+                    // Lock icon for private accounts
+                    if user.isPrivate == true {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
+                }
                 
                 Text(user.userIdWithAt)
                     .font(.system(size: 14))

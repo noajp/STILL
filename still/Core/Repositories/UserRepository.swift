@@ -219,19 +219,110 @@ final class UserRepository: UserRepositoryProtocol, Sendable {
     /// Searches users by username
     func searchUsersByUsername(_ query: String) async throws -> [UserProfile] {
         do {
-            let profiles: [UserProfile] = try await supabaseClient
-                .from("profiles")
-                .select()
-                .ilike("username", pattern: "%\(query)%")
-                .limit(20)
-                .execute()
-                .value
+            print("🔍 UserRepository - Starting search for: '\(query)'")
             
-            print("🔍 Search returned \(profiles.count) profiles")
+            // First try with is_private column
+            do {
+                let response = try await supabaseClient
+                    .from("profiles")
+                    .select("id, username, display_name, avatar_url, bio, is_private, followers_count, following_count, created_at, public_key")
+                    .ilike("username", pattern: "%\(query)%")
+                    .limit(20)
+                    .execute()
+                
+                print("🔍 Raw response status: \(response.status)")
+                let responseString = String(data: response.data, encoding: .utf8) ?? "Unable to decode"
+                print("🔍 Raw response data: \(responseString)")
+                
+                // Use custom decoder for date formatting
+                let decoder = JSONDecoder()
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                decoder.dateDecodingStrategy = .formatted(formatter)
+                
+                let profiles: [UserProfile] = try decoder.decode([UserProfile].self, from: response.data)
+                
+                print("🔍 Search returned \(profiles.count) profiles:")
+                for profile in profiles {
+                    print("  - \(profile.username) (isPrivate: \(profile.isPrivate ?? false))")
+                }
+                
+                return profiles
+            } catch {
+                print("⚠️ Search with is_private failed, trying fallback: \(error)")
+                
+                // Fallback without is_private column
+                let response = try await supabaseClient
+                    .from("profiles")
+                    .select("id, username, display_name, avatar_url, bio, followers_count, following_count, created_at, public_key")
+                    .ilike("username", pattern: "%\(query)%")
+                    .limit(20)
+                    .execute()
+                
+                print("🔍 Fallback response status: \(response.status)")
+                let responseString = String(data: response.data, encoding: .utf8) ?? "Unable to decode"
+                print("🔍 Fallback response data: \(responseString)")
+                
+                // Use custom decoder for date formatting
+                let decoder = JSONDecoder()
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = TimeZone(secondsFromGMT: 0)
+                decoder.dateDecodingStrategy = .formatted(formatter)
+                
+                let profiles: [UserProfile] = try decoder.decode([UserProfile].self, from: response.data)
+                
+                print("🔍 Fallback search returned \(profiles.count) profiles:")
+                for profile in profiles {
+                    print("  - \(profile.username) (isPrivate: nil - column missing)")
+                }
+                
+                return profiles
+            }
+        } catch {
+            print("❌ Search error details: \(error)")
+            Logger.shared.error("Failed to search users: \(error)")
+            throw ViewModelError.network("Failed to search users: \(error.localizedDescription)")
+        }
+    }
+    
+    /// DEBUG: Get all profiles for debugging
+    func debugGetAllProfiles() async throws -> [UserProfile] {
+        do {
+            print("🔍 DEBUG - Getting all profiles...")
+            
+            let response = try await supabaseClient
+                .from("profiles")
+                .select("id, username, display_name, avatar_url, bio, is_private, followers_count, following_count, created_at, public_key")
+                .limit(100)
+                .execute()
+            
+            print("🔍 DEBUG - All profiles response status: \(response.status)")
+            let responseString = String(data: response.data, encoding: .utf8) ?? "Unable to decode"
+            print("🔍 DEBUG - All profiles data: \(responseString)")
+            
+            // Use custom decoder for date formatting
+            let decoder = JSONDecoder()
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXXXX"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            decoder.dateDecodingStrategy = .formatted(formatter)
+            
+            let profiles: [UserProfile] = try decoder.decode([UserProfile].self, from: response.data)
+            
+            print("🔍 DEBUG - Found \(profiles.count) total profiles:")
+            for profile in profiles {
+                print("  - \(profile.username) (isPrivate: \(profile.isPrivate ?? false))")
+            }
+            
             return profiles
         } catch {
-            Logger.shared.error("Failed to search users: \(error)")
-            throw ViewModelError.network("Failed to search users")
+            print("❌ DEBUG - Get all profiles error: \(error)")
+            throw error
         }
     }
 }

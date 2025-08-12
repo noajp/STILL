@@ -39,11 +39,11 @@ struct PhotoPickerView: View {
     @State private var imageOffset: CGSize = .zero // 画像のドラッグオフセット
     @State private var currentImageOffset: CGSize = .zero // 現在の画像位置を保存
 
-    @Environment(\.colorScheme) var colorScheme
+    // Color scheme now handled by MinimalDesign
     
     var body: some View {
         ZStack {
-            (colorScheme == .dark ? Color.black : Color.white).ignoresSafeArea()
+            MinimalDesign.Colors.background.ignoresSafeArea()
             
             GeometryReader { geometry in
                 VStack(spacing: 0) {
@@ -61,7 +61,7 @@ struct PhotoPickerView: View {
                         VStack(spacing: 0) {
                             // 上部スペース
                             Rectangle()
-                                .fill(colorScheme == .dark ? Color.black : Color.white)
+                                .fill(MinimalDesign.Colors.background)
                                 .frame(height: 20)
                             
                             
@@ -69,17 +69,17 @@ struct PhotoPickerView: View {
                             HStack {
                                 Text("Library")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                                    .foregroundColor(MinimalDesign.Colors.primary)
                                     .padding(.leading, 16)
                                 
                                 Spacer()
                             }
                             .frame(height: 40)
-                            .background(colorScheme == .dark ? Color.black : Color.white)
+                            .background(MinimalDesign.Colors.background)
                             
                             // 下部スペース
                             Rectangle()
-                                .fill(colorScheme == .dark ? Color.black : Color.white)
+                                .fill(MinimalDesign.Colors.background)
                                 .frame(height: 12)
                         }
                         
@@ -87,7 +87,7 @@ struct PhotoPickerView: View {
                         ScrollView(showsIndicators: false) {
                             thumbnailGridView
                         }
-                        .background(colorScheme == .dark ? Color.black : Color.white)
+                        .background(MinimalDesign.Colors.background)
                     }
                 }
             }
@@ -152,14 +152,14 @@ struct PhotoPickerView: View {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 22, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .foregroundColor(MinimalDesign.Colors.primary)
             }
             
             Spacer()
             
             Text("New Post")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(colorScheme == .dark ? .white : .black)
+                .foregroundColor(MinimalDesign.Colors.primary)
             
             Spacer()
             
@@ -212,7 +212,7 @@ struct PhotoPickerView: View {
             ZStack {
                 // 背景（ビューポートの範囲を示す）
                 Rectangle()
-                    .fill(colorScheme == .dark ? Color.black : Color.white)
+                    .fill(MinimalDesign.Colors.background)
                 
                 if let image = selectedImage {
                     // ビューポート（クリッピング領域）を画面中央に配置
@@ -234,9 +234,9 @@ struct PhotoPickerView: View {
                     VStack(spacing: 10) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.system(size: 40))
-                            .foregroundColor(colorScheme == .dark ? .gray : .gray)
+                            .foregroundColor(MinimalDesign.Colors.tertiary)
                         Text("写真を選択")
-                            .foregroundColor(colorScheme == .dark ? .gray : .gray)
+                            .foregroundColor(MinimalDesign.Colors.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -273,10 +273,10 @@ struct PhotoPickerView: View {
                                     VStack {
                                         Text(rawInfo.displayFormat)
                                             .font(.system(size: 8, weight: .bold))
-                                            .foregroundColor(.black)
+                                            .foregroundColor(.white)
                                             .padding(.horizontal, 4)
                                             .padding(.vertical, 2)
-                                            .background(Color.white.opacity(0.9))
+                                            .background(MinimalDesign.Colors.accentRed.opacity(0.9))
                                             .cornerRadius(4)
                                         Spacer()
                                     }

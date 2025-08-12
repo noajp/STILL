@@ -7,7 +7,7 @@ import SwiftUI
 
 struct CustomTabBar: View {
     @Binding var selectedTab: Int
-    @Binding var showGridMode: Bool
+
     let unreadMessageCount: Int
     let onCreatePost: () -> Void
     let isInSingleView: Bool
@@ -16,6 +16,8 @@ struct CustomTabBar: View {
     let onProfileDoubleTap: (() -> Void)?
     @Binding var isUserSearchMode: Bool
     let onMessageDoubleTap: (() -> Void)?
+    let onTabReset: (() -> Void)?
+    
     
     @Environment(\.colorScheme) var colorScheme
     
@@ -29,49 +31,52 @@ struct CustomTabBar: View {
         return selectedTab == 2 ? "message.fill" : "message"
     }
     
+    // ギャラリーアイコンの名前を計算
+    private var galleryIconName: String {
+        return selectedTab == 1 ? "square.grid.3x3.fill" : "square.grid.3x3"
+    }
+    
     var body: some View {
         HStack(spacing: 0) {
             // フィードボタン（正方形）
-            Button(action: {
-                if isInSingleView {
-                    // シングルビューからグリッドビューに戻る
-                    onBackToGrid?()
-                } else if selectedTab == 0 {
-                    showGridMode.toggle()
-                } else {
-                    selectedTab = 0
-                }
-            }) {
-                Group {
-                    if showGridMode && selectedTab == 0 {
-                        // グリッドモード時
-                        Image(systemName: "square.grid.3x3.fill")
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundColor(MinimalDesign.Colors.accentRed)
-                    } else if selectedTab == 0 {
-                        // シングルモード時（選択中）
-                        Image(systemName: "square.fill")
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundColor(MinimalDesign.Colors.accentRed)
-                    } else {
-                        // 非選択時
-                        Image(systemName: showGridMode ? "square.grid.3x3" : "square")
-                            .font(.system(size: 20, weight: .light))
-                            .foregroundColor(.white)
-                    }
-                }
+            VStack {
+                Image(systemName: selectedTab == 0 ? "square.fill" : "square")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundColor(selectedTab == 0 ? MinimalDesign.Colors.accentRed : .white)
             }
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if isInSingleView {
+                    onBackToGrid?()
+                } else if selectedTab == 0 {
+                    // Already on home tab - reset to initial state
+                    onTabReset?()
+                } else {
+                    selectedTab = 0
+                    onTabReset?()
+                }
+            }
             
-            // 雑誌ボタン
-            Button(action: {
-                selectedTab = 1
-            }) {
-                Image(systemName: selectedTab == 1 ? "book.fill" : "book")
+            // ギャラリーボタン（グリッド）
+            VStack {
+                Image(systemName: galleryIconName)
                     .font(.system(size: 20, weight: .light))
                     .foregroundColor(selectedTab == 1 ? MinimalDesign.Colors.accentRed : .white)
             }
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if selectedTab == 1 {
+                    // Already on gallery tab - reset to initial state
+                    onTabReset?()
+                } else {
+                    selectedTab = 1
+                    onTabReset?()
+                }
+            }
+            
+
             
             // 投稿ボタン（中央）
             Button(action: onCreatePost) {
@@ -113,7 +118,13 @@ struct CustomTabBar: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
-                selectedTab = 2
+                if selectedTab == 2 {
+                    // Already on messages tab - reset to initial state
+                    onTabReset?()
+                } else {
+                    selectedTab = 2
+                    onTabReset?()
+                }
             }
             
             // アカウントボタン（シングルタップで検索モード切り替え）
@@ -125,7 +136,13 @@ struct CustomTabBar: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
-                selectedTab = 3
+                if selectedTab == 3 {
+                    // Already on profile tab - reset to initial state
+                    onTabReset?()
+                } else {
+                    selectedTab = 3
+                    onTabReset?()
+                }
             }
         }
         .padding(.horizontal, 20)

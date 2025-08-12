@@ -179,12 +179,7 @@ struct ModernPostsTabSection: View {
                     action: { selectedTab = 0 }
                 )
                 
-                ProfileTabButton(
-                    selectedIcon: "book.fill",
-                    unselectedIcon: "book",
-                    isSelected: selectedTab == 1,
-                    action: { selectedTab = 1 }
-                )
+
             }
             .padding(.horizontal, MinimalDesign.Spacing.sm)
             .padding(.vertical, 8)
@@ -224,13 +219,7 @@ struct ModernPostsTabSection: View {
                                 }
                         }
                     }
-                case 1:
-                    EmptyStateView(
-                        icon: "doc.text",
-                        title: "No Articles Yet",
-                        message: "Write your first article to share your thoughts"
-                    )
-                    .frame(height: 300)
+
                 default:
                     EmptyView()
                 }

@@ -60,7 +60,7 @@ struct NotificationListView: View {
                             // Section title
                             Text("Follow Requests")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                             
                             Spacer()
                             
@@ -80,7 +80,7 @@ struct NotificationListView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(Color.gray.opacity(0.05))
+                        .background(Color.gray.opacity(0.15))
                         .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -109,11 +109,12 @@ struct NotificationListView: View {
                         
                         Text("No Notifications")
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                         
-                        Text("You'll see notifications for likes, follows,\nand messages here")
+                        Text("You'll see notifications for likes, follows,
+and messages here")
                             .font(.system(size: 14))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -256,7 +257,7 @@ struct NotificationRowView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(notification.displayMessage)
                                 .font(.system(size: 14, weight: notification.isRead ? .regular : .medium))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                                 .lineLimit(2)
                         }
                     }
@@ -296,7 +297,7 @@ struct NotificationRowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(notification.isRead ? Color.clear : Color.gray.opacity(0.05))
+        .background(MinimalDesign.Colors.background)
         .navigationDestination(isPresented: $navigateToProfile) {
             if let userId = notification.relatedUserId {
                 OtherUserProfileView(userId: userId)

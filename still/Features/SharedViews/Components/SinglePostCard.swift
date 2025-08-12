@@ -10,20 +10,52 @@ struct SinglePostCard: View {
     let onLikeTapped: (Post) -> Void
     @State private var showingProfile = false
     @State private var showingComments = false
+    @State private var isImageLoaded = false
     
     var body: some View {
         VStack(spacing: 0) {
             // 画像部分のみ
             imageSection
             
-            // ユーザー情報セクション
-            userInfoSection
+            // ユーザー情報セクション - Only show when image is loaded
+            if isImageLoaded {
+                userInfoSection
+            } else {
+                // Placeholder while loading
+                HStack(spacing: 8) {
+                    // Avatar placeholder
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(Color(hex: "1A1A1A"))
+                        .frame(width: 24, height: 24)
+                        .shimmerEffect()
+                    
+                    // Username placeholders
+                    VStack(alignment: .leading, spacing: 4) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(hex: "1A1A1A"))
+                            .frame(width: 120, height: 16)
+                            .shimmerEffect()
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(hex: "1A1A1A"))
+                            .frame(width: 80, height: 14)
+                            .shimmerEffect()
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+                .background(Color(hex: "121212"))
+            }
             
-            // アクション部分
-            actionSection
+            // アクション部分 - Only show when image is loaded
+            if isImageLoaded {
+                actionSection
+            }
             
-            // キャプション
-            if let caption = post.caption, !caption.isEmpty {
+            // キャプション - Only show when image is loaded
+            if isImageLoaded, let caption = post.caption, !caption.isEmpty {
                 captionSection(caption: caption)
             }
         }
@@ -62,7 +94,7 @@ struct SinglePostCard: View {
                                 .fill(Color(hex: "1e1e1e")) // 少し明るくして区別
                         }
                     }
-                    .frame(width: 36, height: 36)
+                    .frame(width: 24, height: 24)
                     .clipShape(RoundedRectangle(cornerRadius: 0))
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -122,7 +154,7 @@ struct SinglePostCard: View {
                 // プロフィールアイコン用の正方形背景
                 Rectangle()
                     .fill(Color(hex: "121212"))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 24, height: 24)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     // ユーザー名用の長方形背景
@@ -143,13 +175,13 @@ struct SinglePostCard: View {
                     .fill(Color(hex: "121212"))
                     .frame(width: 40, height: 12)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 12)
             
             // 実際のユーザー情報（データがロードされたら表示）
             if post.user != nil {
                 userHeader
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 12)
             }
         }
@@ -165,7 +197,7 @@ struct SinglePostCard: View {
                 Rectangle()
                     .fill(Color(hex: "121212"))
                     .frame(maxWidth: .infinity)
-                    .aspectRatio(1.0, contentMode: .fit)
+                    .aspectRatio(contentMode: .fit)
                 
                 // 画像がある場合のみオーバーレイ
                 if let _ = URL(string: post.mediaUrl) {
@@ -174,24 +206,29 @@ struct SinglePostCard: View {
                         case .success(let image):
                             image
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .onAppear {
+                                    isImageLoaded = true
+                                }
                         case .failure(_):
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundColor(.white)
+                            Rectangle()
+                                .fill(Color(hex: "1A1A1A"))
+                                .shimmerEffect()
                         case .empty:
-                            ProgressView()
-                                .scaleEffect(1.2)
-                                .tint(.white)
+                            Rectangle()
+                                .fill(Color(hex: "1A1A1A"))
+                                .shimmerEffect()
                         @unknown default:
                             EmptyView()
                         }
                     }
                 } else {
-                    // URLがない場合は写真アイコンを表示
-                    Image(systemName: "photo")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
+                    // URLがない場合はプレースホルダーを表示
+                    Rectangle()
+                        .fill(Color(hex: "1A1A1A"))
+                        .shimmerEffect()
                 }
             }
             .background(Color(hex: "121212"))
@@ -200,12 +237,12 @@ struct SinglePostCard: View {
     
     // MARK: - アクションセクション
     private var actionSection: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             // いいねボタン
             Button(action: { onLikeTapped(post) }) {
                 HStack(spacing: 4) {
                     Image(systemName: post.isLikedByMe ? "heart.fill" : "heart")
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(post.isLikedByMe ? .red : .white)
                     
                     if post.likeCount > 0 {
@@ -221,7 +258,7 @@ struct SinglePostCard: View {
             Button(action: { showingComments = true }) {
                 HStack(spacing: 4) {
                     Image(systemName: "message")
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundColor(.white)
                     
                     if post.commentCount > 0 {
@@ -238,12 +275,12 @@ struct SinglePostCard: View {
             // シェアボタン
             Button(action: {}) {
                 Image(systemName: "paperplane")
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundColor(.primary)
             }
             .buttonStyle(PlainButtonStyle())
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
         .padding(.vertical, 12)
     }
     
@@ -258,7 +295,7 @@ struct SinglePostCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
         .padding(.bottom, 16)
     }
     

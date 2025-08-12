@@ -33,13 +33,13 @@ struct RemoteImageView: View {
                 } else if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color(hex: "1A1A1A"))
                 } else {
                     Image(systemName: "photo")
                         .font(.system(size: 32))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color(hex: "1A1A1A"))
                 }
             } else if let uiImage = UIImage(named: imageURL) {
                 // ローカル画像
