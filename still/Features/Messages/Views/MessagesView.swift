@@ -127,6 +127,11 @@ struct MessagesView: View {
                 }
             }
 
+        .onReceive(NotificationCenter.default.publisher(for: .resetMessagesNavigation)) { _ in
+            selectedConversation = nil
+            isNavigatingToNewMessage = false
+            showNewMessage = false
+        }
         .accentColor(MinimalDesign.Colors.accentRed)
         .background(MinimalDesign.Colors.background)
         .navigationBarHidden(true)

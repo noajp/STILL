@@ -28,24 +28,24 @@ struct PhotoPickerView: View {
     }
     @State private var selectedImage: UIImage?
     @State private var selectedImages: [UIImage] = []
-    @State private var recentPhotos: [UIImage] = []
-    @State private var recentAssets: [PHAsset] = []
     @State private var selectedIndex: Int? = nil
     @State private var selectedAsset: PHAsset? = nil
-    @State private var isLoadingPhotos = true
-    @State private var rawProcessor = RAWImageProcessor.shared
+    @State private var rawProcessor: RAWImageProcessor = RAWImageProcessor.shared
+    @StateObject private var photoCacheManager: PhotoCacheManager = PhotoCacheManager.shared
     @State private var showingCamera = false
     @State private var isSquareMode = true // デフォルトは正方形モード
     @State private var imageOffset: CGSize = .zero // 画像のドラッグオフセット
     @State private var currentImageOffset: CGSize = .zero // 現在の画像位置を保存
+    @State private var showingPhotoEditor = false
 
     // Color scheme now handled by MinimalDesign
     
     var body: some View {
-        ZStack {
-            MinimalDesign.Colors.background.ignoresSafeArea()
-            
-            GeometryReader { geometry in
+        NavigationStack {
+            ZStack {
+                MinimalDesign.Colors.background.ignoresSafeArea()
+                
+                GeometryReader { geometry in
                 VStack(spacing: 0) {
                     // ヘッダー (固定高さ: 56pt)
                     headerView
@@ -62,7 +62,7 @@ struct PhotoPickerView: View {
                             // 上部スペース
                             Rectangle()
                                 .fill(MinimalDesign.Colors.background)
-                                .frame(height: 20)
+                                .frame(height: 12)
                             
                             
                             // Library タイトル
@@ -80,7 +80,7 @@ struct PhotoPickerView: View {
                             // 下部スペース
                             Rectangle()
                                 .fill(MinimalDesign.Colors.background)
-                                .frame(height: 12)
+                                .frame(height: 10)
                         }
                         
                         // セクション3: カメラロール（残り領域）
@@ -92,8 +92,17 @@ struct PhotoPickerView: View {
                 }
             }
         }
+        } // NavigationStack
         .onAppear {
-            loadRecentPhotos()
+            Task {
+                await photoCacheManager.loadPhotosIfNeeded()
+                // 最初の画像を選択
+                if !photoCacheManager.recentPhotos.isEmpty && !photoCacheManager.recentAssets.isEmpty {
+                    selectedAsset = photoCacheManager.recentAssets[0]
+                    selectedIndex = 0
+                    loadHighQualityImage(for: photoCacheManager.recentAssets[0])
+                }
+            }
         }
         .fullScreenCover(isPresented: $showingCamera) {
             CustomCameraView { capturedImage in
@@ -101,6 +110,33 @@ struct PhotoPickerView: View {
                 selectedImages = [capturedImage]
                 showingCamera = false
             }
+        }
+        .navigationDestination(isPresented: $showingPhotoEditor) {
+            Group {
+                if let asset = selectedAsset, let image = selectedImage {
+                    let rawInfo = rawProcessor.getRAWInfo(for: asset)
+                    let editorData = PhotoEditorData(asset: asset, rawInfo: rawInfo, previewImage: image)
+                    
+                    ModernPhotoEditorView(
+                        editorData: editorData,
+                        onComplete: { editedImage in
+                            showingPhotoEditor = false
+                            if let handler = onImageSelected {
+                                handler(editorData)
+                            }
+                            dismiss()
+                        },
+                        onCancel: {
+                            showingPhotoEditor = false
+                        }
+                    )
+                } else {
+                    // Fallback to prevent white screen
+                    Color.black.ignoresSafeArea()
+                }
+            }
+            .navigationBarHidden(true)
+            .background(Color.black.ignoresSafeArea())
         }
     }
     
@@ -113,10 +149,9 @@ struct PhotoPickerView: View {
     
     private func getPreviewHeight(geometry: GeometryProxy) -> CGFloat {
         let screenWidth = geometry.size.width
-        // ビューポート幅（画面幅の85%）
-        let viewportWidth = screenWidth * 0.85
-        // 4:3のアスペクト比で固定
-        return viewportWidth * (3.0 / 4.0)
+        let screenHeight = geometry.size.height
+        // 画面高さの約55%を写真表示に使用
+        return screenHeight * 0.55
     }
     
     private func calculateImageSize(image: UIImage, in geometry: GeometryProxy) -> CGSize {
@@ -124,7 +159,7 @@ struct PhotoPickerView: View {
         let viewWidth = geometry.size.width
         
         // ビューポートサイズ（4:3固定）
-        let viewportWidth = viewWidth * 0.85
+        let viewportWidth = viewWidth * 0.98
         let viewportHeight = getPreviewHeight(geometry: geometry)
         let viewportAspectRatio = viewportWidth / viewportHeight // 4:3 = 1.333...
         
@@ -163,43 +198,21 @@ struct PhotoPickerView: View {
             
             Spacer()
             
-            Button("Edit") {
-                print("🔵 次へボタンが押されました")
-                
-                if let asset = selectedAsset {
-                    print("🔵 Asset選択済み: \(asset)")
-                    // RAW画像かどうかを判定してエディターに渡す
-                    let rawInfo = rawProcessor.getRAWInfo(for: asset)
-                    print("🔵 RAW情報: \(rawInfo)")
-                    
-                    // AssetとRAW情報をセットで渡す
-                    let editorData = PhotoEditorData(asset: asset, rawInfo: rawInfo, previewImage: selectedImage)
-                    print("🔵 Completion handler呼び出し")
-                    print("🔵 onImageSelected is nil: \(onImageSelected == nil)")
-                    
-                    // completion handlerで直接渡す
-                    if let handler = onImageSelected {
-                        print("🔵 ハンドラー実行中...")
-                        handler(editorData)
-                        print("🔵 ハンドラー実行完了")
-                    } else {
-                        print("🔴 ハンドラーがnil!")
-                    }
-                } else if let image = selectedImage {
-                    print("🔵 UIImage fallback")
-                    // UIImageの場合、ダミーのassetでPhotoEditorDataを作成
-                    if let asset = selectedAsset {
-                        let rawInfo = RAWImageInfo(isRAW: false, format: nil, fileSize: 0, 
-                                                 dimensions: image.size, asset: asset)
-                        let editorData = PhotoEditorData(asset: asset, rawInfo: rawInfo, previewImage: image)
-                        onImageSelected?(editorData)
-                    }
-                } else {
-                    print("🔴 画像が選択されていません")
-                }
+            // Edit button - Red circle with white text
+            Button(action: {
+                guard let _ = selectedImage else { return }
+                showingPhotoEditor = true
+            }) {
+                Text("Edit")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(selectedImage != nil ? MinimalDesign.Colors.accentRed : Color.gray.opacity(0.5))
+                    )
             }
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundColor(selectedImage != nil ? MinimalDesign.Colors.accentRed : .gray)
             .disabled(selectedImage == nil)
         }
         .padding(.horizontal, 16)
@@ -215,20 +228,12 @@ struct PhotoPickerView: View {
                     .fill(MinimalDesign.Colors.background)
                 
                 if let image = selectedImage {
-                    // ビューポート（クリッピング領域）を画面中央に配置
-                    ZStack {
-                        Rectangle()
-                            .fill(Color.clear)
-                            .frame(width: geometry.size.width * 0.85, height: getPreviewHeight(geometry: geometry))
-                        
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit) // 全画面縮小表示
-                            .frame(width: geometry.size.width * 0.85, height: getPreviewHeight(geometry: geometry))
-                    }
-                    .frame(width: geometry.size.width * 0.85, height: getPreviewHeight(geometry: geometry))
-                    .clipped()
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                    // 写真を中央に配置
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .background(Color.black.opacity(0.02))
                 } else {
                     // プレースホルダー
                     VStack(spacing: 10) {
@@ -248,25 +253,25 @@ struct PhotoPickerView: View {
     
     
     private var thumbnailGridView: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1), count: 4), spacing: 1) {
-            ForEach(0..<recentPhotos.count, id: \.self) { index in
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 7), count: 4), spacing: 7) {
+            ForEach(0..<photoCacheManager.recentPhotos.count, id: \.self) { index in
                 Button(action: {
                     selectedIndex = index
-                    selectedAsset = recentAssets[index]
+                    selectedAsset = photoCacheManager.recentAssets[index]
                     // 高品質な画像を選択時に取得
-                    loadHighQualityImage(for: recentAssets[index])
+                    loadHighQualityImage(for: photoCacheManager.recentAssets[index])
                     // オフセットをリセット
                     resetImagePosition()
                 }) {
                     ZStack(alignment: .topLeading) {
-                        Image(uiImage: recentPhotos[index])
+                        Image(uiImage: photoCacheManager.recentPhotos[index])
                             .resizable()
                             .aspectRatio(1, contentMode: .fill)
                             .clipped()
                         
                         // RAWバッジ
-                        if index < recentAssets.count {
-                            let rawInfo = rawProcessor.getRAWInfo(for: recentAssets[index])
+                        if index < photoCacheManager.recentAssets.count {
+                            let rawInfo = rawProcessor.getRAWInfo(for: photoCacheManager.recentAssets[index])
                             if rawInfo.isRAW {
                                 HStack {
                                     Spacer()
@@ -309,7 +314,7 @@ struct PhotoPickerView: View {
             }
             
             // プレースホルダー
-            if isLoadingPhotos {
+            if photoCacheManager.isLoading {
                 ForEach(0..<12, id: \.self) { _ in
                     Rectangle()
                         .fill(Color(.tertiarySystemBackground))
@@ -323,78 +328,20 @@ struct PhotoPickerView: View {
     
     // MARK: - Methods
     
-    private func loadRecentPhotos() {
-        Task {
-            let fetchOptions = PHFetchOptions()
-            fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-            fetchOptions.fetchLimit = 50
-            
-            let assets = PHAsset.fetchAssets(with: .image, options: fetchOptions)
-            var photos: [UIImage] = []
-            var assetArray: [PHAsset] = []
-            
-            let imageManager = PHImageManager.default()
-            let targetSize = CGSize(width: 800, height: 800) // 画質向上のためサイズ増加
-            let options = PHImageRequestOptions()
-            options.isSynchronous = true
-            options.deliveryMode = .highQualityFormat
-            options.resizeMode = .exact
-            
-            assets.enumerateObjects { asset, _, _ in
-                imageManager.requestImage(
-                    for: asset,
-                    targetSize: targetSize,
-                    contentMode: .aspectFit,
-                    options: options
-                ) { image, _ in
-                    if let image = image {
-                        photos.append(image)
-                        assetArray.append(asset)
-                    }
-                }
-            }
-            
-            await MainActor.run {
-                self.recentPhotos = photos
-                self.recentAssets = assetArray
-                self.isLoadingPhotos = false
-                if !photos.isEmpty && !assetArray.isEmpty {
-                    self.selectedAsset = assetArray[0]
-                    self.selectedIndex = 0
-                    // 最初の画像を高品質で取得
-                    self.loadHighQualityImage(for: assetArray[0])
-                }
-            }
-        }
-    }
-    
     private func loadHighQualityImage(for asset: PHAsset) {
-        let imageManager = PHImageManager.default()
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .highQualityFormat
-        options.isNetworkAccessAllowed = true
-        options.resizeMode = .none // オリジナルサイズで取得
-        
-        imageManager.requestImage(
-            for: asset,
-            targetSize: PHImageManagerMaximumSize, // 最大サイズで取得
-            contentMode: .aspectFit,
-            options: options
-        ) { image, _ in
-            DispatchQueue.main.async {
-                if let image = image {
-                    self.selectedImage = image
-                    self.selectedImages = [image]
-                    
-                    // 画像のアスペクト比に基づいてモードを自動設定
-                    let aspectRatio = image.size.width / image.size.height
-                    // 横長の写真（16:9より横長）の場合は元画像モードに
-                    if aspectRatio > 1.7 {
-                        self.isSquareMode = false
-                    } else {
-                        // それ以外は正方形モード
-                        self.isSquareMode = true
-                    }
+        Task {
+            if let image = await photoCacheManager.getHighQualityImage(for: asset) {
+                selectedImage = image
+                selectedImages = [image]
+                
+                // 画像のアスペクト比に基づいてモードを自動設定
+                let aspectRatio = image.size.width / image.size.height
+                // 横長の写真（16:9より横長）の場合は元画像モードに
+                if aspectRatio > 1.7 {
+                    isSquareMode = false
+                } else {
+                    // それ以外は正方形モード
+                    isSquareMode = true
                 }
             }
         }

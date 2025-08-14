@@ -7,9 +7,10 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthManager
     @StateObject private var viewModel = ProfileViewModel()
+    @State private var navigationPath = NavigationPath()
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(spacing: 20) {
                     // プロフィールヘッダー
@@ -43,10 +44,10 @@ struct ProfileView: View {
                             .padding(.top, 50)
                     } else {
                         LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 2),
-                            GridItem(.flexible(), spacing: 2),
-                            GridItem(.flexible(), spacing: 2)
-                        ], spacing: 2) {
+                            GridItem(.flexible(), spacing: 7),
+                            GridItem(.flexible(), spacing: 7),
+                            GridItem(.flexible(), spacing: 7)
+                        ], spacing: 7) {
                             ForEach(viewModel.posts) { post in
                                 RemoteImageView(imageURL: post.mediaUrl)
                                     .aspectRatio(1, contentMode: .fill)
@@ -70,6 +71,9 @@ struct ProfileView: View {
                 }
             }
             .background(MinimalDesign.Colors.background)
+            .onReceive(NotificationCenter.default.publisher(for: .resetProfileNavigation)) { _ in
+                navigationPath = NavigationPath()
+            }
         }
     }
 }

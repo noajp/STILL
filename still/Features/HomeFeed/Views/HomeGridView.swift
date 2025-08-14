@@ -46,6 +46,9 @@ struct HomeGridView: View {
     /// Environment dismiss handler
     @Environment(\.dismiss) private var dismiss
     
+    /// Navigation state for tab reset functionality
+    @State private var navigationPath = NavigationPath()
+    
     // MARK: - Filter State
     
     @State private var selectedFilter: GridFilter = .all
@@ -120,6 +123,18 @@ struct HomeGridView: View {
         .fullScreenCover(isPresented: $showingCamera) {
             CameraView(isForStory: true)
                 .ignoresSafeArea()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .resetHomeNavigation)) { _ in
+            // Reset navigation state
+            navigationPath = NavigationPath()
+            // Reset view model state
+            gridViewModel.clearNavigation()
+            // Reset local state
+            selectedFilter = .all
+            selectedSort = .newest
+            searchText = ""
+            showFilters = false
+            showingCamera = false
         }
     }
     

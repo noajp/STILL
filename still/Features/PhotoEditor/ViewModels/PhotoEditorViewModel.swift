@@ -29,7 +29,13 @@ class PhotoEditorViewModel: ObservableObject {
     private var originalCIImage: CIImage
     private let imageProcessor = ImageProcessor()
     private let coreImageManager = CoreImageManager.shared
+    private let rawProcessor = RAWImageProcessor.shared
     private var cancellables = Set<AnyCancellable>()
+    
+    // RAW-specific properties
+    private var isRAWImage: Bool = false
+    private var rawOptions: [String: Any] = [:]
+    private var dngURL: URL?
     
     // MARK: - Initialization
     init(image: UIImage) {
@@ -70,11 +76,12 @@ class PhotoEditorViewModel: ObservableObject {
         // 初期画像設定
         self.currentImage = self.originalImage
         self.ciImage = self.originalCIImage
+        self.isRAWImage = rawInfo.isRAW
         
         // RAW画像を非同期で読み込み
         Task {
             if rawInfo.isRAW {
-                await loadRAWImage(asset: asset, rawInfo: rawInfo)
+                await loadEnhancedRAWProcessing(asset: asset)
             }
             await generateFilterThumbnails()
         }
@@ -121,51 +128,284 @@ class PhotoEditorViewModel: ObservableObject {
         guard let image = currentImage else { return nil }
         return imageProcessor.exportImage(image, quality: quality)
     }
+
+    
+    /// カスタムプリセット適用結果を直接更新
+    func updateProcessedImage(_ image: UIImage) {
+        self.currentImage = image
+        self.ciImage = CIImage(image: image)
+    }
+    
+    /// Auto White Balance - Analyze image and return optimal temperature and tint
+    func analyzeAutoWhiteBalance() -> (temperature: Float, tint: Float) {
+        let ciImage = originalCIImage
+        
+        // Create a small version for faster analysis
+        let extent = ciImage.extent
+        let scale = min(1.0, 500.0 / max(extent.width, extent.height))
+        let scaledImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        
+        // Get average color values
+        let avgFilter = CIFilter(name: "CIAreaAverage", parameters: [
+            kCIInputImageKey: scaledImage,
+            kCIInputExtentKey: CIVector(cgRect: scaledImage.extent)
+        ])
+        
+        guard let outputImage = avgFilter?.outputImage else {
+            return (temperature: 0.0, tint: 0.0)
+        }
+        
+        // Extract RGB values
+        let context = CIContext()
+        var bitmap = [UInt8](repeating: 0, count: 4)
+        context.render(outputImage, toBitmap: &bitmap, rowBytes: 4, 
+                      bounds: CGRect(x: 0, y: 0, width: 1, height: 1), 
+                      format: .RGBA8, colorSpace: CGColorSpaceCreateDeviceRGB())
+        
+        let r = Float(bitmap[0]) / 255.0
+        let g = Float(bitmap[1]) / 255.0
+        let b = Float(bitmap[2]) / 255.0
+        
+        // Calculate color temperature correction and map to 0-100 range
+        // Warmer if too blue, cooler if too yellow
+        let tempCorrection = (b - r) * 0.5  // Range: -0.5 to 0.5
+        let temperature = 50 + (tempCorrection * 50)  // Map to 25-75 range
+        
+        // Calculate tint correction (green/magenta balance) and map to 0-100 range
+        let tintCorrection = ((r + b) / 2.0 - g) * 0.3  // Range: -0.3 to 0.3
+        let tint = 50 + (tintCorrection * 83.33)  // Map to 25-75 range
+        
+        return (temperature: max(25, min(75, temperature)), tint: max(25, min(75, tint)))
+    }
+    
+    /// Apply Auto White Balance
+    func applyAutoWhiteBalance() {
+        let (temperature, tint) = analyzeAutoWhiteBalance()
+        
+        // Create new filter settings with auto WB values
+        var newSettings = FilterSettings()
+        newSettings.temperature = temperature
+        newSettings.tint = tint
+        
+        // Apply the settings
+        applyFilterSettings(newSettings, toneCurve: ToneCurve())
+    }
+    
+    // MARK: - RAW/DNG Processing
+    
+    /// Load enhanced RAW processing with DNG conversion
+    private func loadEnhancedRAWProcessing(asset: PHAsset) async {
+        do {
+            print("🔍 Loading enhanced RAW processing...")
+            
+            // Check if it's actually a RAW image
+            guard rawProcessor.isRAWAsset(asset) else {
+                print("⚠️ Asset is not RAW format")
+                return
+            }
+            
+            // Load RAW image with enhanced processing
+            let (ciImage, options) = try await rawProcessor.loadRAWImageForEditing(asset: asset)
+            
+            await MainActor.run {
+                self.originalCIImage = ciImage
+                self.ciImage = ciImage
+                self.rawOptions = options
+                
+                // Create UIImage from CIImage
+                let context = CIContext()
+                if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+                    self.originalImage = UIImage(cgImage: cgImage)
+                    self.currentImage = self.originalImage
+                }
+                
+                print("✅ Enhanced RAW processing completed")
+            }
+            
+            // Optionally convert to DNG for advanced editing
+            if isRAWImage {
+                try await convertToDNGIfNeeded(asset: asset)
+            }
+            
+        } catch {
+            print("❌ Failed to load enhanced RAW processing: \(error)")
+        }
+    }
+    
+    /// Convert RAW to DNG for advanced editing
+    private func convertToDNGIfNeeded(asset: PHAsset) async throws {
+        print("🔄 Converting RAW to DNG...")
+        
+        let dngURL = try await rawProcessor.convertToDNG(asset: asset)
+        
+        await MainActor.run {
+            self.dngURL = dngURL
+            print("✅ DNG conversion completed: \(dngURL)")
+        }
+    }
+    
+    /// Export processed image as DNG
+    func exportAsDNG() async throws -> URL {
+        guard let currentCIImage = ciImage else {
+            throw RAWProcessingError.failedToCreateCIImage
+        }
+        
+        // Create DNG with current processing applied
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dngDirectory = documentsPath.appendingPathComponent("DNG", isDirectory: true)
+        try FileManager.default.createDirectory(at: dngDirectory, withIntermediateDirectories: true)
+        
+        let exportURL = dngDirectory.appendingPathComponent("processed_\(UUID().uuidString).dng")
+        
+        // Export with current processing
+        let context = CIContext()
+        try context.writeTIFFRepresentation(of: currentCIImage, to: exportURL, format: .ARGB8, colorSpace: currentCIImage.colorSpace ?? CGColorSpaceCreateDeviceRGB())
+        
+        return exportURL
+    }
+    
+    /// Get RAW processing capabilities
+    var rawProcessingCapabilities: [String: Any] {
+        return rawOptions
+    }
+    
+    /// Check if current image is RAW
+    var isProcessingRAW: Bool {
+        return isRAWImage
+    }
+    
+    /// Apply angle adjustments (rotation, straighten, flip)
+    func applyAngleAdjustments(rotation: Double, straighten: Double, flipHorizontal: Bool, flipVertical: Bool) {
+        Task {
+            var transformedImage = originalCIImage
+            
+            // Apply rotation
+            if rotation != 0 {
+                let rotationRadians = rotation * .pi / 180
+                let rotationTransform = CGAffineTransform(rotationAngle: CGFloat(rotationRadians))
+                transformedImage = transformedImage.transformed(by: rotationTransform)
+            }
+            
+            // Apply straighten (small angle correction)
+            if straighten != 0 {
+                let straightenRadians = straighten * .pi / 180
+                let straightenTransform = CGAffineTransform(rotationAngle: CGFloat(straightenRadians))
+                transformedImage = transformedImage.transformed(by: straightenTransform)
+            }
+            
+            // Apply horizontal flip
+            if flipHorizontal {
+                let flipTransform = CGAffineTransform(scaleX: -1, y: 1)
+                transformedImage = transformedImage.transformed(by: flipTransform)
+            }
+            
+            // Apply vertical flip
+            if flipVertical {
+                let flipTransform = CGAffineTransform(scaleX: 1, y: -1)
+                transformedImage = transformedImage.transformed(by: flipTransform)
+            }
+            
+            await MainActor.run {
+                self.ciImage = transformedImage
+                
+                // Create UIImage from transformed CIImage
+                let context = CIContext()
+                if let cgImage = context.createCGImage(transformedImage, from: transformedImage.extent) {
+                    self.currentImage = UIImage(cgImage: cgImage)
+                }
+            }
+        }
+    }
     
     /// フィルター設定を適用
     func applyFilterSettings(_ settings: FilterSettings, toneCurve: ToneCurve = ToneCurve()) {
         Task {
             var filteredImage = originalCIImage
             
+            // White Balance (Temperature and Tint) adjustment
+            if settings.temperature != 50 || settings.tint != 50 {
+                if let tempTintFilter = CIFilter(name: "CITemperatureAndTint") {
+                    tempTintFilter.setValue(filteredImage, forKey: kCIInputImageKey)
+                    
+                    // Default neutral temperature is 6500K
+                    let neutral = CIVector(x: 6500, y: 0)
+                    
+                    // Map 0-100 to temperature range (4500K to 8500K for subtle effect)
+                    let normalizedTemp = (settings.temperature - 50) / 50.0  // -1 to 1
+                    let targetTemp = 6500 + (normalizedTemp * 2000)  // ±2000K range (more subtle)
+                    
+                    // Map 0-100 to tint range (-30 to +30 for subtle effect)
+                    let normalizedTint = (settings.tint - 50) / 50.0  // -1 to 1
+                    let targetTint = normalizedTint * 30  // ±30 tint range (more subtle)
+                    
+                    let targetNeutral = CIVector(x: CGFloat(targetTemp), y: CGFloat(targetTint))
+                    
+                    tempTintFilter.setValue(neutral, forKey: "inputNeutral")
+                    tempTintFilter.setValue(targetNeutral, forKey: "inputTargetNeutral")
+                    
+                    filteredImage = tempTintFilter.outputImage ?? filteredImage
+                }
+            }
+            
             // 色調整フィルター適用
             if let colorFilter = CIFilter(name: "CIColorControls") {
                 colorFilter.setValue(filteredImage, forKey: kCIInputImageKey)
-                colorFilter.setValue(settings.brightness, forKey: kCIInputBrightnessKey)
-                colorFilter.setValue(settings.contrast, forKey: kCIInputContrastKey)
-                colorFilter.setValue(settings.saturation, forKey: kCIInputSaturationKey)
+                
+                // Map 0-100 to appropriate ranges (subtle effects)
+                let brightness = (settings.brightness - 50) / 100.0  // -0.5 to 0.5
+                let contrast = 0.8 + (settings.contrast / 100.0) * 0.4  // 0.8 to 1.2
+                let saturation = 0.5 + (settings.saturation / 100.0)  // 0.5 to 1.5
+                
+                colorFilter.setValue(brightness, forKey: kCIInputBrightnessKey)
+                colorFilter.setValue(contrast, forKey: kCIInputContrastKey)
+                colorFilter.setValue(saturation, forKey: kCIInputSaturationKey)
                 filteredImage = colorFilter.outputImage ?? filteredImage
             }
             
             // ハイライト・シャドウ調整
-            if settings.highlights != 0 || settings.shadows != 0 {
+            if settings.highlights != 50 || settings.shadows != 50 {
                 if let highlightShadowFilter = CIFilter(name: "CIHighlightShadowAdjust") {
                     highlightShadowFilter.setValue(filteredImage, forKey: kCIInputImageKey)
-                    highlightShadowFilter.setValue(1.0 + settings.highlights / 100, forKey: "inputHighlightAmount")
-                    highlightShadowFilter.setValue(settings.shadows / 100, forKey: "inputShadowAmount")
+                    
+                    // Map 0-100 to subtle ranges
+                    let highlights = 1.0 + ((settings.highlights - 50) / 100.0) * 0.5  // 0.75 to 1.25
+                    let shadows = (settings.shadows - 50) / 100.0 * 0.5  // -0.25 to 0.25
+                    
+                    highlightShadowFilter.setValue(highlights, forKey: "inputHighlightAmount")
+                    highlightShadowFilter.setValue(shadows, forKey: "inputShadowAmount")
                     filteredImage = highlightShadowFilter.outputImage ?? filteredImage
                 }
             }
             
             // ホワイト・ブラック調整（露出とガンマで近似）
-            if settings.whites != 0 || settings.blacks != 0 {
+            if settings.whites != 50 || settings.blacks != 50 {
                 if let exposureFilter = CIFilter(name: "CIExposureAdjust") {
                     exposureFilter.setValue(filteredImage, forKey: kCIInputImageKey)
-                    exposureFilter.setValue(settings.whites / 200, forKey: kCIInputEVKey) // ホワイト調整
+                    
+                    // Map 0-100 to subtle exposure range
+                    let whites = (settings.whites - 50) / 100.0 * 0.5  // -0.25 to 0.25 EV
+                    exposureFilter.setValue(whites, forKey: kCIInputEVKey)
                     filteredImage = exposureFilter.outputImage ?? filteredImage
                 }
                 
                 if let gammaFilter = CIFilter(name: "CIGammaAdjust") {
                     gammaFilter.setValue(filteredImage, forKey: kCIInputImageKey)
-                    gammaFilter.setValue(1.0 - settings.blacks / 200, forKey: "inputPower") // ブラック調整
+                    
+                    // Map 0-100 to subtle gamma range
+                    let blacks = 1.0 + ((settings.blacks - 50) / 100.0) * 0.3  // 0.85 to 1.15
+                    gammaFilter.setValue(blacks, forKey: "inputPower")
                     filteredImage = gammaFilter.outputImage ?? filteredImage
                 }
             }
             
             // 明瞭度調整（アンシャープマスクで近似）
-            if settings.clarity != 0 {
+            if settings.clarity != 50 {
                 if let clarityFilter = CIFilter(name: "CIUnsharpMask") {
                     clarityFilter.setValue(filteredImage, forKey: kCIInputImageKey)
-                    clarityFilter.setValue(abs(settings.clarity) / 50, forKey: kCIInputIntensityKey)
+                    
+                    // Map 0-100 to subtle clarity range
+                    let clarity = abs(settings.clarity - 50) / 100.0 * 1.5  // 0 to 0.75 intensity
+                    clarityFilter.setValue(clarity, forKey: kCIInputIntensityKey)
                     clarityFilter.setValue(2.5, forKey: kCIInputRadiusKey)
                     filteredImage = clarityFilter.outputImage ?? filteredImage
                 }

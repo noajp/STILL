@@ -6,6 +6,13 @@
 
 import SwiftUI
 
+extension Notification.Name {
+    static let resetGalleryNavigation = Notification.Name("resetGalleryNavigation")
+    static let resetMessagesNavigation = Notification.Name("resetMessagesNavigation")
+    static let resetProfileNavigation = Notification.Name("resetProfileNavigation")
+    static let resetHomeNavigation = Notification.Name("resetHomeNavigation")
+}
+
 /**
  * GalleryView displays all posts in a grid layout with unified header.
  * 
@@ -22,6 +29,7 @@ struct GalleryView: View {
     @State private var selectedPost: Post?
     @State private var navigateToDetail = false
     @State private var showGridMode = false
+    @State private var resetTrigger = 0
     
     var body: some View {
         ScrollableHeaderView(
@@ -79,6 +87,11 @@ struct GalleryView: View {
                     showGridMode: $showGridMode
                 )
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .resetGalleryNavigation)) { _ in
+            selectedPost = nil
+            navigateToDetail = false
+            showGridMode = false
         }
     }
 }
@@ -152,7 +165,7 @@ struct AlternatingGridLayout: View {
     
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 2) {
+            LazyVStack(spacing: 1) {
                 ForEach(rows) { row in
                     GridRowView(row: row, onPostTapped: onPostTapped)
                 }
@@ -199,7 +212,7 @@ struct LandscapeSquareRowView: View {
     var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let spacing: CGFloat = 2
+            let spacing: CGFloat = 4
             let twoThirdsWidth = (totalWidth * 2 / 3) - spacing / 2
             let oneThirdWidth = (totalWidth / 3) - spacing / 2
             let height = oneThirdWidth // Square height based on 1/3 width
@@ -207,8 +220,7 @@ struct LandscapeSquareRowView: View {
             HStack(spacing: spacing) {
                 if posts.count > 0 {
                     // Landscape photo (2/3 width) - maintain aspect ratio
-                    RemoteImageView(imageURL: posts[0].mediaUrl)
-                        .aspectRatio(contentMode: .fill)
+                    OptimizedGalleryImageView(imageURL: posts[0].mediaUrl)
                         .frame(width: twoThirdsWidth, height: height)
                         .clipped()
                         .onTapGesture {
@@ -245,15 +257,14 @@ struct VerticalRowView: View {
     var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let spacing: CGFloat = 2
+            let spacing: CGFloat = 4
             let itemWidth = (totalWidth - spacing * 2) / 3
             let itemHeight = itemWidth * 1.3 // Slightly vertical (aspect ratio 1:1.3)
             
             HStack(spacing: spacing) {
                 ForEach(0..<3) { index in
                     if index < posts.count {
-                        RemoteImageView(imageURL: posts[index].mediaUrl)
-                            .aspectRatio(contentMode: .fill)
+                        OptimizedGalleryImageView(imageURL: posts[index].mediaUrl)
                             .frame(width: itemWidth, height: itemHeight)
                             .clipped()
                             .onTapGesture {
@@ -278,7 +289,7 @@ struct SquaresRowView: View {
     var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let spacing: CGFloat = 2
+            let spacing: CGFloat = 4
             let itemWidth = (totalWidth - spacing * 2) / 3
             
             HStack(spacing: spacing) {
@@ -314,11 +325,7 @@ struct PostThumbnailView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            RemoteImageView(imageURL: post.mediaUrl)
-                .aspectRatio(
-                    forceSquare ? 1.0 : nil,
-                    contentMode: forceSquare ? .fill : .fit
-                )
+            OptimizedGalleryImageView(imageURL: post.mediaUrl)
                 .frame(
                     width: geometry.size.width,
                     height: forceSquare ? geometry.size.width : geometry.size.height

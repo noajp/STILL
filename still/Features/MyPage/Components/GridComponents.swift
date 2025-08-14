@@ -16,9 +16,9 @@ struct SingleCardGridView: View {
     let onDeletePost: ((Post) -> Void)?
     let onReorderPosts: (([Post]) -> Void)?
     let columns = [
-        GridItem(.flexible(), spacing: 1.5),
-        GridItem(.flexible(), spacing: 1.5),
-        GridItem(.flexible(), spacing: 1.5)
+        GridItem(.flexible(), spacing: 7),
+        GridItem(.flexible(), spacing: 7),
+        GridItem(.flexible(), spacing: 7)
     ]
     
     @State private var draggedItemId: String?
@@ -33,7 +33,7 @@ struct SingleCardGridView: View {
     
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 1.5) {
+            LazyVGrid(columns: columns, spacing: 7) {
                 ForEach(posts, id: \.id) { post in
                     ProfileSingleCardView(post: post, onTap: {
                         if !isDragging {
@@ -81,9 +81,9 @@ struct GridView: View {
     let onDeletePost: ((Post) -> Void)?
     let onReorderPosts: (([Post]) -> Void)?
     let columns = [
-        GridItem(.flexible(), spacing: 1.5),
-        GridItem(.flexible(), spacing: 1.5),
-        GridItem(.flexible(), spacing: 1.5)
+        GridItem(.flexible(), spacing: 7),
+        GridItem(.flexible(), spacing: 7),
+        GridItem(.flexible(), spacing: 7)
     ]
     
     @State private var draggedItemId: String?
@@ -98,7 +98,7 @@ struct GridView: View {
     
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 1.5) {
+            LazyVGrid(columns: columns, spacing: 7) {
                 ForEach(posts, id: \.id) { post in
                     GridItemView(post: post, onTap: {
                         if !isDragging {

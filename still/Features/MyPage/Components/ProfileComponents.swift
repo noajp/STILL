@@ -170,7 +170,8 @@ struct ModernPostsTabSection: View {
     // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
-            // Tab Bar
+            // Tab Bar - Hidden (grid button removed)
+            /*
             HStack(spacing: 0) {
                 ProfileTabButton(
                     selectedIcon: "square.grid.3x3.fill",
@@ -183,6 +184,7 @@ struct ModernPostsTabSection: View {
             }
             .padding(.horizontal, MinimalDesign.Spacing.sm)
             .padding(.vertical, 8)
+            */
             
             // Content
             Group {

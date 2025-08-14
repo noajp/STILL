@@ -111,8 +111,7 @@ struct NotificationListView: View {
                             .font(.system(size: 20, weight: .medium))
                             .foregroundColor(.white)
                         
-                        Text("You'll see notifications for likes, follows,
-and messages here")
+                        Text("You'll see notifications for likes, follows, and messages here")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)

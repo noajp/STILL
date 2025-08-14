@@ -300,6 +300,84 @@ final class RAWImageProcessor: ObservableObject, @unchecked Sendable {
         
         return UIImage(cgImage: cgImage)
     }
+    
+    /// Check if asset is RAW format
+    func isRAWAsset(_ asset: PHAsset) -> Bool {
+        let rawInfo = getRAWInfo(for: asset)
+        return rawInfo.isRAW
+    }
+    
+    /// Convert RAW asset to DNG format
+    func convertToDNG(asset: PHAsset) async throws -> URL {
+        return try await withCheckedThrowingContinuation { continuation in
+            // Create temporary DNG file URL
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let dngDirectory = documentsPath.appendingPathComponent("DNG", isDirectory: true)
+            
+            do {
+                // Create DNG directory if it doesn't exist
+                try FileManager.default.createDirectory(at: dngDirectory, withIntermediateDirectories: true)
+                
+                let dngURL = dngDirectory.appendingPathComponent("\(UUID().uuidString).dng")
+                
+                // Load RAW image and convert to DNG
+                self.loadRAWImage(from: asset) { result in
+                    switch result {
+                    case .success(let ciImage):
+                        do {
+                            // Create DNG representation
+                            let context = CIContext()
+                            try context.writeTIFFRepresentation(
+                                of: ciImage,
+                                to: dngURL,
+                                format: .ARGB8,
+                                colorSpace: ciImage.colorSpace ?? CGColorSpaceCreateDeviceRGB()
+                            )
+                            continuation.resume(returning: dngURL)
+                        } catch {
+                            continuation.resume(throwing: RAWProcessorError.conversionFailed)
+                        }
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+            } catch {
+                continuation.resume(throwing: RAWProcessorError.processingFailed)
+            }
+        }
+    }
+    
+    /// Load RAW image with enhanced processing options for editing
+    func loadRAWImageForEditing(asset: PHAsset) async throws -> (ciImage: CIImage, rawOptions: [String: Any]) {
+        return try await withCheckedThrowingContinuation { continuation in
+            let options = RAWProcessingOptions()
+            
+            self.loadRAWImage(from: asset, options: options) { result in
+                switch result {
+                case .success(let ciImage):
+                    // Enhanced RAW processing options
+                    let rawOptions: [String: Any] = [
+                        "kCIInputDecoderVersionKey": "7.0",
+                        "kCIInputBoostKey": 1.0,
+                        "kCIInputNeutralChromaticityXKey": 0.3127,
+                        "kCIInputNeutralChromaticityYKey": 0.3290,
+                        "kCIInputNeutralTemperatureKey": 6500,
+                        "kCIInputNeutralTintKey": 0,
+                        "kCIInputScaleFactorKey": 1.0,
+                        "kCIInputEnableSharpeningKey": true,
+                        "kCIInputEnableNoiseTrackingKey": true,
+                        "kCIInputNoiseReductionAmountKey": 0.4,
+                        "kCIInputEnableVendorLensCorrection": true,
+                        "kCIInputLuminanceNoiseReductionAmountKey": 0.3,
+                        "kCIInputColorNoiseReductionAmountKey": 0.3
+                    ]
+                    continuation.resume(returning: (ciImage: ciImage, rawOptions: rawOptions))
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Errors
@@ -308,6 +386,7 @@ enum RAWProcessorError: LocalizedError {
     case rawFilterCreationFailed
     case processingFailed
     case conversionFailed
+    case failedToCreateCIImage
     
     var errorDescription: String? {
         switch self {
@@ -319,9 +398,14 @@ enum RAWProcessorError: LocalizedError {
             return "Failed to process RAW image"
         case .conversionFailed:
             return "Failed to convert image format"
+        case .failedToCreateCIImage:
+            return "Failed to create CIImage from RAW data"
         }
     }
 }
+
+// Make RAWProcessorError available as RAWProcessingError for compatibility
+typealias RAWProcessingError = RAWProcessorError
 
 // MARK: - Extensions
 extension PHAsset {

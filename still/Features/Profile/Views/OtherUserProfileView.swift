@@ -247,10 +247,10 @@ struct OtherUserProfileView: View {
                     .frame(height: 300)
                 } else {
                     LazyVGrid(columns: [
-                        GridItem(.flexible(), spacing: 1.5),
-                        GridItem(.flexible(), spacing: 1.5),
-                        GridItem(.flexible(), spacing: 1.5)
-                    ], spacing: 1.5) {
+                        GridItem(.flexible(), spacing: 7),
+                        GridItem(.flexible(), spacing: 7),
+                        GridItem(.flexible(), spacing: 7)
+                    ], spacing: 7) {
                         ForEach(viewModel.userPosts) { post in
                             GeometryReader { geometry in
                                 CompressedAsyncImage(

@@ -8,7 +8,7 @@ The STILL app currently has **36 RPC functions** in the Supabase database. Many 
 
 ## 🎯 Refactoring Categories
 
-### 1. **Duplicated Cleanup Functions** 🔄
+### 1. **[x] Duplicated Cleanup Functions** 🔄
 **Current Functions:**
 ```sql
 cleanup_old_rate_limits()     -- Deletes records older than 2 hours
@@ -38,7 +38,7 @@ cleanup_data_by_retention(
 
 ---
 
-### 2. **Counter Management Duplication** 📊
+### 2. **[x] Counter Management Duplication** 📊
 **Current Functions:**
 ```sql
 increment_like_count(post_id)      -- Likes +1 with rate limiting
@@ -70,7 +70,7 @@ update_post_counter(
 
 ---
 
-### 3. **Complex Conversation Management** 💬
+### 3. **[x] Complex Conversation Management** 💬
 **Current Functions:**
 ```sql
 get_or_create_direct_conversation()  -- 200+ lines, very complex
@@ -99,7 +99,7 @@ reset_conversation_visibility(conversation_id uuid, user_ids uuid[])
 
 ---
 
-### 4. **Scattered Security Functions** 🔐
+### 4. **[] Scattered Security Functions** 🔐
 **Current Functions:**
 ```sql
 log_security_event()          -- Security audit logging
@@ -140,7 +140,7 @@ apply_privacy_rules(
 
 ---
 
-### 5. **Insufficient Validation Functions** ✅
+### 5. **[x] Insufficient Validation Functions** ✅
 **Current Functions:**
 ```sql
 validate_uuid_input(input_text)    -- UUID format validation
@@ -178,29 +178,29 @@ sanatize_user_content(
 ## 🚀 Implementation Priority
 
 ### **Phase 1: High Priority (Immediate Impact)**
-1. **Cleanup Functions Consolidation**
+1. **[x] Cleanup Functions Consolidation**
    - **Effort:** Low (2-3 hours)
    - **Impact:** High (easier maintenance)
    - **Risk:** Very Low
 
-2. **Counter Functions Unification**
+2. **[x] Counter Functions Unification**
    - **Effort:** Medium (4-6 hours)
    - **Impact:** High (bug reduction, consistency)
    - **Risk:** Low (well-tested logic)
 
 ### **Phase 2: Medium Priority (Quality Improvement)**
-3. **Conversation Management Refactoring**
+3. **[x] Conversation Management Refactoring**
    - **Effort:** High (8-12 hours)
    - **Impact:** Very High (maintainability)
    - **Risk:** Medium (complex logic changes)
 
-4. **Validation Functions Enhancement**
+4. **[x] Validation Functions Enhancement**
    - **Effort:** Medium (4-6 hours)
    - **Impact:** High (security improvement)
    - **Risk:** Low (additive changes)
 
 ### **Phase 3: Low Priority (Future Enhancement)**
-5. **Security Functions Reorganization**
+5. **[] Security Functions Reorganization**
    - **Effort:** High (8-10 hours)
    - **Impact:** Medium (already working well)
    - **Risk:** Medium (security-critical changes)

@@ -14,8 +14,20 @@ import SwiftUI
 
 // MARK: - Preset Category
 enum PresetCategory: String, CaseIterable {
-    case basePresets = "BASE PRESET"
-    case colorPresets = "COLOR PRESET"
+    case light = "LIGHT"
+    case color = "COLOR"
+    case custom = "CUSTOM"
+    
+    var icon: String {
+        switch self {
+        case .light:
+            return "sun.max"
+        case .color:
+            return "paintpalette"
+        case .custom:
+            return "folder"
+        }
+    }
 }
 
 // MARK: - Preset Type
@@ -31,6 +43,8 @@ enum PresetType: String, CaseIterable {
     case cool = "Cool"
     case vintage = "Vintage"
     case dramatic = "Dramatic"
+    // Custom CUBE presets
+    case custom = "Custom"
     
     var color: Color? {
         switch self {
@@ -48,6 +62,8 @@ enum PresetType: String, CaseIterable {
             return Color(red: 210/255, green: 180/255, blue: 140/255) // セピア
         case .dramatic:
             return Color(red: 180/255, green: 120/255, blue: 180/255) // パープル
+        case .custom:
+            return Color(red: 255/255, green: 215/255, blue: 0/255) // ゴールド
         }
     }
     
@@ -132,36 +148,39 @@ enum PresetType: String, CaseIterable {
                 shadows: 20,
                 clarity: 15
             )
+        case .custom:
+            return FilterSettings() // Custom presets use CUBE files instead
         }
     }
     
     var category: PresetCategory {
         switch self {
         case .none, .natural, .bright, .dark, .highContrast:
-            return .basePresets
+            return .light
         case .warm, .cool, .vintage, .dramatic:
-            return .colorPresets
+            return .color
+        case .custom:
+            return .custom
         }
     }
 }
 
 // MARK: - Filter Settings
 struct FilterSettings {
-    var brightness: Float = 0
-    var contrast: Float = 1
-    var saturation: Float = 1
-    var temperature: Float = 5000
-    var tint: Float = 0
-    var highlights: Float = 0
-    var shadows: Float = 0
-    var whites: Float = 0
-    var blacks: Float = 0
-    var clarity: Float = 0
+    var brightness: Float = 50      // 0-100, center at 50
+    var contrast: Float = 50        // 0-100, center at 50
+    var saturation: Float = 50      // 0-100, center at 50
+    var temperature: Float = 50     // 0-100, center at 50
+    var tint: Float = 50           // 0-100, center at 50
+    var highlights: Float = 50      // 0-100, center at 50
+    var shadows: Float = 50         // 0-100, center at 50
+    var whites: Float = 50          // 0-100, center at 50
+    var blacks: Float = 50          // 0-100, center at 50
+    var clarity: Float = 50         // 0-100, center at 50
 }
 
 // MARK: - Adjustment Parameter
 enum AdjustmentParameter: String, CaseIterable {
-    case whiteBalance = "White Balance"
     case brightness = "Brightness"
     case highlights = "Highlights"
     case shadows = "Shadows"
@@ -171,34 +190,15 @@ enum AdjustmentParameter: String, CaseIterable {
     case clarity = "Clarity"
     
     var range: ClosedRange<Float> {
-        switch self {
-        case .whiteBalance:
-            return -100...100
-        case .brightness:
-            return -100...100
-        case .highlights:
-            return -100...100
-        case .shadows:
-            return -100...100
-        case .whites:
-            return -100...100
-        case .blacks:
-            return -100...100
-        case .contrast:
-            return -100...100
-        case .clarity:
-            return -100...100
-        }
+        return 0...100  // Unified range for all parameters
     }
     
     var defaultValue: Float {
-        return 0
+        return 50  // Center value for 0-100 range
     }
     
     var icon: String {
         switch self {
-        case .whiteBalance:
-            return "thermometer"
         case .brightness:
             return "sun.max"
         case .highlights:
@@ -276,35 +276,47 @@ struct Preset: Identifiable {
     let id = UUID()
     let type: PresetType
     let thumbnail: UIImage?
+    let customPreset: CustomPreset?
     var isFavorite: Bool = false
     var usageCount: Int = 0
     
-    init(type: PresetType, thumbnail: UIImage? = nil) {
+    init(type: PresetType, thumbnail: UIImage? = nil, customPreset: CustomPreset? = nil) {
         self.type = type
         self.thumbnail = thumbnail
+        self.customPreset = customPreset
     }
 }
 
 // MARK: - Editor Tab
 enum EditorTab: String, CaseIterable {
-    case presets
-    case adjust
+    case wb = "WB"
+    case preset = "Preset"
+    case edit = "Edit"
+    case angle = "Angle"
     
     var icon: String {
         switch self {
-        case .presets:
-            return "square.grid.2x2"
-        case .adjust:
-            return "slider.horizontal.3"
+        case .wb:
+            return "thermometer"
+        case .preset:
+            return "film.fill"  // Film negative icon
+        case .edit:
+            return "slider.horizontal.3"  // Toolbar-like icon with sliders
+        case .angle:
+            return "crop.rotate"  // Right angle rotation icon
         }
     }
     
     var title: String {
         switch self {
-        case .presets:
-            return "PRESET"
-        case .adjust:
-            return "ADJUST"
+        case .wb:
+            return "WB"
+        case .preset:
+            return "Preset"
+        case .edit:
+            return "Edit"
+        case .angle:
+            return "Angle"
         }
     }
 }

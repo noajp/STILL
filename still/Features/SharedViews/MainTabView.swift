@@ -144,6 +144,10 @@ struct MainTabView: View {
                             viewModel.handlePhotoEditingCancelled()
                         }
                     )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading),
+                        removal: .move(edge: .trailing)
+                    ))
                 }
             }
         }

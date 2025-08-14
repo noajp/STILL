@@ -295,6 +295,12 @@ class MainTabViewModel: BaseViewModelClass {
         presentationState.editorData = nil
         presentationState.selectedImage = nil
         
+        // Send notifications to reset individual views
+        NotificationCenter.default.post(name: .resetGalleryNavigation, object: nil)
+        NotificationCenter.default.post(name: .resetMessagesNavigation, object: nil)
+        NotificationCenter.default.post(name: .resetProfileNavigation, object: nil)
+        NotificationCenter.default.post(name: .resetHomeNavigation, object: nil)
+        
         dependencies.logger.info("Tab navigation reset to initial state", file: #file, function: #function, line: #line)
     }
     
@@ -305,9 +311,20 @@ class MainTabViewModel: BaseViewModelClass {
      * - Parameter editorData: Photo editor data containing selected image
      */
     func handleImageSelected(_ editorData: PhotoEditorData) {
+        print("🎯 handleImageSelected called with editorData")
+        
+        // Store the editor data first
         self.presentationState.editorData = editorData
-        self.navigationState.showingCreatePost = false
+        
+        // Set photo editor to show
         self.navigationState.showingPhotoEditor = true
+        
+        // Then close the photo picker after a small delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.navigationState.showingCreatePost = false
+        }
+        
+        print("✅ showingPhotoEditor set to true, editorData stored")
     }
     
     /**
@@ -324,8 +341,17 @@ class MainTabViewModel: BaseViewModelClass {
      * Handles photo editing cancellation.
      */
     func handlePhotoEditingCancelled() {
-        dependencies.logger.info("Photo editing cancelled", file: #file, function: #function, line: #line)
-        navigationState.showingPhotoEditor = false
+        dependencies.logger.info("Photo editing cancelled - returning to photo picker", file: #file, function: #function, line: #line)
+        
+        // Clear editor data first to prevent retain cycles
         presentationState.editorData = nil
+        
+        // Use DispatchQueue to safely update UI state and return to photo picker
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            // Close photo editor and return to photo picker
+            self.navigationState.showingPhotoEditor = false
+            self.navigationState.showingCreatePost = true
+        }
     }
 }

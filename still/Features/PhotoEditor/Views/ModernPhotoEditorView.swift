@@ -23,11 +23,17 @@ struct ModernPhotoEditorView: View {
     
     @StateObject private var viewModel: PhotoEditorViewModel
     @State private var selectedPreset: PresetType = .none
-    @State private var selectedCategory: PresetCategory = .basePresets
-    @State private var selectedTab: EditorTab = .presets
+    @State private var selectedCategory: PresetCategory = .light
+    @State private var selectedTab: EditorTab = .wb
     @State private var filterIntensity: Float = 1.0
     @State private var currentFilterSettings = FilterSettings()
     @State private var currentToneCurve = ToneCurve()
+    
+    // State for UnifiedAdjustmentView to preserve across tab switches
+    @State private var expandedParameter: AdjustmentParameter? = .brightness  // Default to brightness
+    @State private var showToneCurve = false
+    
+    // Animation state removed - NavigationStack handles transitions
     
     // MARK: - Initialization
     init(image: UIImage,
@@ -50,17 +56,22 @@ struct ModernPhotoEditorView: View {
          onCancel: @escaping () -> Void,
          onPost: ((UIImage) -> Void)? = nil,
          postViewModel: CreatePostViewModel? = nil) {
-        print("🟡 ModernPhotoEditorView init (RAW) - onPost is \(onPost != nil ? "provided" : "nil")")
+        print("🟡 ModernPhotoEditorView init (RAW) starting...")
+        print("🟡 editorData: asset=\(editorData.asset), previewImage=\(editorData.previewImage != nil)")
+        
         self.originalImage = editorData.previewImage ?? UIImage()
         self.onComplete = onComplete
         self.onCancel = onCancel
         self.onPost = onPost
         self.postViewModel = postViewModel
+        
+        print("🟡 PhotoEditorViewModel初期化中...")
         self._viewModel = StateObject(wrappedValue: PhotoEditorViewModel(
             asset: editorData.asset,
             rawInfo: editorData.rawInfo,
             previewImage: editorData.previewImage
         ))
+        print("🟡 ModernPhotoEditorView init完了")
     }
     
     // MARK: - Computed Properties
@@ -113,8 +124,15 @@ struct ModernPhotoEditorView: View {
     private var headerButtons: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Cancel", action: onCancel)
-                    .foregroundColor(.white)
+                Button(action: onCancel) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Back")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                }
+                .foregroundColor(.white)
                 
                 Spacer()
                 
@@ -123,6 +141,29 @@ struct ModernPhotoEditorView: View {
                     .foregroundColor(.white)
                 
                 Spacer()
+                
+                // RAW/DNG export button (only for RAW images)
+                if viewModel.isProcessingRAW {
+                    Button(action: {
+                        Task {
+                            do {
+                                let dngURL = try await viewModel.exportAsDNG()
+                                print("✅ DNG exported to: \(dngURL)")
+                                // Could show success message or share sheet
+                            } catch {
+                                print("❌ DNG export failed: \(error)")
+                            }
+                        }
+                    }) {
+                        Text("DNG")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.orange)
+                            .cornerRadius(4)
+                    }
+                }
                 
                 Button(action: {
                     print("🟢 Button tapped! onPost is nil: \(onPost == nil)")
@@ -182,59 +223,127 @@ struct ModernPhotoEditorView: View {
     
     private var mainImageView: some View {
         GeometryReader { geometry in
-            if viewModel.ciImage != nil {
-                MetalPreviewView(
-                    currentImage: $viewModel.ciImage,
-                    filterType: .constant(.none),
-                    filterIntensity: $filterIntensity
-                )
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .background(Color.black)
-            } else if let image = viewModel.currentImage {
-                Image(uiImage: image)
-                    .resizable()
+            ZStack {
+                // Black background to maintain consistent size
+                Color.black
+                
+                if viewModel.ciImage != nil {
+                    MetalPreviewView(
+                        currentImage: $viewModel.ciImage,
+                        filterType: .constant(.none),
+                        filterIntensity: $filterIntensity
+                    )
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-            } else {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .frame(width: geometry.size.width, height: geometry.size.height)
+                } else if let image = viewModel.currentImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else if originalImage != UIImage() {
+                    // Show original image while loading
+                    Image(uiImage: originalImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .overlay(
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        )
+                } else {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
     
-    private var editMenuView: some View {
-        VStack(spacing: 0) {
-            // タブごとのコンテンツ
-            switch selectedTab {
-            case .presets:
-                PresetSelectionView(
-                    selectedPreset: $selectedPreset,
-                    selectedCategory: $selectedCategory,
-                    originalImage: originalImage,
-                    onPresetSelected: applyPreset
-                )
-                .frame(height: 180)
-                
-            case .adjust:
-                // 詳細調整ビュー
-                AdjustmentView(
-                    filterSettings: $currentFilterSettings,
-                    toneCurve: $currentToneCurve,
-                    onSettingsChanged: applyFilterSettings,
-                    onToneCurveChanged: applyToneCurve
-                )
-            }
-            
-            // フッターボタン
-            EditorFooterView(
-                selectedTab: $selectedTab,
-                onTabSelected: { tab in
+
+    
+    // MARK: - Advanced Editing Section
+    private var advancedEditingSection: some View {
+        UnifiedAdjustmentView(
+            filterSettings: $currentFilterSettings,
+            toneCurve: $currentToneCurve,
+            expandedParameter: $expandedParameter,
+            showToneCurve: $showToneCurve,
+            onSettingsChanged: applyFilterSettings,
+            onToneCurveChanged: applyToneCurve,
+            onAutoWB: applyAutoWhiteBalance
+        )
+    }
+    // MARK: - Tab Selector
+    private var tabSelectorView: some View {
+        HStack(spacing: 0) {
+            ForEach(EditorTab.allCases, id: \.self) { tab in
+                Button(action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         selectedTab = tab
+                        // When Edit tab is selected, default to Brightness expanded
+                        if tab == .edit {
+                            expandedParameter = .brightness
+                            showToneCurve = false
+                        }
                     }
+                }) {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 16))
+                        
+                        Text(tab.title)
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(selectedTab == tab ? MinimalDesign.Colors.accentRed : Color(white: 0.56))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
                 }
-            )
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .background(Color(hex: "121212"))
+        .overlay(
+            // Selected tab indicator
+            HStack {
+                ForEach(EditorTab.allCases.indices, id: \.self) { index in
+                    Rectangle()
+                        .fill(selectedTab == EditorTab.allCases[index] ? MinimalDesign.Colors.accentRed : Color.clear)
+                        .frame(height: 2)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 0)
+            , alignment: .bottom
+        )
+    }
+    private var editMenuView: some View {
+        VStack(spacing: 0) {
+            // Tab selector
+            tabSelectorView
+            
+            // Content based on selected tab
+            switch selectedTab {
+            case .wb:
+                WhiteBalanceView(
+                    filterSettings: $currentFilterSettings,
+                    onSettingsChanged: applyFilterSettings,
+                    onAutoWB: applyAutoWhiteBalance
+                )
+            case .preset:
+                BasicEditingView(
+                    selectedPreset: $selectedPreset,
+                    selectedCategory: $selectedCategory,
+                    filterSettings: $currentFilterSettings,
+                    originalImage: originalImage,
+                    onPresetSelected: applyPreset,
+                    onCustomPresetSelected: applyCustomPreset,
+                    onSettingsChanged: applyFilterSettings
+                )
+            case .edit:
+                advancedEditingSection
+            case .angle:
+                AngleAdjustmentView { rotation, straighten, flipH, flipV in
+                    applyAngleAdjustments(rotation: rotation, straighten: straighten, flipHorizontal: flipH, flipVertical: flipV)
+                }
+            }
         }
         .background(Color(red: 28/255, green: 28/255, blue: 30/255))
     }
@@ -247,14 +356,52 @@ struct ModernPhotoEditorView: View {
         viewModel.applyFilterSettings(settings, toneCurve: currentToneCurve)
     }
     
+    private func applyCustomPreset(_ customPreset: CustomPreset) {
+        guard let ciImage = CIImage(image: originalImage),
+              let filteredImage = CustomPresetManager.shared.applyPreset(customPreset, to: ciImage) else {
+            return
+        }
+        
+        // Convert back to UIImage and update the view model
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(filteredImage, from: filteredImage.extent) else {
+            return
+        }
+        
+        let resultImage = UIImage(cgImage: cgImage)
+        viewModel.updateProcessedImage(resultImage)
+    }
+    
     private func applyFilterSettings(_ settings: FilterSettings) {
         currentFilterSettings = settings
         viewModel.applyFilterSettings(settings, toneCurve: currentToneCurve)
     }
     
+    private func applyAutoWhiteBalance() {
+        // Get auto WB values from view model
+        let (temperature, tint) = viewModel.analyzeAutoWhiteBalance()
+        
+        // Update current settings
+        currentFilterSettings.temperature = temperature
+        currentFilterSettings.tint = tint
+        
+        // Apply the new settings
+        viewModel.applyFilterSettings(currentFilterSettings, toneCurve: currentToneCurve)
+    }
+    
     private func applyToneCurve(_ curve: ToneCurve) {
         currentToneCurve = curve
         viewModel.applyFilterSettings(currentFilterSettings, toneCurve: curve)
+    }
+    
+    private func applyAngleAdjustments(rotation: Double, straighten: Double, flipHorizontal: Bool, flipVertical: Bool) {
+        // Apply angle adjustments to the image
+        viewModel.applyAngleAdjustments(
+            rotation: rotation,
+            straighten: straighten,
+            flipHorizontal: flipHorizontal,
+            flipVertical: flipVertical
+        )
     }
 }
 

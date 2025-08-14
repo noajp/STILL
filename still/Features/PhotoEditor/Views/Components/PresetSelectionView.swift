@@ -18,59 +18,33 @@ struct PresetSelectionView: View {
     @Binding var selectedCategory: PresetCategory
     let originalImage: UIImage
     let onPresetSelected: (PresetType) -> Void
+    let onCustomPresetSelected: ((CustomPreset) -> Void)?
     
     @State private var presets: [Preset] = []
     @State private var isGeneratingThumbnails = false
+    @State private var showingCustomImport = false
+    @ObservedObject private var customPresetManager = CustomPresetManager.shared
     
     // MARK: - Body
     var body: some View {
-        VStack(spacing: 0) {
-            // カテゴリータブ
-            categoryTabsView
-            
-            // プリセットサムネイル
-            presetThumbnailsView
-        }
-        .background(Color(red: 28/255, green: 28/255, blue: 30/255))
-        .onAppear {
-            generatePresetThumbnails()
-        }
+        // プリセットサムネイルのみ表示（カテゴリータブは上位コンポーネントで処理）
+        presetThumbnailsView
+            .background(Color(red: 28/255, green: 28/255, blue: 30/255))
+            .onAppear {
+                generatePresetThumbnails()
+            }
+            .sheet(isPresented: $showingCustomImport) {
+                CustomPresetImportView(
+                    originalImage: originalImage,
+                    onPresetImported: { newPreset in
+                        // Refresh the preset list
+                        generatePresetThumbnails()
+                    }
+                )
+            }
     }
     
     // MARK: - Views
-    
-    private var categoryTabsView: some View {
-        HStack(spacing: 0) {
-            ForEach(PresetCategory.allCases, id: \.self) { category in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedCategory = category
-                    }
-                }) {
-                    VStack(spacing: 10) {
-                        Text(category.rawValue)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(selectedCategory == category ? .white : Color(white: 0.56))
-                        
-                        // アンダーライン
-                        Rectangle()
-                            .fill(selectedCategory == category ? Color.white : Color.clear)
-                            .frame(height: 2)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .background(
-            Rectangle()
-                .fill(Color(white: 0.23))
-                .frame(height: 1),
-            alignment: .bottom
-        )
-    }
     
     private var presetThumbnailsView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -80,8 +54,17 @@ struct PresetSelectionView: View {
                         preset: preset,
                         isSelected: selectedPreset == preset.type,
                         onTap: {
-                            selectedPreset = preset.type
-                            onPresetSelected(preset.type)
+                            if preset.type == .custom && preset.customPreset == nil {
+                                // Show import view for "Add New" button
+                                showingCustomImport = true
+                            } else if let customPreset = preset.customPreset {
+                                // Apply custom preset
+                                selectedPreset = preset.type
+                                onCustomPresetSelected?(customPreset)
+                            } else {
+                                selectedPreset = preset.type
+                                onPresetSelected(preset.type)
+                            }
                         }
                     )
                 }
@@ -95,11 +78,24 @@ struct PresetSelectionView: View {
     
     private var filteredPresets: [Preset] {
         switch selectedCategory {
-        case .basePresets:
-            return presets.filter { $0.type.category == .basePresets }
-        case .colorPresets:
-            return presets.filter { $0.type.category == .colorPresets }
+        case .light:
+            return presets.filter { $0.type.category == .light }
+        case .color:
+            return presets.filter { $0.type.category == .color }
+        case .custom:
+            return customPresets + [addNewPreset]
         }
+    }
+    
+    private var customPresets: [Preset] {
+        return customPresetManager.customPresets.map { customPreset in
+            let thumbnail = customPreset.thumbnailData.flatMap { UIImage(data: $0) }
+            return Preset(type: .custom, thumbnail: thumbnail, customPreset: customPreset)
+        }
+    }
+    
+    private var addNewPreset: Preset {
+        return Preset(type: .custom, thumbnail: nil, customPreset: nil)
     }
     
     // MARK: - Methods
@@ -113,6 +109,9 @@ struct PresetSelectionView: View {
             var generatedPresets: [Preset] = []
             
             for presetType in PresetType.allCases {
+                // Skip custom type as it's handled separately
+                if presetType == .custom { continue }
+                
                 let thumbnail = await generateThumbnail(for: presetType)
                 let preset = Preset(type: presetType, thumbnail: thumbnail)
                 generatedPresets.append(preset)
@@ -177,9 +176,19 @@ struct PresetThumbnailItemView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 56, height: 56)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .clipShape(Rectangle())
+                    } else if preset.type == .custom && preset.customPreset == nil {
+                        // Add new preset button
+                        Rectangle()
+                            .fill(Color(hex: "2a2a2a"))
+                            .frame(width: 56, height: 56)
+                            .overlay(
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .light))
+                                    .foregroundColor(.white)
+                            )
                     } else {
-                        RoundedRectangle(cornerRadius: 6)
+                        Rectangle()
                             .fill(Color(hex: "1e1e1e"))
                             .frame(width: 56, height: 56)
                             .overlay(
@@ -191,7 +200,7 @@ struct PresetThumbnailItemView: View {
                     
                     // 選択枠
                     if isSelected {
-                        RoundedRectangle(cornerRadius: 6)
+                        Rectangle()
                             .stroke(Color(red: 10/255, green: 132/255, blue: 255/255), lineWidth: 2)
                             .frame(width: 56, height: 56)
                     }
@@ -199,8 +208,8 @@ struct PresetThumbnailItemView: View {
                 
                 // プリセット名
                 VStack(spacing: 4) {
-                    Text(preset.type.rawValue)
-                        .font(.system(size: 11, weight: .medium))
+                    Text(displayName(for: preset))
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundColor(preset.type.color ?? (isSelected ? .white : Color(white: 0.56)))
                     
                     // 選択インジケーター
@@ -214,6 +223,16 @@ struct PresetThumbnailItemView: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    private func displayName(for preset: Preset) -> String {
+        if let customPreset = preset.customPreset {
+            return customPreset.name
+        } else if preset.type == .custom && preset.customPreset == nil {
+            return "Add New"
+        } else {
+            return preset.type.rawValue
+        }
+    }
 }
 
 // MARK: - Preview
@@ -222,9 +241,10 @@ struct PresetSelectionView_Previews: PreviewProvider {
     static var previews: some View {
         PresetSelectionView(
             selectedPreset: .constant(.natural),
-            selectedCategory: .constant(.basePresets),
+            selectedCategory: .constant(.light),
             originalImage: UIImage(systemName: "photo")!,
-            onPresetSelected: { _ in }
+            onPresetSelected: { _ in },
+            onCustomPresetSelected: nil
         )
         .frame(height: 180)
         .background(Color(hex: "121212"))

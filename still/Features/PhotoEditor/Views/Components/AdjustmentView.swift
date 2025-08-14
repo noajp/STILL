@@ -157,7 +157,7 @@ struct AdjustmentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(MinimalDesign.Colors.accentRed)
-                .cornerRadius(8)
+    
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
@@ -167,14 +167,6 @@ struct AdjustmentView: View {
     
     private func binding(for parameter: AdjustmentParameter) -> Binding<Float> {
         switch parameter {
-        case .whiteBalance:
-            return Binding(
-                get: { filterSettings.temperature },
-                set: { newValue in
-                    filterSettings.temperature = newValue
-                    onSettingsChanged(filterSettings)
-                }
-            )
         case .brightness:
             return Binding(
                 get: { filterSettings.brightness * 100 },
@@ -261,7 +253,7 @@ struct ToneCurveEditor: View {
                 }
             }
             .background(Color(hex: "121212"))
-            .cornerRadius(8)
+
         }
     }
     

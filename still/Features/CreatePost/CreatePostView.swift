@@ -171,6 +171,10 @@ struct CreatePostView: View {
                 
                 // PhotoPickerViewを閉じる
                 self.showingPhotoPicker = false
+                
+                // エディター画面を表示
+                self.showingPhotoEditor = true
+                print("🔵 showingPhotoEditor = true 設定 (PhotoPickerから)")
             }
             .onAppear {
                 print("🟡 DEBUG: PhotoPicker sheet onAppear")

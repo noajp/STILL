@@ -33,7 +33,7 @@ struct PostGridSection: View {
     // MARK: - Body
     
     var body: some View {
-        LazyVStack(spacing: 1.5) {
+        LazyVStack(spacing: 7) {
             ForEach(0..<groupedPosts.count, id: \.self) { groupIndex in
                 let group = groupedPosts[groupIndex]
                 let isOddRow = groupIndex % 2 == 0
@@ -148,12 +148,12 @@ struct OddRowView: View {
     let onPostTapped: (Post) -> Void
     
     var body: some View {
-        HStack(spacing: 1.5) {
+        HStack(spacing: 7) {
             if posts.count >= 1 {
                 // First post - takes up 2/3 of width
                 GridPostCell(
                     post: posts[0],
-                    width: (availableWidth * 2/3) - 1,
+                    width: (availableWidth * 2/3) - 4.5,
                     height: calculateLargeImageHeight(availableWidth: availableWidth),
                     onImageLoaded: onImageLoaded,
                     onTapped: onPostTapped
@@ -164,7 +164,7 @@ struct OddRowView: View {
                     // Second post - takes up 1/3 of width
                     GridPostCell(
                         post: posts[1],
-                        width: (availableWidth * 1/3) - 1,
+                        width: (availableWidth * 1/3) - 4.5,
                         height: calculateLargeImageHeight(availableWidth: availableWidth),
                         onImageLoaded: onImageLoaded,
                         onTapped: onPostTapped
@@ -178,7 +178,7 @@ struct OddRowView: View {
     
     private func calculateLargeImageHeight(availableWidth: CGFloat) -> CGFloat {
         // Same height as square cells in even rows
-        let cellWidth = (availableWidth - 2 * 1.5) / 3
+        let cellWidth = (availableWidth - 2 * 7) / 3
         return cellWidth
     }
 }
@@ -194,12 +194,12 @@ struct EvenRowView: View {
     let onPostTapped: (Post) -> Void
     
     var body: some View {
-        let cellWidth = (availableWidth - 2 * 1.5) / 3 // 3 columns with spacing
+        let cellWidth = (availableWidth - 2 * 7) / 3 // 3 columns with spacing
         let cellHeight = cellWidth // Square cells
         
-        VStack(spacing: 1.5) {
+        VStack(spacing: 7) {
             // First row of 3
-            HStack(spacing: 1.5) {
+            HStack(spacing: 7) {
                 ForEach(0..<min(3, posts.count), id: \.self) { index in
                     GridPostCell(
                         post: posts[index],
@@ -223,7 +223,7 @@ struct EvenRowView: View {
             
             // Second row of 3 (if we have more than 3 posts)
             if posts.count > 3 {
-                HStack(spacing: 1.5) {
+                HStack(spacing: 7) {
                     ForEach(3..<min(6, posts.count), id: \.self) { index in
                         GridPostCell(
                             post: posts[index],
