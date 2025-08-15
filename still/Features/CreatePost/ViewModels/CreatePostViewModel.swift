@@ -260,14 +260,37 @@ class CreatePostViewModel: ObservableObject {
                     print("🟢 Would be displayed as: \(aspectRatio >= 1.3 ? "landscape" : "square")")
                 }
                 
+                // SECURITY: Validate and sanitize user inputs before database insertion
+                let sanitizedCaption: String? = try {
+                    if captionText.isEmpty {
+                        return nil
+                    }
+                    let validation = InputValidator.validatePostContent(captionText)
+                    switch validation {
+                    case .valid(let sanitizedText):
+                        return sanitizedText
+                    case .invalid(let message):
+                        print("🔴 Caption validation failed: \(message)")
+                        throw PostError.invalidCaption(message)
+                    }
+                }()
+                
+                let sanitizedLocation: String? = {
+                    if location.isEmpty {
+                        return nil
+                    }
+                    let sanitized = InputValidator.sanitizeText(location, maxLength: 100)
+                    return sanitized.isEmpty ? nil : sanitized
+                }()
+                
                 let newPost = NewPost(
                     user_id: UUID(uuidString: userId)!,
                     media_url: mediaUrl,
                     media_type: currentMediaType.rawValue,
                     media_width: mediaDimensions?.width,
                     media_height: mediaDimensions?.height,
-                    caption: captionText.isEmpty ? nil : captionText,
-                    location_name: location.isEmpty ? nil : location,
+                    caption: sanitizedCaption,
+                    location_name: sanitizedLocation,
                     latitude: lat,
                     longitude: lng,
                     is_public: isPublicPost
@@ -565,6 +588,8 @@ enum PostError: LocalizedError {
     case uploadFailed
     /// User attempted to create post without selecting media
     case noMediaSelected
+    /// Caption validation failed due to invalid content
+    case invalidCaption(String)
     
     /// Human-readable error descriptions
     var errorDescription: String? {
@@ -575,6 +600,8 @@ enum PostError: LocalizedError {
             return "Upload failed"
         case .noMediaSelected:
             return "Please select an image or video"
+        case .invalidCaption(let message):
+            return "Caption validation failed: \(message)"
         }
     }
 }

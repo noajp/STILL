@@ -26,15 +26,15 @@ class GalleryViewModel: ObservableObject {
     /// Loading state for initial load
     @Published var isLoading = false
     
-
-    
     /// Error message to display
     @Published var errorMessage: String?
     
     // MARK: - Private Properties
     
     private let homeFeedViewModel = HomeFeedViewModel()
-
+    
+    /// Flag to prevent redundant initial loads
+    private var hasLoadedInitially = false
     
     // MARK: - Initialization
     
@@ -68,6 +68,19 @@ class GalleryViewModel: ObservableObject {
     // MARK: - Public Methods
     
     /**
+     * Loads posts only if they haven't been loaded initially.
+     * 
+     * This method prevents redundant API calls by checking the load status.
+     */
+    func loadPostsIfNeeded() async {
+        // Skip if already loaded to avoid redundant API calls
+        guard !hasLoadedInitially else { 
+            return 
+        }
+        await loadPosts()
+    }
+    
+    /**
      * Loads initial posts for the gallery.
      */
     func loadPosts() async {
@@ -81,6 +94,7 @@ class GalleryViewModel: ObservableObject {
         posts = homeFeedViewModel.posts
         
         print("✅ GalleryViewModel: Loaded \(posts.count) posts")
+        hasLoadedInitially = true
         isLoading = false
     }
     

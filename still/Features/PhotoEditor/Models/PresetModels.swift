@@ -290,9 +290,9 @@ struct Preset: Identifiable {
 // MARK: - Editor Tab
 enum EditorTab: String, CaseIterable {
     case wb = "WB"
-    case preset = "Preset"
-    case edit = "Edit"
-    case angle = "Angle"
+    case preset = "COLOR"
+    case edit = "EDIT"
+    case angle = "ANGLE"
     
     var icon: String {
         switch self {
@@ -312,11 +312,11 @@ enum EditorTab: String, CaseIterable {
         case .wb:
             return "WB"
         case .preset:
-            return "Preset"
+            return "COLOR"
         case .edit:
-            return "Edit"
+            return "EDIT"
         case .angle:
-            return "Angle"
+            return "ANGLE"
         }
     }
 }

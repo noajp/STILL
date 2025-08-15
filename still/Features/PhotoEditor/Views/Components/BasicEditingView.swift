@@ -23,7 +23,8 @@ struct BasicEditingView: View {
             // Preset Section
             presetSectionView
         }
-        .background(Color(red: 28/255, green: 28/255, blue: 30/255))
+        .frame(height: 140) // Fixed height for consistency
+        .background(Color(hex: "1a1a1a"))
     }
     
     // MARK: - Preset Section

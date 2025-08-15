@@ -74,9 +74,11 @@ struct GalleryView: View {
             }
         }
         .task {
-            await viewModel.loadPosts()
+            // Only load if data is not already cached
+            await viewModel.loadPostsIfNeeded()
         }
         .refreshable {
+            // Allow manual refresh via pull-to-refresh
             await viewModel.refreshPosts()
         }
         .navigationDestination(isPresented: $navigateToDetail) {

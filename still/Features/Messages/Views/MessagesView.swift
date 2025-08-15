@@ -65,67 +65,69 @@ struct MessagesView: View {
                 )
             }
         }
-        .onAppear {
-            Task {
-                // 常にリストを更新して最新の状態を保つ
-                await viewModel.refreshConversations()
+        .task {
+            // Only load if data is not already cached
+            await viewModel.loadConversationsIfNeeded()
+        }
+        .refreshable {
+            // Allow manual refresh via pull-to-refresh
+            await viewModel.refreshConversations()
+        }
+        .navigationDestination(isPresented: $isNavigatingToNewMessage) {
+            NewMessageView { userIds in
+                Task {
+                    print("🔄 Starting conversation creation with users: \(userIds)")
+                    
+                    let conversationId: String?
+                    
+                    if userIds.count == 1 {
+                        // Direct message with single user
+                        conversationId = await viewModel.createNewConversation(with: userIds[0])
+                        print("✅ Direct conversation created with ID: \(conversationId ?? "nil")")
+                    } else {
+                        // Group chat with multiple users
+                        conversationId = await viewModel.createGroupChat(name: "Group Chat", emoji: "👥", with: userIds)
+                        print("✅ Group conversation created with ID: \(conversationId ?? "nil")")
+                    }
+                    
+                    if let conversationId = conversationId {
+                        // Refresh conversations list
+                        await viewModel.refreshConversations()
+                        
+                        // Navigate to the created conversation
+                        await MainActor.run {
+                            selectedConversation = ConversationNavigation(id: conversationId)
+                            isNavigatingToNewMessage = false
+                        }
+                    } else {
+                        print("❌ Failed to create conversation")
+                        await MainActor.run {
+                            isNavigatingToNewMessage = false
+                        }
+                    }
+                }
             }
         }
-                .navigationDestination(isPresented: $isNavigatingToNewMessage) {
-                NewMessageView { userIds in
-                    Task {
-                        print("🔄 Starting conversation creation with users: \(userIds)")
-                        
-                        let conversationId: String?
-                        
-                        if userIds.count == 1 {
-                            // Direct message with single user
-                            conversationId = await viewModel.createNewConversation(with: userIds[0])
-                            print("✅ Direct conversation created with ID: \(conversationId ?? "nil")")
-                        } else {
-                            // Group chat with multiple users
-                            conversationId = await viewModel.createGroupChat(name: "Group Chat", emoji: "👥", with: userIds)
-                            print("✅ Group conversation created with ID: \(conversationId ?? "nil")")
-                        }
-                        
-                        if let conversationId = conversationId {
-                            // Refresh conversations list
-                            await viewModel.refreshConversations()
-                            
-                            // Navigate to the created conversation
-                            await MainActor.run {
-                                selectedConversation = ConversationNavigation(id: conversationId)
-                                isNavigatingToNewMessage = false
-                            }
-                        } else {
-                            print("❌ Failed to create conversation")
-                            await MainActor.run {
-                                isNavigatingToNewMessage = false
-                            }
-                        }
-                    }
+        .navigationDestination(item: $selectedConversation) { navItem in
+            // Simplified navigation - determine view type based on conversation data
+            let conversationId = navItem.id
+            if let groupConv = viewModel.groupConversations.first(where: { $0.id == conversationId }) {
+                GroupConversationView(conversationId: conversationId, groupConversation: groupConv)
+            } else if let conversation = viewModel.conversations.first(where: { $0.id == conversationId }) {
+                ConversationView(conversationId: conversationId, conversation: conversation)
+            } else {
+                // Fallback - let the view load its own data
+                ConversationView(conversationId: conversationId, conversation: nil)
+            }
+        }
+        .onChange(of: selectedConversation) { oldValue, newValue in
+            // チャットルームから戻った時（selectedConversationがnilになった時）にサイレント更新
+            if oldValue != nil && newValue == nil {
+                Task {
+                    await viewModel.silentRefreshConversations()
                 }
             }
-            .navigationDestination(item: $selectedConversation) { navItem in
-                // Simplified navigation - determine view type based on conversation data
-                let conversationId = navItem.id
-                if let groupConv = viewModel.groupConversations.first(where: { $0.id == conversationId }) {
-                    GroupConversationView(conversationId: conversationId, groupConversation: groupConv)
-                } else if let conversation = viewModel.conversations.first(where: { $0.id == conversationId }) {
-                    ConversationView(conversationId: conversationId, conversation: conversation)
-                } else {
-                    // Fallback - let the view load its own data
-                    ConversationView(conversationId: conversationId, conversation: nil)
-                }
-            }
-            .onChange(of: selectedConversation) { oldValue, newValue in
-                // チャットルームから戻った時（selectedConversationがnilになった時）にサイレント更新
-                if oldValue != nil && newValue == nil {
-                    Task {
-                        await viewModel.silentRefreshConversations()
-                    }
-                }
-            }
+        }
 
         .onReceive(NotificationCenter.default.publisher(for: .resetMessagesNavigation)) { _ in
             selectedConversation = nil
