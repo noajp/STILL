@@ -33,6 +33,9 @@ struct ModernPhotoEditorView: View {
     @State private var expandedParameter: AdjustmentParameter? = .brightness  // Default to brightness
     @State private var showToneCurve = false
     
+    // State for post composition navigation
+    @State private var showingPostComposition = false
+    
     // Animation state removed - NavigationStack handles transitions
     
     // MARK: - Initialization
@@ -82,7 +85,7 @@ struct ModernPhotoEditorView: View {
         if hasOnPost {
             return Text(isLoading ? "Posting..." : "Post")
         } else {
-            return Text("Done")
+            return Text("NEXT")
         }
     }
     
@@ -97,6 +100,20 @@ struct ModernPhotoEditorView: View {
     // MARK: - Body
     var body: some View {
         mainContent
+            .fullScreenCover(isPresented: $showingPostComposition) {
+                if let editedImage = viewModel.currentImage {
+                    PostCompositionView(
+                        editedImage: editedImage,
+                        onPostCreated: {
+                            showingPostComposition = false
+                            onComplete(editedImage)
+                        },
+                        onCancel: {
+                            showingPostComposition = false
+                        }
+                    )
+                }
+            }
     }
     
     private var mainContent: some View {
@@ -166,14 +183,17 @@ struct ModernPhotoEditorView: View {
                 }
                 
                 Button(action: {
-                    print("🟢 Button tapped! onPost is nil: \(onPost == nil)")
+                    print("🟢 NEXT Button tapped!")
+                    print("🟢 onPost is nil: \(onPost == nil)")
+                    
                     if let editedImage = viewModel.currentImage {
+                        print("🟢 editedImage is available")
                         if let onPost = onPost {
-                            print("🟢 Calling onPost")
+                            print("🟢 Calling onPost callback")
                             onPost(editedImage)
                         } else {
-                            print("🟢 Calling onComplete")
-                            onComplete(editedImage)
+                            print("🟢 Showing PostCompositionView directly")
+                            showingPostComposition = true
                         }
                     } else {
                         print("🔴 No editedImage available")

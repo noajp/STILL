@@ -72,6 +72,9 @@ class MainTabViewModel: BaseViewModelClass {
         /// Controls display of post type selection popup
         var showingPostTypeSelection = false
         
+        /// Controls display of post composition screen
+        var showingPostComposition = false
+        
         // pageSelection removed - camera is now accessed via story mode
     }
     
@@ -85,6 +88,9 @@ class MainTabViewModel: BaseViewModelClass {
         
         /// Currently selected image for editing or display
         var selectedImage: UIImage?
+        
+        /// Edited image ready for post composition
+        var editedImage: UIImage?
         
         /// Unread message count for badge display
         var unreadMessageCount: Int = 0
@@ -332,9 +338,24 @@ class MainTabViewModel: BaseViewModelClass {
      * - Parameter editedImage: The edited image from photo editor
      */
     func handlePhotoEditingComplete(_ editedImage: UIImage) {
+        print("🔥 handlePhotoEditingComplete called with edited image")
         dependencies.logger.info("Photo editing completed", file: #file, function: #function, line: #line)
-        navigationState.showingPhotoEditor = false
+        
+        // Store the edited image for post composition
+        presentationState.editedImage = editedImage
+        print("📝 Edited image stored for post composition")
+        
+        // Clear editor data
         presentationState.editorData = nil
+        print("🧹 Editor data cleared")
+        
+        // Close photo editor and show post composition screen
+        navigationState.showingPhotoEditor = false
+        navigationState.showingPostComposition = true
+        
+        print("📝 Transitioning to post composition screen")
+        print("📝 showingPhotoEditor: \(navigationState.showingPhotoEditor)")
+        print("📝 showingPostComposition: \(navigationState.showingPostComposition)")
     }
     
     /**
@@ -353,5 +374,28 @@ class MainTabViewModel: BaseViewModelClass {
             self.navigationState.showingPhotoEditor = false
             self.navigationState.showingCreatePost = true
         }
+    }
+    
+    /**
+     * Handles completion of post composition.
+     */
+    func handlePostCompositionComplete() {
+        dependencies.logger.info("Post composition completed successfully", file: #file, function: #function, line: #line)
+        navigationState.showingPostComposition = false
+        presentationState.editedImage = nil
+        
+        // Navigate to home feed to show the new post
+        selectedTab = 0
+    }
+    
+    /**
+     * Handles cancellation of post composition.
+     */
+    func handlePostCompositionCancelled() {
+        dependencies.logger.info("Post composition cancelled", file: #file, function: #function, line: #line)
+        
+        // Return to photo editor
+        navigationState.showingPostComposition = false
+        navigationState.showingPhotoEditor = true
     }
 }

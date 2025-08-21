@@ -82,7 +82,6 @@ struct MainTabView: View {
                 Spacer()
                 CustomTabBar(
                     selectedTab: $viewModel.selectedTab,
-
                     unreadMessageCount: viewModel.presentationState.unreadMessageCount,
                     onCreatePost: {
                         viewModel.handleCreatePost()
@@ -94,13 +93,9 @@ struct MainTabView: View {
                     onBackFromProfileSingleView: {
                         viewModel.handleBackFromProfileSingleView()
                     },
-                    onProfileDoubleTap: {
-                        // Profile double tap - no action needed
-                    },
+                    onProfileDoubleTap: nil,
                     isUserSearchMode: .constant(false),
-                    onMessageDoubleTap: {
-                        // Unified messaging - no mode toggle needed
-                    },
+                    onMessageDoubleTap: nil,
                     onTabReset: {
                         viewModel.resetTabNavigation {
                             homePath = NavigationPath()
@@ -124,7 +119,9 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $viewModel.navigationState.showingCreatePost) {
             NavigationStack {
                 PhotoPickerView { editorData in
-                    print("📸 Image received in MainTabView")
+                    print("📸 Image received in MainTabView from PhotoPickerView")
+                    print("📸 showingCreatePost: \(viewModel.navigationState.showingCreatePost)")
+                    print("📸 showingPhotoEditor: \(viewModel.navigationState.showingPhotoEditor)")
                     viewModel.handleImageSelected(editorData)
                 }
             }
@@ -138,9 +135,13 @@ struct MainTabView: View {
                     ModernPhotoEditorView(
                         editorData: editorData,
                         onComplete: { editedImage in
+                            print("🎨 PhotoEditor onComplete callback triggered")
+                            print("🎨 showingCreatePost: \(viewModel.navigationState.showingCreatePost)")
+                            print("🎨 showingPhotoEditor: \(viewModel.navigationState.showingPhotoEditor)")
                             viewModel.handlePhotoEditingComplete(editedImage)
                         },
                         onCancel: {
+                            print("🎨 PhotoEditor onCancel callback triggered")
                             viewModel.handlePhotoEditingCancelled()
                         }
                     )
@@ -149,6 +150,21 @@ struct MainTabView: View {
                         removal: .move(edge: .trailing)
                     ))
                 }
+            }
+        }
+        
+        // Post composition screen after photo editing
+        .fullScreenCover(isPresented: $viewModel.navigationState.showingPostComposition) {
+            if let editedImage = viewModel.presentationState.editedImage {
+                PostCompositionView(
+                    editedImage: editedImage,
+                    onPostCreated: {
+                        viewModel.handlePostCompositionComplete()
+                    },
+                    onCancel: {
+                        viewModel.handlePostCompositionCancelled()
+                    }
+                )
             }
         }
         
