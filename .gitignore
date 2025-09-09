@@ -123,3 +123,11 @@ buildServer.json
 # Xcode user-specific files
 *.xcuserstate
 UserInterfaceState.xcuserstate
+
+# Project configuration files
+Info.plist
+Secrets.plist
+*.plist.backup
+
+# DerivedData
+DerivedData/

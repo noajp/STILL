@@ -10,6 +10,11 @@ STILL combines the power of visual storytelling with written content, allowing c
 
 STILLは、ビジュアルストーリーテリングの力と文章コンテンツを組み合わせ、クリエイターが素晴らしい画像と魅力的な記事の両方を通じて自分の視点を共有できるようにします。SwiftUIで構築され、Supabaseによって動作し、シームレスで安全なソーシャルメディア体験を提供します。
 
+### 📊 Project Statistics / プロジェクト統計
+- **Total Lines of Code / 総コード行数**: ~47,000 lines
+- **Swift Files / Swiftファイル数**: 191 files
+- **Project Completion / プロジェクト完成度**: ~80%
+
 ## 💻 Tech Stack / 技術スタック
 
 ### Frontend / フロントエンド
