@@ -1,14 +1,14 @@
-# STILL - iOS Social Media Platform
+# STILL - iOS Photo Sharing Platform
 
-STILL is a feature-rich social media platform for iOS, specialized in photo and article posting. It provides professional-grade photo editing capabilities and sophisticated article creation tools for creators.
+STILL is a feature-rich photo sharing platform for iOS, specialized in high-quality photo posting with professional-grade editing capabilities for creators.
 
-STILLは、写真と記事の投稿に特化したiOS向けの多機能ソーシャルメディアプラットフォームです。クリエイター向けにプロ仕様の写真編集機能と洗練された記事作成ツールを提供します。
+STILLは、iOS向けの多機能写真共有プラットフォームです。クリエイター向けにプロ仕様の写真編集機能を備えた高品質な写真投稿に特化しています。
 
 ## 🚀 Overview / 概要
 
-STILL combines the power of visual storytelling with written content, allowing creators to share their perspectives through both stunning imagery and compelling articles. Built with SwiftUI and powered by Supabase, it offers a seamless and secure social media experience.
+STILL empowers creators to share their visual stories through stunning photography. With professional-grade editing tools and a clean, intuitive interface, it provides everything needed to capture, edit, and share memorable moments. Built with SwiftUI and powered by Supabase, it offers a seamless and secure social media experience.
 
-STILLは、ビジュアルストーリーテリングの力と文章コンテンツを組み合わせ、クリエイターが素晴らしい画像と魅力的な記事の両方を通じて自分の視点を共有できるようにします。SwiftUIで構築され、Supabaseによって動作し、シームレスで安全なソーシャルメディア体験を提供します。
+STILLは、クリエイターが素晴らしい写真を通じてビジュアルストーリーを共有できるようにします。プロ仕様の編集ツールとクリーンで直感的なインターフェースを備え、思い出に残る瞬間を撮影、編集、共有するために必要なすべてを提供します。SwiftUIで構築され、Supabaseによって動作し、シームレスで安全なソーシャルメディア体験を提供します。
 
 ### 📊 Project Statistics / プロジェクト統計
 - **Total Lines of Code / 総コード行数**: ~47,000 lines
@@ -43,15 +43,13 @@ STILLは、ビジュアルストーリーテリングの力と文章コンテン
 - **Professional Editing** / **プロ級の編集**: RAW image processing, exposure/color/shadow adjustments, non-destructive editing / RAW画像処理、露出/カラー/シャドウ調整、非破壊編集
 - **Filter Library** / **フィルターライブラリ**: Curated collection of artistic filters and effects / 厳選されたアーティスティックなフィルターとエフェクト
 
-### 📝 Article Creation / 記事作成
-- **Multiple Formats** / **複数のフォーマット**: 
-  - News articles for factual reporting / 事実報道のためのニュース記事
-  - Magazine-style articles with rich visual layouts / リッチなビジュアルレイアウトの雑誌スタイル記事
-- **Intuitive Editor** / **直感的なエディタ**: Drag-and-drop interface for images and text / 画像とテキストのドラッグ＆ドロップインターフェース
-- **Rich Text Support** / **リッチテキストサポート**: Formatting options for compelling storytelling / 魅力的なストーリーテリングのためのフォーマットオプション
+### 💬 Post Composition / 投稿作成
+- **Caption Editor** / **キャプションエディタ**: Add meaningful captions to your photos / 写真に意味のあるキャプションを追加
+- **Hashtag Support** / **ハッシュタグサポート**: Organize and discover content with hashtags / ハッシュタグでコンテンツを整理・発見
+- **Location Tagging** / **位置情報タグ**: Tag your photos with locations / 写真に位置情報をタグ付け
 
 ### 📱 Social Features / ソーシャル機能
-- **Unified Feed** / **統合フィード**: Mixed content stream of photos and articles / 写真と記事の混在コンテンツストリーム
+- **Photo Feed** / **写真フィード**: Discover and explore stunning photography / 素晴らしい写真を発見・探索
 - **Engagement** / **エンゲージメント**: Likes, comments, and follows / いいね、コメント、フォロー
 - **Real-time Updates** / **リアルタイム更新**: Live notifications and messaging / ライブ通知とメッセージング
 - **Profile Management** / **プロフィール管理**: Customizable profiles and content portfolios / カスタマイズ可能なプロフィールとコンテンツポートフォリオ
@@ -74,7 +72,7 @@ STILL/
 │       ├── HomeFeed/        # Main feed functionality / メインフィード機能
 │       ├── Camera/          # Camera and capture / カメラと撮影
 │       ├── PhotoEditor/     # Photo editing tools / 写真編集ツール
-│       ├── Articles/        # Article creation and viewing / 記事作成と閲覧
+│       ├── Posts/           # Post creation and viewing / 投稿作成と閲覧
 │       ├── Messages/        # Direct messaging / ダイレクトメッセージ
 │       ├── Profile/         # User profiles / ユーザープロフィール
 │       └── Settings/        # App settings / アプリ設定
